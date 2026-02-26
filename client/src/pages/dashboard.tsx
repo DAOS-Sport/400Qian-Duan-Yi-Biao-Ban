@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -13,58 +13,82 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { Users, Layers, Activity, RefreshCw, AlertCircle } from "lucide-react";
+import { Users, CheckCircle2, MapPin, RefreshCw, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const EXTERNAL_BASE = "https://line-bot-assistant-ronchen2.replit.app";
+
+const API_URLS = {
+  featureStats: `${EXTERNAL_BASE}/api/admin/dashboard/feature-stats`,
+  tasksStats: `${EXTERNAL_BASE}/api/admin/tasks/stats`,
+  attendanceStats: `${EXTERNAL_BASE}/api/admin/attendance/stats`,
+};
+
+const PROXY_URLS = {
+  featureStats: "/api/dashboard/feature-stats",
+  tasksStats: "/api/dashboard/tasks-stats",
+  attendanceStats: "/api/dashboard/attendance-stats",
+};
+
 interface GroupData {
   name: string;
-  tasks: number;
-  weather: number;
-  gps: number;
-  survey: number;
-  water: number;
-  wind: number;
   [key: string]: string | number;
 }
 
 interface PenetrationData {
   name: string;
   value: number;
-  color: string;
+  color?: string;
 }
 
-interface DashboardData {
+interface FeatureStatsResponse {
   groups: GroupData[];
   featurePenetration: PenetrationData[];
 }
 
-const fallbackGroups: GroupData[] = [
-  { name: "新北高中", tasks: 1, weather: 0, gps: 1, survey: 1, water: 0, wind: 0 },
-  { name: "台中一中", tasks: 1, weather: 1, gps: 1, survey: 1, water: 0, wind: 1 },
-  { name: "高雄女中", tasks: 1, weather: 1, gps: 0, survey: 1, water: 1, wind: 0 },
-  { name: "花蓮高中", tasks: 1, weather: 0, gps: 1, survey: 0, water: 1, wind: 1 },
-  { name: "台南二中", tasks: 1, weather: 1, gps: 1, survey: 1, water: 0, wind: 0 },
-  { name: "桃園高中", tasks: 1, weather: 0, gps: 0, survey: 1, water: 1, wind: 1 },
-  { name: "嘉義高中", tasks: 1, weather: 1, gps: 1, survey: 0, water: 0, wind: 0 },
-  { name: "宜蘭高中", tasks: 1, weather: 0, gps: 1, survey: 1, water: 0, wind: 1 },
-  { name: "屏東高中", tasks: 1, weather: 1, gps: 0, survey: 0, water: 1, wind: 0 },
-];
+interface TasksStatsResponse {
+  completionRate: number;
+  [key: string]: any;
+}
 
-const fallbackPenetration: PenetrationData[] = [
-  { name: "任務交辦", value: 100, color: "#3b82f6" },
-  { name: "客戶調查", value: 67, color: "#f59e0b" },
-  { name: "水質監控", value: 11, color: "#06b6d4" },
-];
+interface AttendanceStatsResponse {
+  successful: number;
+  [key: string]: any;
+}
+
+const fallbackFeatureStats: FeatureStatsResponse = {
+  groups: [
+    { name: "新北高中", tasks: 1, weather: 0, gps: 1, survey: 1, water: 0, wind: 0 },
+    { name: "台中一中", tasks: 1, weather: 1, gps: 1, survey: 1, water: 0, wind: 1 },
+    { name: "高雄女中", tasks: 1, weather: 1, gps: 0, survey: 1, water: 1, wind: 0 },
+    { name: "花蓮高中", tasks: 1, weather: 0, gps: 1, survey: 0, water: 1, wind: 1 },
+    { name: "台南二中", tasks: 1, weather: 1, gps: 1, survey: 1, water: 0, wind: 0 },
+    { name: "桃園高中", tasks: 1, weather: 0, gps: 0, survey: 1, water: 1, wind: 1 },
+    { name: "嘉義高中", tasks: 1, weather: 1, gps: 1, survey: 0, water: 0, wind: 0 },
+    { name: "宜蘭高中", tasks: 1, weather: 0, gps: 1, survey: 1, water: 0, wind: 1 },
+    { name: "屏東高中", tasks: 1, weather: 1, gps: 0, survey: 0, water: 1, wind: 0 },
+  ],
+  featurePenetration: [
+    { name: "任務交辦", value: 100, color: "#3b82f6" },
+    { name: "客戶調查", value: 67, color: "#f59e0b" },
+    { name: "水質監控", value: 11, color: "#06b6d4" },
+  ],
+};
+
+const fallbackTasksStats: TasksStatsResponse = { completionRate: 51.9 };
+const fallbackAttendanceStats: AttendanceStatsResponse = { successful: 42 };
 
 const penetrationColors: Record<string, string> = {
   "任務交辦": "#3b82f6",
+  "天氣預報": "#10b981",
+  "GPS打卡": "#8b5cf6",
   "客戶調查": "#f59e0b",
   "水質監控": "#06b6d4",
+  "風力監測": "#ec4899",
   "氣象觀測": "#10b981",
   "GPS 定位": "#8b5cf6",
-  "風力監測": "#ec4899",
 };
 
 const featureColors: Record<string, string> = {
@@ -87,62 +111,45 @@ const featureLabels: Record<string, string> = {
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
 const cardVariants = {
   hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
-  },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
-function computeKpi(groups: GroupData[]) {
-  const activeGroups = groups.length;
-  const featureKeys = ["tasks", "weather", "gps", "survey", "water", "wind"];
-  let totalEnabled = 0;
-  for (const g of groups) {
-    for (const k of featureKeys) {
-      totalEnabled += Number(g[k]) || 0;
+async function fetchJson<T>(primaryUrl: string, proxyUrl: string): Promise<T> {
+  try {
+    const res = await fetch(primaryUrl, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json")) return res.json();
     }
-  }
-  const maxFeatures = activeGroups * featureKeys.length;
-  const health = maxFeatures > 0 ? Math.round((totalEnabled / maxFeatures) * 100) : 0;
+  } catch {}
 
-  return [
-    {
-      title: "活躍群組數",
-      value: activeGroups,
-      suffix: "",
-      icon: Users,
-      lightBg: "bg-blue-50 dark:bg-blue-950/30",
-      iconColor: "text-blue-500",
-    },
-    {
-      title: "總啟用功能數",
-      value: totalEnabled,
-      suffix: "",
-      icon: Layers,
-      lightBg: "bg-emerald-50 dark:bg-emerald-950/30",
-      iconColor: "text-emerald-500",
-    },
-    {
-      title: "系統健康度",
-      value: health,
-      suffix: "%",
-      icon: Activity,
-      lightBg: "bg-violet-50 dark:bg-violet-950/30",
-      iconColor: "text-violet-500",
-    },
-  ];
+  const res = await fetch(proxyUrl, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as any).error || `HTTP ${res.status}`);
+  }
+  return res.json();
 }
 
-type KpiItem = ReturnType<typeof computeKpi>[0];
+interface KpiItem {
+  title: string;
+  value: string | number;
+  suffix: string;
+  icon: typeof Users;
+  lightBg: string;
+  iconColor: string;
+}
 
 function KpiCard({ item, index }: { item: KpiItem; index: number }) {
   const Icon = item.icon;
@@ -234,16 +241,25 @@ function CustomBarTooltip({ active, payload, label }: any) {
 }
 
 function StackedBarChartSection({ data }: { data: GroupData[] }) {
-  const featureKeysInData = Object.keys(featureColors).filter((k) =>
-    data.some((d) => d[k] !== undefined)
-  );
-  const lastKey = featureKeysInData[featureKeysInData.length - 1];
+  const allKeys = new Set<string>();
+  for (const row of data) {
+    for (const k of Object.keys(row)) {
+      if (k !== "name" && typeof row[k] === "number") allKeys.add(k);
+    }
+  }
+  const featureKeysInData = Object.keys(featureColors).filter((k) => allKeys.has(k));
+  const extraKeys = [...allKeys].filter((k) => !featureColors[k]);
+  const orderedKeys = [...featureKeysInData, ...extraKeys];
+  const lastKey = orderedKeys[orderedKeys.length - 1];
+
+  const extraColors = ["#64748b", "#a855f7", "#14b8a6", "#e11d48", "#84cc16", "#6366f1"];
+  let extraIdx = 0;
 
   return (
     <motion.div variants={cardVariants}>
       <Card className="p-6 border-card-border" data-testid="card-stacked-bar-chart">
         <div className="mb-5">
-          <h2 className="text-lg font-semibold">各群組功能啟用概況</h2>
+          <h2 className="text-lg font-semibold" data-testid="text-bar-chart-title">各群組功能啟用概況</h2>
           <p className="text-sm text-muted-foreground mt-1">依群組分類的功能啟用堆疊分析</p>
         </div>
         <ResponsiveContainer width="100%" height={340}>
@@ -270,15 +286,18 @@ function StackedBarChartSection({ data }: { data: GroupData[] }) {
               iconSize={8}
               wrapperStyle={{ paddingTop: 16 }}
             />
-            {featureKeysInData.map((key) => (
-              <Bar
-                key={key}
-                dataKey={key}
-                stackId="features"
-                fill={featureColors[key] || "#94a3b8"}
-                radius={key === lastKey ? [3, 3, 0, 0] : [0, 0, 0, 0]}
-              />
-            ))}
+            {orderedKeys.map((key) => {
+              const color = featureColors[key] || extraColors[extraIdx++ % extraColors.length];
+              return (
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  stackId="features"
+                  fill={color}
+                  radius={key === lastKey ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+                />
+              );
+            })}
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -287,13 +306,14 @@ function StackedBarChartSection({ data }: { data: GroupData[] }) {
 }
 
 function DonutChart({ item, index, totalGroups }: { item: PenetrationData; index: number; totalGroups: number }) {
-  const remaining = 100 - item.value;
+  const val = Math.min(item.value, 100);
+  const remaining = 100 - val;
   const data = [
-    { name: item.name, value: item.value },
-    { name: "remaining", value: remaining > 0 ? remaining : 0 },
+    { name: item.name, value: val },
+    { name: "remaining", value: remaining > 0 ? remaining : 0.01 },
   ];
   const color = item.color || penetrationColors[item.name] || "#94a3b8";
-  const enabledCount = Math.round((item.value / 100) * totalGroups);
+  const enabledCount = Math.round((val / 100) * totalGroups);
 
   return (
     <motion.div variants={cardVariants} className="flex-1 min-w-[200px]">
@@ -321,19 +341,19 @@ function DonutChart({ item, index, totalGroups }: { item: PenetrationData; index
           </ResponsiveContainer>
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-2xl font-bold" style={{ color }} data-testid={`text-donut-value-${index}`}>
-              {item.value}%
+              {Math.round(val)}%
             </span>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {item.value >= 100 ? "全數群組已啟用" : `${enabledCount} / ${totalGroups} 群組已啟用`}
+          {val >= 100 ? "全數群組已啟用" : `${enabledCount} / ${totalGroups} 群組已啟用`}
         </p>
       </Card>
     </motion.div>
   );
 }
 
-function ErrorBanner({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorBanner({ message, onRetry, isRetrying }: { message: string; onRetry: () => void; isRetrying: boolean }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -345,48 +365,99 @@ function ErrorBanner({ message, onRetry }: { message: string; onRetry: () => voi
         <p className="text-sm font-medium">無法取得即時資料</p>
         <p className="text-xs text-muted-foreground mt-0.5">{message} — 目前顯示本機快取資料</p>
       </div>
-      <Button size="sm" variant="outline" onClick={onRetry} data-testid="button-retry">
-        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-        重試
+      <Button size="sm" variant="outline" onClick={onRetry} disabled={isRetrying} data-testid="button-retry">
+        <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRetrying ? "animate-spin" : ""}`} />
+        {isRetrying ? "重試中..." : "重試"}
       </Button>
     </motion.div>
   );
 }
 
 export default function Dashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [featureStats, setFeatureStats] = useState<FeatureStatsResponse | null>(null);
+  const [tasksStats, setTasksStats] = useState<TasksStatsResponse | null>(null);
+  const [attendanceStats, setAttendanceStats] = useState<AttendanceStatsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    try {
-      const res = await fetch("/api/dashboard/feature-stats");
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `HTTP ${res.status}`);
-      }
-      const json = await res.json();
-      setData(json);
-    } catch (err: any) {
-      setError(err.message || "Unknown error");
-      setData({ groups: fallbackGroups, featurePenetration: fallbackPenetration });
-    } finally {
-      setIsLoading(false);
+    const errors: string[] = [];
+
+    const results = await Promise.allSettled([
+      fetchJson<FeatureStatsResponse>(API_URLS.featureStats, PROXY_URLS.featureStats),
+      fetchJson<TasksStatsResponse>(API_URLS.tasksStats, PROXY_URLS.tasksStats),
+      fetchJson<AttendanceStatsResponse>(API_URLS.attendanceStats, PROXY_URLS.attendanceStats),
+    ]);
+
+    if (results[0].status === "fulfilled") {
+      setFeatureStats(results[0].value);
+    } else {
+      errors.push("功能概況");
+      setFeatureStats(fallbackFeatureStats);
     }
-  };
+
+    if (results[1].status === "fulfilled") {
+      setTasksStats(results[1].value);
+    } else {
+      errors.push("任務統計");
+      setTasksStats(fallbackTasksStats);
+    }
+
+    if (results[2].status === "fulfilled") {
+      setAttendanceStats(results[2].value);
+    } else {
+      errors.push("出勤統計");
+      setAttendanceStats(fallbackAttendanceStats);
+    }
+
+    if (errors.length > 0) {
+      setError(`以下 API 連線失敗：${errors.join("、")}`);
+    }
+
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  const groups = data?.groups ?? fallbackGroups;
-  const penetration = (data?.featurePenetration ?? fallbackPenetration).map((p) => ({
+  const groups = featureStats?.groups ?? fallbackFeatureStats.groups;
+  const penetration = (featureStats?.featurePenetration ?? fallbackFeatureStats.featurePenetration).map((p) => ({
     ...p,
     color: p.color || penetrationColors[p.name] || "#94a3b8",
   }));
-  const kpi = computeKpi(groups);
+
+  const completionRate = tasksStats?.completionRate ?? fallbackTasksStats.completionRate;
+  const successfulAttendance = attendanceStats?.successful ?? fallbackAttendanceStats.successful;
+
+  const kpi: KpiItem[] = [
+    {
+      title: "活躍群組數",
+      value: groups.length,
+      suffix: "",
+      icon: Users,
+      lightBg: "bg-blue-50 dark:bg-blue-950/30",
+      iconColor: "text-blue-500",
+    },
+    {
+      title: "任務整體完成率",
+      value: typeof completionRate === "number" ? completionRate.toFixed(1) : completionRate,
+      suffix: "%",
+      icon: CheckCircle2,
+      lightBg: "bg-emerald-50 dark:bg-emerald-950/30",
+      iconColor: "text-emerald-500",
+    },
+    {
+      title: "今日打卡成功數",
+      value: successfulAttendance,
+      suffix: "",
+      icon: MapPin,
+      lightBg: "bg-violet-50 dark:bg-violet-950/30",
+      iconColor: "text-violet-500",
+    },
+  ];
 
   return (
     <div className="h-full overflow-y-auto">
@@ -396,7 +467,7 @@ export default function Dashboard() {
           <p className="text-sm text-muted-foreground mt-1">即時監控各群組的功能啟用狀態與系統健康度</p>
         </motion.div>
 
-        {error && <ErrorBanner message={error} onRetry={fetchData} />}
+        {error && <ErrorBanner message={error} onRetry={fetchData} isRetrying={isLoading} />}
 
         {isLoading ? (
           <KpiSkeleton />
