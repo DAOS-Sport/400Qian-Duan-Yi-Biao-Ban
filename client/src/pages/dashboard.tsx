@@ -25,8 +25,9 @@ interface GroupData {
 }
 
 interface PenetrationData {
-  name: string;
-  value: number;
+  feature: string;
+  count: number;
+  rate: number;
   color?: string;
 }
 
@@ -336,9 +337,9 @@ export default function Dashboard() {
   const penetration = featureStats?.featurePenetration ?? [];
 
   const gpsPenetration = penetration.find(
-    (p) => p.name === "GPS打卡" || p.name === "GPS 定位" || (p.name?.toLowerCase().includes("gps") ?? false)
+    (p) => p.feature === "GPS打卡" || p.feature?.toLowerCase().includes("gps")
   );
-  const gpsRate = gpsPenetration ? gpsPenetration.value : null;
+  const gpsRate = gpsPenetration ? gpsPenetration.rate : null;
 
   const kpi: KpiItem[] = hasData
     ? [
