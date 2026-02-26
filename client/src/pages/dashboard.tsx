@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 
 const API = {
   featureStats: "https://line-bot-assistant-ronchen2.replit.app/api/admin/dashboard/feature-stats",
@@ -21,7 +20,9 @@ const API = {
 
 interface GroupData {
   name: string;
-  [key: string]: string | number;
+  groupId?: string;
+  totalEnabled?: number;
+  [key: string]: string | number | undefined;
 }
 
 interface PenetrationData {
@@ -46,23 +47,75 @@ interface AttendanceStatsResponse {
   [key: string]: any;
 }
 
-const featureLabels: Record<string, string> = {
-  tasks: "任務交辦",
-  weather: "天氣預報",
-  gps: "GPS打卡",
-  survey: "客戶調查",
-  water: "水質監控",
-  wind: "風力監測",
+const EXCLUDED_KEYS = new Set(["name", "groupId", "totalEnabled"]);
+
+interface FeatureMeta {
+  label: string;
+  emoji: string;
+  category: "group" | "web" | "private";
+}
+
+const FEATURE_MAP: Record<string, FeatureMeta> = {
+  tasks:   { label: "任務交辦", emoji: "📋", category: "group" },
+  weather: { label: "天氣預報", emoji: "🌤️", category: "group" },
+  wind:    { label: "風力預報", emoji: "🌬️", category: "group" },
+  water:   { label: "水質監控", emoji: "💧", category: "group" },
+  gps:     { label: "GPS打卡",  emoji: "📍", category: "web" },
+  coach:   { label: "教練簽到", emoji: "🏋️", category: "web" },
+  survey:  { label: "客戶調查", emoji: "📊", category: "web" },
+  employee:  { label: "員工查詢",  emoji: "🔍", category: "private" },
+  interview: { label: "面試檢核",  emoji: "📝", category: "private" },
 };
 
-const featureBadgeColors: Record<string, { on: string; text: string }> = {
-  tasks: { on: "bg-blue-100 dark:bg-blue-900/40", text: "text-blue-700 dark:text-blue-300" },
-  weather: { on: "bg-emerald-100 dark:bg-emerald-900/40", text: "text-emerald-700 dark:text-emerald-300" },
-  gps: { on: "bg-violet-100 dark:bg-violet-900/40", text: "text-violet-700 dark:text-violet-300" },
-  survey: { on: "bg-amber-100 dark:bg-amber-900/40", text: "text-amber-700 dark:text-amber-300" },
-  water: { on: "bg-cyan-100 dark:bg-cyan-900/40", text: "text-cyan-700 dark:text-cyan-300" },
-  wind: { on: "bg-pink-100 dark:bg-pink-900/40", text: "text-pink-700 dark:text-pink-300" },
-};
+interface CategoryDef {
+  key: "group" | "web" | "private";
+  title: string;
+  emoji: string;
+  color: string;
+  borderColor: string;
+  bgColor: string;
+  badgeOn: string;
+  badgeOff: string;
+}
+
+const CATEGORIES: CategoryDef[] = [
+  {
+    key: "group",
+    title: "群組自動化",
+    emoji: "💬",
+    color: "text-blue-700 dark:text-blue-300",
+    borderColor: "border-blue-200 dark:border-blue-800/50",
+    bgColor: "bg-blue-50/60 dark:bg-blue-950/20",
+    badgeOn: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300",
+    badgeOff: "bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-zinc-500",
+  },
+  {
+    key: "web",
+    title: "網頁應用",
+    emoji: "🌐",
+    color: "text-violet-700 dark:text-violet-300",
+    borderColor: "border-violet-200 dark:border-violet-800/50",
+    bgColor: "bg-violet-50/60 dark:bg-violet-950/20",
+    badgeOn: "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300",
+    badgeOff: "bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-zinc-500",
+  },
+  {
+    key: "private",
+    title: "私人專屬",
+    emoji: "👤",
+    color: "text-amber-700 dark:text-amber-300",
+    borderColor: "border-amber-200 dark:border-amber-800/50",
+    bgColor: "bg-amber-50/60 dark:bg-amber-950/20",
+    badgeOn: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
+    badgeOff: "bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-zinc-500",
+  },
+];
+
+function getCategoryFeatures(categoryKey: string): string[] {
+  return Object.entries(FEATURE_MAP)
+    .filter(([, meta]) => meta.category === categoryKey)
+    .map(([key]) => key);
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -143,20 +196,26 @@ function KpiSkeleton() {
 
 function VenueGridSkeleton() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-zinc-800">
-          <div className="flex items-center gap-3 mb-4">
-            <Skeleton className="h-10 w-10 rounded-md" />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-zinc-800">
+          <div className="flex items-center gap-3 mb-5">
+            <Skeleton className="h-11 w-11 rounded-xl" />
             <div className="space-y-1.5 flex-1">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-3 w-20" />
             </div>
-            <Skeleton className="h-3 w-3 rounded-full" />
           </div>
-          <div className="flex flex-wrap gap-2">
-            {[0, 1, 2, 3].map((j) => (
-              <Skeleton key={j} className="h-6 w-16 rounded-full" />
+          <Skeleton className="h-2.5 w-full rounded-full mb-5" />
+          <div className="space-y-3">
+            {[0, 1, 2].map((j) => (
+              <div key={j} className="rounded-lg border p-3 border-gray-100 dark:border-zinc-800">
+                <Skeleton className="h-3 w-24 mb-2" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -165,49 +224,7 @@ function VenueGridSkeleton() {
   );
 }
 
-function StatusLight({ enabled }: { enabled: boolean }) {
-  return (
-    <div className="relative flex items-center justify-center" data-testid={`status-light-${enabled ? "on" : "off"}`}>
-      {enabled && (
-        <span className="absolute inline-flex h-3 w-3 rounded-full bg-emerald-400 opacity-40 animate-ping" />
-      )}
-      <span
-        className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
-          enabled ? "bg-emerald-500" : "bg-amber-400"
-        }`}
-      />
-    </div>
-  );
-}
-
-function FeatureBadge({ featureKey, enabled }: { featureKey: string; enabled: boolean }) {
-  const label = featureLabels[featureKey] || featureKey;
-  const colors = featureBadgeColors[featureKey];
-
-  if (!enabled) {
-    return (
-      <span
-        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-zinc-500 line-through decoration-gray-300 dark:decoration-zinc-600"
-        data-testid={`badge-${featureKey}-off`}
-      >
-        {label}
-      </span>
-    );
-  }
-
-  return (
-    <motion.span
-      whileHover={{ scale: 1.05 }}
-      transition={{ type: "spring", stiffness: 400, damping: 17 }}
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold cursor-default ${colors?.on || "bg-blue-100"} ${colors?.text || "text-blue-700"}`}
-      data-testid={`badge-${featureKey}-on`}
-    >
-      {label}
-    </motion.span>
-  );
-}
-
-function VenueCard({
+function PortfolioCard({
   group,
   index,
   gpsRate,
@@ -216,55 +233,107 @@ function VenueCard({
   index: number;
   gpsRate: number | null;
 }) {
-  const featureKeys = Object.keys(group).filter((k) => k !== "name" && typeof group[k] === "number");
-  const enabledCount = featureKeys.filter((k) => Number(group[k]) > 0).length;
-  const totalCount = featureKeys.length;
-  const gpsEnabled = Number(group["gps"] ?? 0) > 0;
+  const featureKeys = Object.keys(group).filter(
+    (k) => !EXCLUDED_KEYS.has(k) && typeof group[k] === "number"
+  );
+
+  const allMappedKeys = Object.keys(FEATURE_MAP);
+  const enabledCount = allMappedKeys.filter((k) => featureKeys.includes(k) && Number(group[k]) > 0).length;
+  const totalCount = allMappedKeys.length;
+  const enabledRate = totalCount > 0 ? Math.round((enabledCount / totalCount) * 100) : 0;
 
   return (
-    <motion.div variants={cardVariants} whileHover={{ y: -3, transition: { duration: 0.2 } }}>
+    <motion.div variants={cardVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }}>
       <div
-        className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-zinc-800 h-full flex flex-col"
+        className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 h-full flex flex-col overflow-hidden"
         data-testid={`card-venue-${index}`}
       >
-        <div className="flex items-start gap-3 mb-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-zinc-800">
-            <Building2 className="h-5 w-5 text-slate-500 dark:text-zinc-400" />
+        <div className="p-6 pb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-zinc-800 dark:to-zinc-700">
+              <Building2 className="h-5 w-5 text-slate-600 dark:text-zinc-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-bold truncate text-gray-800 dark:text-zinc-100" data-testid={`text-venue-name-${index}`}>
+                {group.name}
+              </p>
+              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">
+                已啟用 {enabledCount} / {totalCount} 項模組
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate text-gray-800 dark:text-zinc-100" data-testid={`text-venue-name-${index}`}>
-              {group.name}
-            </p>
-            <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">
-              {enabledCount}/{totalCount} 功能啟用
-            </p>
-          </div>
-          <StatusLight enabled={gpsEnabled} />
-        </div>
 
-        {gpsRate !== null && (
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-400 dark:text-zinc-500">打卡率</span>
-              <span className={`text-xs font-semibold ${gpsEnabled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-500"}`}>
-                {gpsEnabled ? `${Math.round(gpsRate)}%` : "未啟用"}
+          <div className="mb-1">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-gray-500 dark:text-zinc-400">系統啟用率</span>
+              <span className="text-xs font-bold text-gray-700 dark:text-zinc-200" data-testid={`text-venue-rate-${index}`}>
+                {enabledRate}%
               </span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-gray-100 dark:bg-zinc-800">
+            <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-zinc-800">
               <motion.div
-                className={`h-1.5 rounded-full ${gpsEnabled ? "bg-emerald-500" : "bg-amber-400"}`}
+                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-violet-500"
                 initial={{ width: 0 }}
-                animate={{ width: gpsEnabled ? `${Math.round(gpsRate)}%` : "0%" }}
+                animate={{ width: `${enabledRate}%` }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
               />
             </div>
           </div>
-        )}
 
-        <div className="flex flex-wrap gap-1.5 mt-auto">
-          {featureKeys.map((key) => (
-            <FeatureBadge key={key} featureKey={key} enabled={Number(group[key]) > 0} />
-          ))}
+          {gpsRate !== null && Number(group["gps"] ?? 0) > 0 && (
+            <div className="mt-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium text-gray-500 dark:text-zinc-400">📍 打卡率</span>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  {Math.round(gpsRate)}%
+                </span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-gray-100 dark:bg-zinc-800">
+                <motion.div
+                  className="h-2 rounded-full bg-emerald-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.round(gpsRate)}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut", delay: 0.35 }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 pb-6 pt-2 space-y-3 flex-1">
+          {CATEGORIES.map((cat) => {
+            const catFeatureKeys = getCategoryFeatures(cat.key);
+            return (
+              <div
+                key={cat.key}
+                className={`rounded-xl border p-3 ${cat.borderColor} ${cat.bgColor}`}
+                data-testid={`section-category-${cat.key}-${index}`}
+              >
+                <p className={`text-xs font-semibold mb-2 ${cat.color}`}>
+                  {cat.emoji} {cat.title}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {catFeatureKeys.map((fk) => {
+                    const meta = FEATURE_MAP[fk];
+                    const enabled = featureKeys.includes(fk) && Number(group[fk]) > 0;
+                    return (
+                      <motion.span
+                        key={fk}
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold cursor-default transition-colors ${
+                          enabled ? cat.badgeOn : cat.badgeOff
+                        } ${!enabled ? "opacity-60" : ""}`}
+                        data-testid={`badge-${fk}-${enabled ? "on" : "off"}-${index}`}
+                      >
+                        {enabled ? "✅" : "❌"} {meta.emoji} {meta.label}
+                      </motion.span>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </motion.div>
@@ -353,7 +422,9 @@ export default function Dashboard() {
         },
         {
           title: "任務完成率",
-          value: typeof tasksStats!.completionRate === "number" ? tasksStats!.completionRate.toFixed(1) : tasksStats!.completionRate,
+          value: typeof tasksStats!.completionRate === "number"
+            ? tasksStats!.completionRate.toFixed(1)
+            : String(tasksStats!.completionRate).replace(/%$/, ""),
           suffix: "%",
           icon: CheckCircle2,
           accentColor: "text-emerald-600 dark:text-emerald-400",
@@ -430,21 +501,31 @@ export default function Dashboard() {
               ))}
             </motion.div>
 
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-sm text-gray-400 dark:text-zinc-500 leading-relaxed"
+              data-testid="text-dashboard-description"
+            >
+              本儀表板展示各場館目前已啟用的 LINE 機器人自動化模組。亮色代表已啟用，灰色代表未啟用。
+            </motion.p>
+
             <div>
               <div className="mb-4">
-                <h2 className="text-base font-semibold text-gray-700 dark:text-zinc-200">各場館營運狀態</h2>
+                <h2 className="text-base font-semibold text-gray-700 dark:text-zinc-200">各場館模組總覽</h2>
                 <p className="text-sm text-gray-400 dark:text-zinc-500 mt-0.5">
-                  {groups.length} 個場館 / 功能開關與打卡狀態一覽
+                  {groups.length} 個場館 / 依功能類別分區顯示
                 </p>
               </div>
               <motion.div
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+                className="grid grid-cols-1 lg:grid-cols-2 gap-5"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
               >
                 {groups.map((group, i) => (
-                  <VenueCard key={group.name} group={group} index={i} gpsRate={gpsRate} />
+                  <PortfolioCard key={group.name} group={group} index={i} gpsRate={gpsRate} />
                 ))}
               </motion.div>
             </div>
