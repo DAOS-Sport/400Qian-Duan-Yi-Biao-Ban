@@ -336,7 +336,7 @@ export default function Dashboard() {
   const penetration = featureStats?.featurePenetration ?? [];
 
   const gpsPenetration = penetration.find(
-    (p) => p.name === "GPS打卡" || p.name === "GPS 定位" || p.name.toLowerCase().includes("gps")
+    (p) => p.name === "GPS打卡" || p.name === "GPS 定位" || (p.name?.toLowerCase().includes("gps") ?? false)
   );
   const gpsRate = gpsPenetration ? gpsPenetration.value : null;
 
