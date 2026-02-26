@@ -18,18 +18,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const EXTERNAL_BASE = "https://line-bot-assistant-ronchen2.replit.app";
-
-const API_URLS = {
-  featureStats: `${EXTERNAL_BASE}/api/admin/dashboard/feature-stats`,
-  tasksStats: `${EXTERNAL_BASE}/api/admin/tasks/stats`,
-  attendanceStats: `${EXTERNAL_BASE}/api/admin/attendance/stats`,
-};
-
-const PROXY_URLS = {
-  featureStats: "/api/dashboard/feature-stats",
-  tasksStats: "/api/dashboard/tasks-stats",
-  attendanceStats: "/api/dashboard/attendance-stats",
+const API = {
+  featureStats: "https://line-bot-assistant-ronchen2.replit.app/api/admin/dashboard/feature-stats",
+  tasksStats: "https://line-bot-assistant-ronchen2.replit.app/api/admin/tasks/stats",
+  attendanceStats: "https://line-bot-assistant-ronchen2.replit.app/api/admin/attendance/stats",
 };
 
 interface GroupData {
@@ -57,28 +49,6 @@ interface AttendanceStatsResponse {
   successful: number;
   [key: string]: any;
 }
-
-const fallbackFeatureStats: FeatureStatsResponse = {
-  groups: [
-    { name: "新北高中", tasks: 1, weather: 0, gps: 1, survey: 1, water: 0, wind: 0 },
-    { name: "台中一中", tasks: 1, weather: 1, gps: 1, survey: 1, water: 0, wind: 1 },
-    { name: "高雄女中", tasks: 1, weather: 1, gps: 0, survey: 1, water: 1, wind: 0 },
-    { name: "花蓮高中", tasks: 1, weather: 0, gps: 1, survey: 0, water: 1, wind: 1 },
-    { name: "台南二中", tasks: 1, weather: 1, gps: 1, survey: 1, water: 0, wind: 0 },
-    { name: "桃園高中", tasks: 1, weather: 0, gps: 0, survey: 1, water: 1, wind: 1 },
-    { name: "嘉義高中", tasks: 1, weather: 1, gps: 1, survey: 0, water: 0, wind: 0 },
-    { name: "宜蘭高中", tasks: 1, weather: 0, gps: 1, survey: 1, water: 0, wind: 1 },
-    { name: "屏東高中", tasks: 1, weather: 1, gps: 0, survey: 0, water: 1, wind: 0 },
-  ],
-  featurePenetration: [
-    { name: "任務交辦", value: 100, color: "#3b82f6" },
-    { name: "客戶調查", value: 67, color: "#f59e0b" },
-    { name: "水質監控", value: 11, color: "#06b6d4" },
-  ],
-};
-
-const fallbackTasksStats: TasksStatsResponse = { completionRate: 51.9 };
-const fallbackAttendanceStats: AttendanceStatsResponse = { successful: 42 };
 
 const penetrationColors: Record<string, string> = {
   "任務交辦": "#3b82f6",
@@ -119,25 +89,16 @@ const cardVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
-async function fetchJson<T>(primaryUrl: string, proxyUrl: string): Promise<T> {
-  try {
-    const res = await fetch(primaryUrl, {
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (res.ok) {
-      const ct = res.headers.get("content-type") || "";
-      if (ct.includes("application/json")) return res.json();
-    }
-  } catch {}
-
-  const res = await fetch(proxyUrl, {
+async function strictFetch<T>(url: string): Promise<T> {
+  const res = await fetch(url, {
     headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error((body as any).error || `HTTP ${res.status}`);
+    throw new Error(`API ${url} 回傳 HTTP ${res.status}`);
+  }
+  const ct = res.headers.get("content-type") || "";
+  if (!ct.includes("application/json")) {
+    throw new Error(`API ${url} 未回傳 JSON (content-type: ${ct})`);
   }
   return res.json();
 }
@@ -252,7 +213,7 @@ function StackedBarChartSection({ data }: { data: GroupData[] }) {
   const orderedKeys = [...featureKeysInData, ...extraKeys];
   const lastKey = orderedKeys[orderedKeys.length - 1];
 
-  const extraColors = ["#64748b", "#a855f7", "#14b8a6", "#e11d48", "#84cc16", "#6366f1"];
+  const extraColorPalette = ["#64748b", "#a855f7", "#14b8a6", "#e11d48", "#84cc16", "#6366f1"];
   let extraIdx = 0;
 
   return (
@@ -287,7 +248,7 @@ function StackedBarChartSection({ data }: { data: GroupData[] }) {
               wrapperStyle={{ paddingTop: 16 }}
             />
             {orderedKeys.map((key) => {
-              const color = featureColors[key] || extraColors[extraIdx++ % extraColors.length];
+              const color = featureColors[key] || extraColorPalette[extraIdx++ % extraColorPalette.length];
               return (
                 <Bar
                   key={key}
@@ -353,22 +314,28 @@ function DonutChart({ item, index, totalGroups }: { item: PenetrationData; index
   );
 }
 
-function ErrorBanner({ message, onRetry, isRetrying }: { message: string; onRetry: () => void; isRetrying: boolean }) {
+function ErrorBlock({ message, onRetry, isRetrying }: { message: string; onRetry: () => void; isRetrying: boolean }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-md border border-destructive/30 bg-destructive/5 p-4 flex items-center gap-3"
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col items-center justify-center py-20"
     >
-      <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-      <div className="flex-1">
-        <p className="text-sm font-medium">無法取得即時資料</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{message} — 目前顯示本機快取資料</p>
+      <div className="rounded-md border border-destructive/30 bg-destructive/5 p-8 max-w-lg w-full text-center space-y-4">
+        <div className="flex justify-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+            <AlertCircle className="h-7 w-7 text-destructive" />
+          </div>
+        </div>
+        <h2 className="text-lg font-semibold" data-testid="text-error-title">無法連線至真實伺服器</h2>
+        <p className="text-sm text-muted-foreground" data-testid="text-error-message">{message}</p>
+        <p className="text-xs text-muted-foreground">請確認後端伺服器已啟動，並檢查網路連線狀態。</p>
+        <Button variant="outline" onClick={onRetry} disabled={isRetrying} data-testid="button-retry">
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? "animate-spin" : ""}`} />
+          {isRetrying ? "重新連線中..." : "重新連線"}
+        </Button>
       </div>
-      <Button size="sm" variant="outline" onClick={onRetry} disabled={isRetrying} data-testid="button-retry">
-        <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRetrying ? "animate-spin" : ""}`} />
-        {isRetrying ? "重試中..." : "重試"}
-      </Button>
     </motion.div>
   );
 }
@@ -383,81 +350,66 @@ export default function Dashboard() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    const errors: string[] = [];
+    setFeatureStats(null);
+    setTasksStats(null);
+    setAttendanceStats(null);
 
-    const results = await Promise.allSettled([
-      fetchJson<FeatureStatsResponse>(API_URLS.featureStats, PROXY_URLS.featureStats),
-      fetchJson<TasksStatsResponse>(API_URLS.tasksStats, PROXY_URLS.tasksStats),
-      fetchJson<AttendanceStatsResponse>(API_URLS.attendanceStats, PROXY_URLS.attendanceStats),
-    ]);
-
-    if (results[0].status === "fulfilled") {
-      setFeatureStats(results[0].value);
-    } else {
-      errors.push("功能概況");
-      setFeatureStats(fallbackFeatureStats);
+    try {
+      const [fs, ts, as] = await Promise.all([
+        strictFetch<FeatureStatsResponse>(API.featureStats),
+        strictFetch<TasksStatsResponse>(API.tasksStats),
+        strictFetch<AttendanceStatsResponse>(API.attendanceStats),
+      ]);
+      setFeatureStats(fs);
+      setTasksStats(ts);
+      setAttendanceStats(as);
+    } catch (err: any) {
+      setError(err.message || "未知錯誤");
+    } finally {
+      setIsLoading(false);
     }
-
-    if (results[1].status === "fulfilled") {
-      setTasksStats(results[1].value);
-    } else {
-      errors.push("任務統計");
-      setTasksStats(fallbackTasksStats);
-    }
-
-    if (results[2].status === "fulfilled") {
-      setAttendanceStats(results[2].value);
-    } else {
-      errors.push("出勤統計");
-      setAttendanceStats(fallbackAttendanceStats);
-    }
-
-    if (errors.length > 0) {
-      setError(`以下 API 連線失敗：${errors.join("、")}`);
-    }
-
-    setIsLoading(false);
   }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const groups = featureStats?.groups ?? fallbackFeatureStats.groups;
-  const penetration = (featureStats?.featurePenetration ?? fallbackFeatureStats.featurePenetration).map((p) => ({
+  const hasData = featureStats && tasksStats && attendanceStats;
+
+  const groups = featureStats?.groups ?? [];
+  const penetration = (featureStats?.featurePenetration ?? []).map((p) => ({
     ...p,
     color: p.color || penetrationColors[p.name] || "#94a3b8",
   }));
 
-  const completionRate = tasksStats?.completionRate ?? fallbackTasksStats.completionRate;
-  const successfulAttendance = attendanceStats?.successful ?? fallbackAttendanceStats.successful;
-
-  const kpi: KpiItem[] = [
-    {
-      title: "活躍群組數",
-      value: groups.length,
-      suffix: "",
-      icon: Users,
-      lightBg: "bg-blue-50 dark:bg-blue-950/30",
-      iconColor: "text-blue-500",
-    },
-    {
-      title: "任務整體完成率",
-      value: typeof completionRate === "number" ? completionRate.toFixed(1) : completionRate,
-      suffix: "%",
-      icon: CheckCircle2,
-      lightBg: "bg-emerald-50 dark:bg-emerald-950/30",
-      iconColor: "text-emerald-500",
-    },
-    {
-      title: "今日打卡成功數",
-      value: successfulAttendance,
-      suffix: "",
-      icon: MapPin,
-      lightBg: "bg-violet-50 dark:bg-violet-950/30",
-      iconColor: "text-violet-500",
-    },
-  ];
+  const kpi: KpiItem[] = hasData
+    ? [
+        {
+          title: "活躍群組數",
+          value: groups.length,
+          suffix: "",
+          icon: Users,
+          lightBg: "bg-blue-50 dark:bg-blue-950/30",
+          iconColor: "text-blue-500",
+        },
+        {
+          title: "任務整體完成率",
+          value: typeof tasksStats!.completionRate === "number" ? tasksStats!.completionRate.toFixed(1) : tasksStats!.completionRate,
+          suffix: "%",
+          icon: CheckCircle2,
+          lightBg: "bg-emerald-50 dark:bg-emerald-950/30",
+          iconColor: "text-emerald-500",
+        },
+        {
+          title: "今日打卡成功數",
+          value: attendanceStats!.successful,
+          suffix: "",
+          icon: MapPin,
+          lightBg: "bg-violet-50 dark:bg-violet-950/30",
+          iconColor: "text-violet-500",
+        },
+      ]
+    : [];
 
   return (
     <div className="h-full overflow-y-auto">
@@ -467,40 +419,48 @@ export default function Dashboard() {
           <p className="text-sm text-muted-foreground mt-1">即時監控各群組的功能啟用狀態與系統健康度</p>
         </motion.div>
 
-        {error && <ErrorBanner message={error} onRetry={fetchData} isRetrying={isLoading} />}
-
-        {isLoading ? (
-          <KpiSkeleton />
-        ) : (
-          <motion.div className="flex flex-wrap gap-4" variants={containerVariants} initial="hidden" animate="visible">
-            {kpi.map((item, i) => (
-              <KpiCard key={item.title} item={item} index={i} />
-            ))}
-          </motion.div>
+        {error && !isLoading && (
+          <ErrorBlock message={error} onRetry={fetchData} isRetrying={isLoading} />
         )}
 
-        {isLoading ? (
-          <ChartSkeleton />
-        ) : (
-          <motion.div variants={containerVariants} initial="hidden" animate="visible">
-            <StackedBarChartSection data={groups} />
-          </motion.div>
-        )}
-
-        {isLoading ? (
-          <DonutSkeleton />
-        ) : (
-          <motion.div variants={containerVariants} initial="hidden" animate="visible">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold">關鍵功能滲透率</h2>
-              <p className="text-sm text-muted-foreground mt-1">核心功能在各群組中的啟用比例</p>
+        {isLoading && (
+          <>
+            <KpiSkeleton />
+            <ChartSkeleton />
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-4 w-56" />
+              </div>
+              <DonutSkeleton />
             </div>
-            <div className="flex flex-wrap gap-4">
-              {penetration.map((item, i) => (
-                <DonutChart key={item.name} item={item} index={i} totalGroups={groups.length} />
+          </>
+        )}
+
+        {hasData && (
+          <>
+            <motion.div className="flex flex-wrap gap-4" variants={containerVariants} initial="hidden" animate="visible">
+              {kpi.map((item, i) => (
+                <KpiCard key={item.title} item={item} index={i} />
               ))}
-            </div>
-          </motion.div>
+            </motion.div>
+
+            <motion.div variants={containerVariants} initial="hidden" animate="visible">
+              <StackedBarChartSection data={groups} />
+            </motion.div>
+
+            <motion.div variants={containerVariants} initial="hidden" animate="visible">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold">關鍵功能滲透率</h2>
+                <p className="text-sm text-muted-foreground mt-1">核心功能在各群組中的啟用比例</p>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                {penetration.map((item, i) => (
+                  <DonutChart key={item.name} item={item} index={i} totalGroups={groups.length} />
+                ))}
+              </div>
+            </motion.div>
+          </>
         )}
       </div>
     </div>
