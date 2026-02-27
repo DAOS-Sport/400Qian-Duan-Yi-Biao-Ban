@@ -907,8 +907,12 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
                         <motion.div
                           key={fi}
                           whileHover={{ scale: 1.02, y: -1 }}
-                          className="bg-white dark:bg-zinc-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-zinc-700 flex flex-col gap-1 hover:shadow-md transition-shadow"
+                          whileTap={{ scale: 0.98 }}
+                          className="bg-white dark:bg-zinc-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-zinc-700 flex flex-col gap-1 hover:shadow-md transition-shadow cursor-pointer"
                           data-testid={`badge-venue-${i}-${spec.label}-on`}
+                          onClick={() => {
+                            if (group.groupId) onFeatureClick(group.groupId, displayName, spec.label);
+                          }}
                         >
                           <div className="flex items-center gap-2">
                             <div className={`h-6 w-6 rounded-lg flex items-center justify-center ${spec.enabledBg}`}>
