@@ -100,10 +100,10 @@ const VENUE_NAME_MAP: Record<string, string> = {
   "Cd383783901732a2f0c71ab3bbd5c81ae": "松山櫃檯",
   "C6bb6482e2306868af923173e3a4dd698": "DAOS-松山館（工作群）",
   "C7ae679419b16de94531062ea88b8a488": "棒球練習場工作群",
-  "C7e7ff4764ebd1cd8d2758e486a02b035": "C7e7ff4（未找到）",
-  "C4e7b9f0ecbe86b7c23bd00ae27cb29c6": "C4e7b9f（未找到）",
-  "C5dd247ab56ee2d5ef111a868f59f7b0a": "C5dd247（未找到）",
-  "C755681bd26a1322bd94183478baeda24": "C755681（未找到）",
+  "C7e7ff4764ebd1cd8d2758e486a02b035": "C7e7ff4764ebd1cd8d2758e486a02b035（未找到）",
+  "C4e7b9f0ecbe86b7c23bd00ae27cb29c6": "C4e7b9f0ecbe86b7c23bd00ae27cb29c6（未找到）",
+  "C5dd247ab56ee2d5ef111a868f59f7b0a": "C5dd247ab56ee2d5ef111a868f59f7b0a（未找到）",
+  "C755681bd26a1322bd94183478baeda24": "C755681bd26a1322bd94183478baeda24（未找到）",
 };
 
 const BASIC_FEATURES = ["交辦任務", "處理事項查詢", "任務完成", "GPT小助理"];
