@@ -30,15 +30,17 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Displays operational 
 
 ## Data Model
 - Feature keys from API are **Chinese**: "任務交辦", "天氣預報", "GPS打卡" (not English)
-- `FEATURE_SPEC` dict maps Chinese keys to display specs (emoji, icon, color, trigger)
+- `VENUE_FEATURES` array: 10 feature specs with label, instruction, apiKeys mapping, icon, colors
+  - Each feature has `apiKeys[]` to map display names to API-returned Chinese keys
+  - 10 features: 交辦任務, 處理事項查詢, 任務完成, 排程提醒, 水質監控, 天氣預報, 風力預報, 合併報告推送, 滿意度調查, GPT小助理
 - `VENUE_NAME_MAP` maps groupId to display names (e.g., "DAOS-新北高中（工作群）")
 - `completionRate` from tasks API is a string like "64.9%" — parsed via `parseRate()`
 - Non-feature keys excluded via `EXCLUDED_KEYS`: name, groupId, totalEnabled
 
 ## Dashboard Layout (4 Sections)
-1. **🌐 全域通用與網頁應用**: 4 cards with live stats from core APIs + optional global-apps API
-2. **👤 私人專屬與權限對話**: Split panels (general/admin) with optional private-services data
-3. **🏢 實體場館自動化矩陣**: Swimlane rows from feature-stats groups, venue names via VENUE_NAME_MAP, copyable Group IDs, feature badges show enabled/disabled from real API data
+1. **🌐 全域通用與網頁應用**: 4 cards with live stats, LIFF badges on GPS/教練/客戶調查, usage guide text blocks per card
+2. **👤 私人專屬與權限對話**: Split panels (general/admin) with trigger command guides (employee query, interview)
+3. **🏢 實體場館自動化矩陣**: 10-feature grid per venue, each badge shows icon + label + instruction line, CSS Grid layout (5 cols on lg), enabled/disabled styling with instruction always visible
 4. **⚙️ 架構與依賴關係**: Microservices with health status from services-health API or defaults
 
 ## Sidebar Navigation

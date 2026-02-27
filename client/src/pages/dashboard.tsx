@@ -111,60 +111,86 @@ function parseRate(val: string | number): number {
 interface FeatureSpec {
   emoji: string;
   label: string;
-  trigger: string;
+  instruction: string;
   icon: typeof Users;
   color: string;
   enabledBg: string;
   disabledBg: string;
-  replyTrigger?: boolean;
+  apiKeys: string[];
 }
 
-const FEATURE_SPEC: Record<string, FeatureSpec> = {
-  "任務交辦": {
-    emoji: "📋", label: "任務交辦", trigger: "手動交辦 / 排程推播",
+const VENUE_FEATURES: FeatureSpec[] = [
+  {
+    emoji: "📝", label: "交辦任務", instruction: "⌨️ 輸入：交辦XXX",
     icon: ClipboardList, color: "text-blue-600 dark:text-blue-400",
     enabledBg: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+    apiKeys: ["任務交辦"],
   },
-  "天氣預報": {
-    emoji: "🌤️", label: "天氣預報", trigger: "06:30 等回覆觸發",
-    icon: Cloud, color: "text-sky-600 dark:text-sky-400",
-    enabledBg: "bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800/50",
+  {
+    emoji: "🔍", label: "處理事項查詢", instruction: "⌨️ 輸入：處理事項",
+    icon: Search, color: "text-indigo-600 dark:text-indigo-400",
+    enabledBg: "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
-    replyTrigger: true,
+    apiKeys: ["處理事項查詢", "處理事項"],
   },
-  "GPS打卡": {
-    emoji: "📍", label: "GPS 打卡", trigger: "即時觸發",
-    icon: Navigation, color: "text-violet-600 dark:text-violet-400",
-    enabledBg: "bg-violet-50 border-violet-200 dark:bg-violet-950/30 dark:border-violet-800/50",
+  {
+    emoji: "✅", label: "任務完成", instruction: "⌨️ 輸入：任務XX完成",
+    icon: CheckCircle2, color: "text-green-600 dark:text-green-400",
+    enabledBg: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+    apiKeys: ["任務完成"],
   },
-  "水質監控": {
-    emoji: "💧", label: "水質監控", trigger: "自動辨識 / 21:00 GPT",
+  {
+    emoji: "⏰", label: "排程提醒", instruction: "⏱️ 定時推送 (回覆觸發)",
+    icon: Timer, color: "text-orange-600 dark:text-orange-400",
+    enabledBg: "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800/50",
+    disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+    apiKeys: ["排程提醒"],
+  },
+  {
+    emoji: "💧", label: "水質監控", instruction: "🤖 自動辨識水質數據格式",
     icon: Droplets, color: "text-cyan-600 dark:text-cyan-400",
     enabledBg: "bg-cyan-50 border-cyan-200 dark:bg-cyan-950/30 dark:border-cyan-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+    apiKeys: ["水質監控"],
   },
-  "風力預報": {
-    emoji: "🌬️", label: "風力預報", trigger: "06:00 等回覆觸發",
+  {
+    emoji: "🌤️", label: "天氣預報", instruction: "⏱️ 特定時間 (回覆觸發)",
+    icon: Cloud, color: "text-sky-600 dark:text-sky-400",
+    enabledBg: "bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800/50",
+    disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+    apiKeys: ["天氣預報"],
+  },
+  {
+    emoji: "🌬️", label: "風力預報", instruction: "⏱️ 特定時間 (回覆觸發)",
     icon: Wind, color: "text-teal-600 dark:text-teal-400",
     enabledBg: "bg-teal-50 border-teal-200 dark:bg-teal-950/30 dark:border-teal-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
-    replyTrigger: true,
+    apiKeys: ["風力預報"],
   },
-  "教練簽到": {
-    emoji: "🏋️", label: "教練簽到", trigger: "LIFF 即時觸發",
-    icon: Dumbbell, color: "text-emerald-600 dark:text-emerald-400",
-    enabledBg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/50",
+  {
+    emoji: "📊", label: "合併報告推送", instruction: "⏱️ 排程自動推送",
+    icon: BarChart3, color: "text-purple-600 dark:text-purple-400",
+    enabledBg: "bg-purple-50 border-purple-200 dark:bg-purple-950/30 dark:border-purple-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+    apiKeys: ["合併報告推送", "合併報告"],
   },
-  "客戶調查": {
-    emoji: "📊", label: "客戶調查", trigger: "LIFF 問卷",
-    icon: BarChart3, color: "text-amber-600 dark:text-amber-400",
+  {
+    emoji: "🔗", label: "滿意度調查", instruction: "👆 點擊圖文選單開啟 (LIFF)",
+    icon: Globe, color: "text-amber-600 dark:text-amber-400",
     enabledBg: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+    apiKeys: ["客戶調查", "滿意度調查"],
   },
-};
+  {
+    emoji: "🤖", label: "GPT小助理", instruction: "💬 直接輸入長任務對話",
+    icon: MessageCircle, color: "text-rose-600 dark:text-rose-400",
+    enabledBg: "bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800/50",
+    disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+    apiKeys: ["GPT小助理", "GPT"],
+  },
+];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -399,13 +425,17 @@ function VenueSwimlane({ groups, venueData }: { groups: GroupData[]; venueData: 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-3">
       {displayGroups.map((group: any, i: number) => {
-        const featureKeys = Object.keys(group).filter((k) => !EXCLUDED_KEYS.has(k) && typeof group[k] === "number");
-        const enabledKeys = featureKeys.filter((k) => Number(group[k]) > 0);
-        const enabledCount = enabledKeys.length;
+        const rawKeys = Object.keys(group).filter((k) => !EXCLUDED_KEYS.has(k) && typeof group[k] === "number");
+        const enabledApiKeys = rawKeys.filter((k) => Number(group[k]) > 0);
         const displayName = getDisplayName(group);
 
-        const venueFeatures = group.features ?? null;
         const venueSchedules = group.schedules ?? null;
+
+        const resolvedFeatures = VENUE_FEATURES.map((spec) => {
+          const enabled = spec.apiKeys.some((ak) => enabledApiKeys.includes(ak));
+          return { spec, enabled };
+        });
+        const enabledCount = resolvedFeatures.filter((f) => f.enabled).length;
 
         return (
           <motion.div
@@ -428,63 +458,34 @@ function VenueSwimlane({ groups, venueData }: { groups: GroupData[]; venueData: 
                 <div className="mt-2">
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 dark:text-zinc-500">
                     <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                    {enabledCount} 項啟用
+                    {enabledCount} / {VENUE_FEATURES.length} 項啟用
                   </span>
                 </div>
               </div>
 
               <div className="flex-1 p-5">
-                <div className="flex flex-wrap gap-3">
-                  {venueFeatures ? (
-                    venueFeatures.map((f: any, fi: number) => (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                  {resolvedFeatures.map(({ spec, enabled }, fi) => {
+                    const FIcon = spec.icon;
+                    return (
                       <motion.div
                         key={fi}
                         whileHover={{ scale: 1.02 }}
-                        className="flex items-center gap-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-xl px-4 py-2.5 border border-blue-200 dark:border-blue-800/50"
-                        data-testid={`badge-venue-${i}-feature-${fi}`}
+                        className={`flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 border transition-colors ${enabled ? spec.enabledBg : spec.disabledBg}`}
+                        data-testid={`badge-venue-${i}-${spec.label}-${enabled ? "on" : "off"}`}
                       >
-                        <Globe className="h-4 w-4 shrink-0 text-blue-500" />
-                        <div>
-                          <p className="text-xs font-semibold text-gray-700 dark:text-zinc-200">{f.name || f.label}</p>
-                          {f.trigger && (
-                            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1">
-                              <Timer className="h-2.5 w-2.5" /> {f.trigger}
-                            </p>
-                          )}
+                        <FIcon className={`h-4 w-4 shrink-0 mt-0.5 ${enabled ? spec.color : "text-gray-400 dark:text-zinc-500"}`} />
+                        <div className="min-w-0">
+                          <p className={`text-xs font-semibold leading-tight ${enabled ? "text-gray-700 dark:text-zinc-200" : "text-gray-400 dark:text-zinc-500"}`}>
+                            {enabled ? "✅" : "❌"} {spec.emoji} {spec.label}
+                          </p>
+                          <p className={`text-[10px] mt-1 leading-tight ${enabled ? "text-gray-500 dark:text-zinc-400" : "text-gray-400/70 dark:text-zinc-500/60"}`}>
+                            {spec.instruction}
+                          </p>
                         </div>
                       </motion.div>
-                    ))
-                  ) : (
-                    featureKeys.map((fk) => {
-                      const spec = FEATURE_SPEC[fk];
-                      if (!spec) return null;
-                      const enabled = enabledKeys.includes(fk);
-                      const FIcon = spec.icon;
-                      return (
-                        <motion.div
-                          key={fk}
-                          whileHover={{ scale: 1.02 }}
-                          className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 border transition-colors ${enabled ? spec.enabledBg : spec.disabledBg}`}
-                          data-testid={`badge-venue-${i}-${fk}-${enabled ? "on" : "off"}`}
-                        >
-                          <FIcon className={`h-4 w-4 shrink-0 ${enabled ? spec.color : "text-gray-400 dark:text-zinc-500"}`} />
-                          <div>
-                            <p className={`text-xs font-semibold ${enabled ? "text-gray-700 dark:text-zinc-200" : "text-gray-400 dark:text-zinc-500"}`}>
-                              {enabled ? "✅" : "❌"} {spec.emoji} {spec.label}
-                            </p>
-                            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1">
-                              <Timer className="h-2.5 w-2.5" /> {spec.trigger}
-                            </p>
-                            {enabled && spec.replyTrigger && (
-                              <p className="text-[9px] text-gray-400/70 dark:text-zinc-500/70 mt-0.5 italic leading-tight">
-                                *(採回覆觸發機制：排程時間後需群組有人發言才推播，防打擾)*
-                              </p>
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })
-                  )}
+                    );
+                  })}
 
                   {venueSchedules && venueSchedules.map((s: any, si: number) => (
                     <motion.div
