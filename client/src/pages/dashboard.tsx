@@ -97,6 +97,9 @@ const VENUE_NAME_MAP: Record<string, string> = {
   "Cc2100498c7c5627c1e86e93f7c4eb817": "駿斯-三蘆區櫃台",
   "C7df140dbcf9b99cd7a4e8bff32849a06": "竹科泳池工作群",
   "Cf7ab973766c258e5b4b4f040d35b2175": "駿斯IT技術群",
+  "Cd383783901732a2f0c71ab3bbd5c81ae": "松山櫃檯",
+  "C6bb6482e2306868af923173e3a4dd698": "DAOS-松山館（工作群）",
+  "C7ae679419b16de94531062ea88b8a488": "棒球練習場工作群",
 };
 
 const BASIC_FEATURES = ["交辦任務", "處理事項查詢", "任務完成", "GPT小助理"];
