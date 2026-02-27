@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
   CheckCircle2,
@@ -27,6 +27,12 @@ import {
   Timer,
   Copy,
   Check,
+  X,
+  User,
+  Calendar,
+  Clock,
+  Loader2,
+  Inbox,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +52,7 @@ const API = {
   privateServices: `${BASE_URL}/api/admin/dashboard/private-services`,
   venueAutomations: `${BASE_URL}/api/admin/dashboard/venue-automations`,
   servicesHealth: `${BASE_URL}/api/admin/dashboard/services-health`,
+  taskHistory: (groupId: string) => `${BASE_URL}/api/admin/tasks/history/${groupId}`,
 };
 
 interface GroupData {
@@ -431,7 +438,7 @@ function CopyableId({ id }: { id: string }) {
 
   return (
     <button
-      onClick={handleCopy}
+      onClick={(e) => { e.stopPropagation(); handleCopy(); }}
       className="flex items-center gap-1 text-[10px] text-gray-300 dark:text-zinc-600 font-mono hover:text-gray-500 dark:hover:text-zinc-400 transition-colors cursor-pointer group"
       data-testid={`button-copy-${id}`}
       title="點擊複製 Group ID"
@@ -446,7 +453,230 @@ function CopyableId({ id }: { id: string }) {
   );
 }
 
-function VenueSwimlane({ groups, venueData }: { groups: GroupData[]; venueData: any }) {
+interface HistoryTask {
+  id: string;
+  taskId?: string;
+  text?: string;
+  description?: string;
+  status: string;
+  groupId?: string;
+  createdAt: string;
+  completedAt?: string | null;
+  reporter?: string;
+}
+
+function formatDate(dateStr: string): string {
+  try {
+    const d = new Date(dateStr);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+function TaskTicket({ task, isCompleted }: { task: HistoryTask; isCompleted: boolean }) {
+  const taskNum = task.taskId || task.id;
+  const desc = task.description || task.text || "(無描述)";
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-700 p-4 hover:shadow-md transition-shadow"
+      data-testid={`card-task-${taskNum}`}
+    >
+      <p className="text-xs font-mono text-gray-400 dark:text-zinc-500 mb-1.5" data-testid={`text-task-id-${taskNum}`}>
+        #{taskNum}
+      </p>
+      <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100 leading-snug mb-3" data-testid={`text-task-desc-${taskNum}`}>
+        {desc}
+      </p>
+      <div className="space-y-1.5 text-xs text-gray-500 dark:text-zinc-400">
+        {task.reporter && (
+          <div className="flex items-center gap-1.5" data-testid={`text-task-reporter-${taskNum}`}>
+            <User className="h-3 w-3 shrink-0" />
+            <span>交辦人：{task.reporter}</span>
+          </div>
+        )}
+        <div className="flex items-center gap-1.5" data-testid={`text-task-created-${taskNum}`}>
+          <Calendar className="h-3 w-3 shrink-0" />
+          <span>建立於：{formatDate(task.createdAt)}</span>
+        </div>
+        {isCompleted && task.completedAt && (
+          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400" data-testid={`text-task-completed-${taskNum}`}>
+            <CheckCircle2 className="h-3 w-3 shrink-0" />
+            <span>完成於：{formatDate(task.completedAt)}</span>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function TaskHistoryDrawer({
+  groupId,
+  venueName,
+  onClose,
+}: {
+  groupId: string;
+  venueName: string;
+  onClose: () => void;
+}) {
+  const [tasks, setTasks] = useState<HistoryTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      let data = await safeFetch<HistoryTask[]>(API.taskHistory(groupId));
+
+      if (!data) {
+        const stats = await safeFetch<any>(API.tasksStats);
+        if (stats?.recentTasks) {
+          data = (stats.recentTasks as HistoryTask[]).filter(
+            (t) => t.groupId === groupId
+          );
+        }
+      }
+
+      if (cancelled) return;
+
+      if (data && Array.isArray(data)) {
+        setTasks(data);
+      } else {
+        setTasks([]);
+      }
+      setLoading(false);
+    }
+    load().catch((e) => {
+      if (!cancelled) {
+        setError(e?.message || "載入失敗");
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [groupId]);
+
+  const completedStatuses = new Set(["completed", "done", "closed", "resolved"]);
+  const openTasks = tasks.filter((t) => !completedStatuses.has(t.status?.toLowerCase()));
+  const completedTasks = tasks.filter((t) => completedStatuses.has(t.status?.toLowerCase()));
+
+  return (
+    <>
+      <motion.div
+        key="overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+        data-testid="drawer-overlay"
+      />
+      <motion.div
+        key="drawer"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        className="fixed top-0 right-0 z-[51] h-full w-full max-w-3xl bg-gray-50 dark:bg-zinc-950 shadow-2xl overflow-y-auto"
+        data-testid="drawer-task-history"
+      >
+        <div className="sticky top-0 z-10 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100 truncate" data-testid="text-drawer-title">
+              📋 {venueName}
+            </h2>
+            <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">任務歷史紀錄 · 雙欄泳道圖</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+            data-testid="button-close-drawer"
+          >
+            <X className="h-5 w-5 text-gray-500 dark:text-zinc-400" />
+          </button>
+        </div>
+
+        <div className="p-6">
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-loading">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              <p className="text-sm text-gray-400 dark:text-zinc-500">載入任務歷史中...</p>
+            </div>
+          )}
+
+          {error && !loading && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-error">
+              <AlertCircle className="h-8 w-8 text-red-400" />
+              <p className="text-sm text-red-500">{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && tasks.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-empty">
+              <Inbox className="h-12 w-12 text-gray-300 dark:text-zinc-600" />
+              <p className="text-sm text-gray-400 dark:text-zinc-500">尚無歷史交辦任務紀錄</p>
+            </div>
+          )}
+
+          {!loading && !error && tasks.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="swimlane-container">
+              <div data-testid="swimlane-open">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900/40">
+                    <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                  </span>
+                  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-open-title">
+                    🟡 待處理 ({openTasks.length})
+                  </h3>
+                </div>
+                {openTasks.length === 0 ? (
+                  <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
+                    <p className="text-xs text-gray-400 dark:text-zinc-500">目前無待處理任務 🎉</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {openTasks.map((task) => (
+                      <TaskTicket key={task.id || task.taskId} task={task} isCompleted={false} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div data-testid="swimlane-completed">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  </span>
+                  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-completed-title">
+                    🟢 已完成 ({completedTasks.length})
+                  </h3>
+                </div>
+                {completedTasks.length === 0 ? (
+                  <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
+                    <p className="text-xs text-gray-400 dark:text-zinc-500">尚無已完成的任務</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {completedTasks.map((task) => (
+                      <TaskTicket key={task.id || task.taskId} task={task} isCompleted={true} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+function VenueSwimlane({ groups, venueData, onVenueClick }: { groups: GroupData[]; venueData: any; onVenueClick: (groupId: string, name: string) => void }) {
   const displayGroups = venueData?.venues ?? groups;
 
   return (
@@ -473,8 +703,9 @@ function VenueSwimlane({ groups, venueData }: { groups: GroupData[]; venueData: 
           <motion.div
             key={group.groupId || group.name || i}
             variants={cardVariants}
-            className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden"
+            className="group bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden cursor-pointer hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800/60 transition-all"
             data-testid={`row-venue-${i}`}
+            onClick={() => group.groupId && onVenueClick(group.groupId, displayName)}
           >
             <div className="flex flex-col md:flex-row">
               <div className="md:w-60 shrink-0 p-5 flex flex-col justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30">
@@ -487,10 +718,14 @@ function VenueSwimlane({ groups, venueData }: { groups: GroupData[]; venueData: 
                     {group.groupId && <CopyableId id={group.groupId} />}
                   </div>
                 </div>
-                <div className="mt-2">
+                <div className="mt-2 flex items-center justify-between">
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 dark:text-zinc-500">
                     <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                     {enabledCount} / {VENUE_FEATURES.length} 項啟用
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-500 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ArrowRight className="h-3 w-3" />
+                    查看任務
                   </span>
                 </div>
               </div>
@@ -691,6 +926,15 @@ export default function Dashboard() {
   const [servicesHealth, setServicesHealth] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedVenue, setSelectedVenue] = useState<{ groupId: string; name: string } | null>(null);
+
+  const handleVenueClick = useCallback((groupId: string, name: string) => {
+    setSelectedVenue({ groupId, name });
+  }, []);
+
+  const handleDrawerClose = useCallback(() => {
+    setSelectedVenue(null);
+  }, []);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -884,7 +1128,7 @@ export default function Dashboard() {
                   subtitle="各實體場館群組的專屬觸發指令與定時推播"
                   color="text-slate-700 dark:text-zinc-200"
                 />
-                <VenueSwimlane groups={groups} venueData={venueAutomations} />
+                <VenueSwimlane groups={groups} venueData={venueAutomations} onVenueClick={handleVenueClick} />
               </section>
             )}
 
@@ -901,6 +1145,16 @@ export default function Dashboard() {
           </motion.div>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedVenue && (
+          <TaskHistoryDrawer
+            groupId={selectedVenue.groupId}
+            venueName={selectedVenue.name}
+            onClose={handleDrawerClose}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

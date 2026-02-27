@@ -32,6 +32,7 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 5. `GET /api/admin/dashboard/private-services` → general, management data
 6. `GET /api/admin/dashboard/venue-automations` → venues[] with features/schedules
 7. `GET /api/admin/dashboard/services-health` → service health statuses
+8. `GET /api/admin/tasks/history/${groupId}` → HistoryTask[] (taskId, description, status, createdAt, completedAt, reporter) — falls back to filtering recentTasks from tasks/stats API if not deployed
 
 ## Data Model
 - Feature keys from API are **Chinese**: "任務交辦", "天氣預報", "GPS打卡" (not English)
@@ -55,7 +56,7 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 ## Dashboard Layout (4 Sections)
 1. **🌐 全域通用與網頁應用**: 4 cards with live stats, LIFF badges on GPS/教練/客戶調查, usage guide text blocks
 2. **👤 私人專屬與權限對話**: Split panels (general/admin) with trigger command guides
-3. **🏢 實體場館自動化矩陣**: Only enabled features shown (filtered), 10-feature CSS Grid, instruction line per badge
+3. **🏢 實體場館自動化矩陣**: Only enabled features shown (filtered), 10-feature CSS Grid, instruction line per badge. Clicking a venue card opens a **TaskHistoryDrawer** (slide-out panel) with dual-column swimlane: 🟡 待處理 (open/pending) | 🟢 已完成 (completed). Each task rendered as a Ticket card with #taskId, description, reporter, timestamps.
 4. **⚙️ 架構與依賴關係**: Microservices with health status from API or defaults
 
 ## Sidebar Navigation
