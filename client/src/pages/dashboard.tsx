@@ -116,6 +116,7 @@ interface FeatureSpec {
   color: string;
   enabledBg: string;
   disabledBg: string;
+  replyTrigger?: boolean;
 }
 
 const FEATURE_SPEC: Record<string, FeatureSpec> = {
@@ -130,6 +131,7 @@ const FEATURE_SPEC: Record<string, FeatureSpec> = {
     icon: Cloud, color: "text-sky-600 dark:text-sky-400",
     enabledBg: "bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+    replyTrigger: true,
   },
   "GPS打卡": {
     emoji: "📍", label: "GPS 打卡", trigger: "即時觸發",
@@ -148,6 +150,7 @@ const FEATURE_SPEC: Record<string, FeatureSpec> = {
     icon: Wind, color: "text-teal-600 dark:text-teal-400",
     enabledBg: "bg-teal-50 border-teal-200 dark:bg-teal-950/30 dark:border-teal-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+    replyTrigger: true,
   },
   "教練簽到": {
     emoji: "🏋️", label: "教練簽到", trigger: "LIFF 即時觸發",
@@ -246,17 +249,31 @@ interface GlobalCardProps {
   gradient: string;
   iconColor: string;
   stats?: { label: string; value: string | number }[];
+  isLiff?: boolean;
+  usageGuide?: string;
 }
 
-function GlobalFeatureCard({ emoji, title, description, icon: Icon, gradient, iconColor, stats }: GlobalCardProps) {
+function GlobalFeatureCard({ emoji, title, description, icon: Icon, gradient, iconColor, stats, isLiff, usageGuide }: GlobalCardProps) {
   return (
     <motion.div variants={cardVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} className="flex-1 min-w-[200px]">
       <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-5 h-full flex flex-col" data-testid={`card-global-${title}`}>
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl mb-4 ${gradient}`}>
           <Icon className={`h-5 w-5 ${iconColor}`} />
         </div>
-        <p className="text-sm font-bold text-gray-800 dark:text-zinc-100 mb-1">{emoji} {title}</p>
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <p className="text-sm font-bold text-gray-800 dark:text-zinc-100">{emoji} {title}</p>
+          {isLiff && (
+            <span className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 whitespace-nowrap" data-testid={`badge-liff-${title}`}>
+              🔗 外接網頁 (LIFF)
+            </span>
+          )}
+        </div>
         <p className="text-xs text-gray-400 dark:text-zinc-500 leading-relaxed flex-1">{description}</p>
+        {usageGuide && (
+          <div className="bg-gray-50 dark:bg-zinc-800/60 rounded-lg p-2.5 mt-2.5 border border-gray-100 dark:border-zinc-700/50" data-testid={`guide-${title}`}>
+            <p className="text-[11px] text-gray-500 dark:text-zinc-400 leading-relaxed">{usageGuide}</p>
+          </div>
+        )}
         {stats && stats.length > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800 space-y-1">
             {stats.map((s) => (
@@ -294,6 +311,9 @@ function PrivateSection({ privateData }: { privateData: any }) {
               {generalBindings != null && (
                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">已綁定 {generalBindings} 人</p>
               )}
+              <div className="bg-blue-50/80 dark:bg-blue-950/20 rounded-md p-2 mt-2 border border-blue-100/50 dark:border-blue-900/30" data-testid="guide-employee-query">
+                <p className="text-[11px] text-blue-600/80 dark:text-blue-400/80 leading-relaxed">⌨️ <span className="font-semibold">觸發方式：</span>直接輸入員工編號或 LINE ID</p>
+              </div>
             </div>
           </div>
           <div className="flex items-start gap-3 bg-white/80 dark:bg-zinc-900/60 rounded-xl p-3.5 border border-blue-100/60 dark:border-blue-900/30">
@@ -329,6 +349,9 @@ function PrivateSection({ privateData }: { privateData: any }) {
                 </Tooltip>
               </div>
               <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">介接體育署 API + Ragic 名單，進行資格驗證</p>
+              <div className="bg-amber-50/80 dark:bg-amber-950/20 rounded-md p-2 mt-2 border border-amber-100/50 dark:border-amber-900/30" data-testid="guide-interview">
+                <p className="text-[11px] text-amber-600/80 dark:text-amber-400/80 leading-relaxed">⌨️ <span className="font-semibold">嚴格觸發指令：</span>輸入「面試+身分證字號」（不含括號且無空格）</p>
+              </div>
             </div>
           </div>
           <div className="mt-2 px-3 flex items-center gap-2">
@@ -452,6 +475,11 @@ function VenueSwimlane({ groups, venueData }: { groups: GroupData[]; venueData: 
                             <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1">
                               <Timer className="h-2.5 w-2.5" /> {spec.trigger}
                             </p>
+                            {enabled && spec.replyTrigger && (
+                              <p className="text-[9px] text-gray-400/70 dark:text-zinc-500/70 mt-0.5 italic leading-tight">
+                                *(採回覆觸發機制：排程時間後需群組有人發言才推播，防打擾)*
+                              </p>
+                            )}
                           </div>
                         </motion.div>
                       );
@@ -769,24 +797,31 @@ export default function Dashboard() {
                   description="包含任務交辦、完成標記、待辦查詢，支援群組內快速指派與追蹤"
                   icon={ClipboardList} gradient="bg-blue-50 dark:bg-blue-950/30" iconColor="text-blue-500"
                   stats={globalTaskStats}
+                  usageGuide={"⌨️ 觸發指令：輸入『交辦XXX』、『任務XX完成』或『處理事項』"}
                 />
                 <GlobalFeatureCard
                   emoji="📍" title="GPS 打卡系統"
                   description="員工透過 LINE 進行即時 GPS 定位打卡，管理端可即時查看出勤紀錄"
                   icon={Navigation} gradient="bg-violet-50 dark:bg-violet-950/30" iconColor="text-violet-500"
                   stats={globalGpsStats}
+                  isLiff
+                  usageGuide={"💡 操作方式：點擊 LINE 官方帳號下方圖文選單，開啟專屬外部網頁"}
                 />
                 <GlobalFeatureCard
                   emoji="🏋️" title="教練簽到"
                   description="教練透過 LIFF 網頁完成簽到流程，自動記錄到班時間"
                   icon={Dumbbell} gradient="bg-emerald-50 dark:bg-emerald-950/30" iconColor="text-emerald-500"
                   stats={globalCoachStats.length > 0 ? globalCoachStats : undefined}
+                  isLiff
+                  usageGuide={"💡 操作方式：點擊 LINE 官方帳號下方圖文選單，開啟專屬外部網頁"}
                 />
                 <GlobalFeatureCard
                   emoji="📊" title="客戶調查"
                   description="透過 LIFF 問卷發送滿意度調查，自動收集並彙整回覆結果"
                   icon={BarChart3} gradient="bg-amber-50 dark:bg-amber-950/30" iconColor="text-amber-500"
                   stats={globalSurveyStats.length > 0 ? globalSurveyStats : undefined}
+                  isLiff
+                  usageGuide={"💡 操作方式：點擊 LINE 官方帳號下方圖文選單，開啟專屬外部網頁"}
                 />
               </motion.div>
             </section>
