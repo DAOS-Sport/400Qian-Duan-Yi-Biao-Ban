@@ -464,22 +464,27 @@ function VenueSwimlane({ groups, venueData }: { groups: GroupData[]; venueData: 
               </div>
 
               <div className="flex-1 p-5">
+                {enabledCount === 0 ? (
+                  <p className="text-sm text-gray-400 dark:text-zinc-500 italic py-4 text-center" data-testid={`text-venue-empty-${i}`}>
+                    尚無啟用的專屬自動化功能
+                  </p>
+                ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-                  {resolvedFeatures.map(({ spec, enabled }, fi) => {
+                  {resolvedFeatures.filter(({ enabled }) => enabled).map(({ spec }, fi) => {
                     const FIcon = spec.icon;
                     return (
                       <motion.div
                         key={fi}
                         whileHover={{ scale: 1.02 }}
-                        className={`flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 border transition-colors ${enabled ? spec.enabledBg : spec.disabledBg}`}
-                        data-testid={`badge-venue-${i}-${spec.label}-${enabled ? "on" : "off"}`}
+                        className={`flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 border transition-colors ${spec.enabledBg}`}
+                        data-testid={`badge-venue-${i}-${spec.label}-on`}
                       >
-                        <FIcon className={`h-4 w-4 shrink-0 mt-0.5 ${enabled ? spec.color : "text-gray-400 dark:text-zinc-500"}`} />
+                        <FIcon className={`h-4 w-4 shrink-0 mt-0.5 ${spec.color}`} />
                         <div className="min-w-0">
-                          <p className={`text-xs font-semibold leading-tight ${enabled ? "text-gray-700 dark:text-zinc-200" : "text-gray-400 dark:text-zinc-500"}`}>
-                            {enabled ? "✅" : "❌"} {spec.emoji} {spec.label}
+                          <p className="text-xs font-semibold leading-tight text-gray-700 dark:text-zinc-200">
+                            ✅ {spec.emoji} {spec.label}
                           </p>
-                          <p className={`text-[10px] mt-1 leading-tight ${enabled ? "text-gray-500 dark:text-zinc-400" : "text-gray-400/70 dark:text-zinc-500/60"}`}>
+                          <p className="text-[10px] mt-1 leading-tight text-gray-500 dark:text-zinc-400">
                             {spec.instruction}
                           </p>
                         </div>
@@ -502,6 +507,7 @@ function VenueSwimlane({ groups, venueData }: { groups: GroupData[]; venueData: 
                     </motion.div>
                   ))}
                 </div>
+                )}
               </div>
             </div>
           </motion.div>
