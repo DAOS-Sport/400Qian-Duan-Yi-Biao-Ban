@@ -49,6 +49,8 @@ const VENUE_NAME_MAP: Record<string, string> = {
   "C7ae679419b16de94531062ea88b8a488": "棒球練習場工作群",
   "C7e7ff4764ebd1cd8d2758e486a02b035": "C7e7ff4（未找到）",
   "C4e7b9f0ecbe86b7c23bd00ae27cb29c6": "C4e7b9f（未找到）",
+  "C5dd247ab56ee2d5ef111a868f59f7b0a": "C5dd247（未找到）",
+  "C755681bd26a1322bd94183478baeda24": "C755681（未找到）",
 };
 
 interface TasksStatsResponse {
