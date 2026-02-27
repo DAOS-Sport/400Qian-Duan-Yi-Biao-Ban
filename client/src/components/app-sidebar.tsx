@@ -39,7 +39,7 @@ export function AppSidebar() {
           </div>
           <div>
             <p className="text-sm font-semibold text-sidebar-foreground" data-testid="text-app-title">
-              駿斯營運中心
+              400後端監控儀表板
             </p>
             <p className="text-xs text-muted-foreground">Enterprise v2.0</p>
           </div>

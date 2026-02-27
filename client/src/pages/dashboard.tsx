@@ -92,6 +92,26 @@ const VENUE_NAME_MAP: Record<string, string> = {
   "C360be1fe6ea876a4df3ca0497bca4e3b": "駿斯-戶外運動園區",
   "C2dd9a5fce7c276f2cbfdd02c2342661c": "駿斯-社區&勞務業務群",
   "Ce936c6bebb59b8b5683ffbcf97bf20de": "駿斯總部辦公室群",
+  "Ce8fe61736e38bfc1b00d1148fe17b262": "駿斯社區回報群",
+  "Cdfff89ff48bdf009c3b22ad0dfc62e2c": "駿斯松山營運小組",
+  "Cc2100498c7c5627c1e86e93f7c4eb817": "駿斯-三蘆區櫃台",
+  "C7df140dbcf9b99cd7a4e8bff32849a06": "竹科泳池工作群",
+  "Cf7ab973766c258e5b4b4f040d35b2175": "駿斯IT技術群",
+};
+
+const BASIC_FEATURES = ["交辦任務", "處理事項查詢", "任務完成", "GPT小助理"];
+const ALL_FEATURES = ["交辦任務", "處理事項查詢", "任務完成", "排程提醒", "水質監控", "天氣預報", "風力預報", "合併報告推送", "滿意度調查", "GPT小助理"];
+const OUTDOOR_FEATURES = ["交辦任務", "處理事項查詢", "任務完成", "排程提醒", "天氣預報", "風力預報", "合併報告推送", "GPT小助理"];
+
+const VENUE_FEATURE_MATRIX: Record<string, string[]> = {
+  "C66a4b3bb3fbc3dcf52d42626ec512484": BASIC_FEATURES,
+  "C6f6f163895d5b528a6ab044015e1a37b": BASIC_FEATURES,
+  "C2dc6991e51074dd47d5d275d568318f7": BASIC_FEATURES,
+  "C9b3c5dfe2e005adafd2ed914714a1930": BASIC_FEATURES,
+  "C50c2a9623a78cc5f5e9f39557e3abfe6": ALL_FEATURES,
+  "C360be1fe6ea876a4df3ca0497bca4e3b": OUTDOOR_FEATURES,
+  "C2dd9a5fce7c276f2cbfdd02c2342661c": BASIC_FEATURES,
+  "Ce936c6bebb59b8b5683ffbcf97bf20de": BASIC_FEATURES,
 };
 
 const EXCLUDED_KEYS = new Set(["name", "groupId", "totalEnabled"]);
@@ -425,13 +445,18 @@ function VenueSwimlane({ groups, venueData }: { groups: GroupData[]; venueData: 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-3">
       {displayGroups.map((group: any, i: number) => {
-        const rawKeys = Object.keys(group).filter((k) => !EXCLUDED_KEYS.has(k) && typeof group[k] === "number");
-        const enabledApiKeys = rawKeys.filter((k) => Number(group[k]) > 0);
         const displayName = getDisplayName(group);
-
         const venueSchedules = group.schedules ?? null;
 
+        const hardcodedFeatures = group.groupId ? VENUE_FEATURE_MATRIX[group.groupId] : null;
+
         const resolvedFeatures = VENUE_FEATURES.map((spec) => {
+          if (hardcodedFeatures) {
+            const enabled = hardcodedFeatures.includes(spec.label);
+            return { spec, enabled };
+          }
+          const rawKeys = Object.keys(group).filter((k) => !EXCLUDED_KEYS.has(k) && typeof group[k] === "number");
+          const enabledApiKeys = rawKeys.filter((k) => Number(group[k]) > 0);
           const enabled = spec.apiKeys.some((ak) => enabledApiKeys.includes(ak));
           return { spec, enabled };
         });
