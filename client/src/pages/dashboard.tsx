@@ -626,7 +626,7 @@ function TaskHistoryDrawer({
           )}
 
           {!loading && !error && tasks.length > 0 && (
-            <div className="space-y-6" data-testid="swimlane-container">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="swimlane-container">
               <div data-testid="swimlane-open">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900/40">
@@ -641,7 +641,7 @@ function TaskHistoryDrawer({
                     <p className="text-xs text-gray-400 dark:text-zinc-500">目前無待處理任務 🎉</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-3">
                     {openTasks.map((task) => (
                       <TaskTicket key={task.id || task.taskId} task={task} isCompleted={false} />
                     ))}
@@ -663,7 +663,7 @@ function TaskHistoryDrawer({
                     <p className="text-xs text-gray-400 dark:text-zinc-500">尚無已完成的任務</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-3">
                     {completedTasks.map((task) => (
                       <TaskTicket key={task.id || task.taskId} task={task} isCompleted={true} />
                     ))}
