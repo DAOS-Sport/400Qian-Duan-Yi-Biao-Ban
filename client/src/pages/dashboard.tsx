@@ -23,9 +23,10 @@ import {
   FileCheck,
   Cloud,
   Droplets,
-  Bot,
   Wind,
   Timer,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,10 +36,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+const BASE_URL = "https://line-bot-assistant-ronchen2.replit.app";
+
 const API = {
-  featureStats: "https://line-bot-assistant-ronchen2.replit.app/api/admin/dashboard/feature-stats",
-  tasksStats: "https://line-bot-assistant-ronchen2.replit.app/api/admin/tasks/stats",
-  attendanceStats: "https://line-bot-assistant-ronchen2.replit.app/api/admin/attendance/stats",
+  featureStats: `${BASE_URL}/api/admin/dashboard/feature-stats`,
+  tasksStats: `${BASE_URL}/api/admin/tasks/stats`,
+  attendanceStats: `${BASE_URL}/api/admin/attendance/stats`,
+  globalApps: `${BASE_URL}/api/admin/dashboard/global-apps`,
+  privateServices: `${BASE_URL}/api/admin/dashboard/private-services`,
+  venueAutomations: `${BASE_URL}/api/admin/dashboard/venue-automations`,
+  servicesHealth: `${BASE_URL}/api/admin/dashboard/services-health`,
 };
 
 interface GroupData {
@@ -57,19 +64,104 @@ interface PenetrationData {
 interface FeatureStatsResponse {
   groups: GroupData[];
   featurePenetration: PenetrationData[];
+  totalGroups: number;
 }
 
 interface TasksStatsResponse {
-  completionRate: number;
+  total: number;
+  completed: number;
+  pending: number;
+  completionRate: string | number;
   [key: string]: any;
 }
 
 interface AttendanceStatsResponse {
+  todayCheckins: number;
   successful: number;
+  failed: number;
+  uniqueCheckers: number;
   [key: string]: any;
 }
 
+const VENUE_NAME_MAP: Record<string, string> = {
+  "C66a4b3bb3fbc3dcf52d42626ec512484": "DAOS-新北高中（工作群）",
+  "C6f6f163895d5b528a6ab044015e1a37b": "DAOS-三重商工館（工作群）",
+  "C2dc6991e51074dd47d5d275d568318f7": "DAOS-三民館（工作群）",
+  "C9b3c5dfe2e005adafd2ed914714a1930": "駿斯-松山國小館",
+  "C50c2a9623a78cc5f5e9f39557e3abfe6": "駿斯-竹科戶外游泳池",
+  "C360be1fe6ea876a4df3ca0497bca4e3b": "駿斯-戶外運動園區",
+  "C2dd9a5fce7c276f2cbfdd02c2342661c": "駿斯-社區&勞務業務群",
+  "Ce936c6bebb59b8b5683ffbcf97bf20de": "駿斯總部辦公室群",
+};
+
 const EXCLUDED_KEYS = new Set(["name", "groupId", "totalEnabled"]);
+
+function getDisplayName(group: GroupData): string {
+  if (group.groupId && VENUE_NAME_MAP[group.groupId]) {
+    return VENUE_NAME_MAP[group.groupId];
+  }
+  return group.name;
+}
+
+function parseRate(val: string | number): number {
+  if (typeof val === "number") return val;
+  return parseFloat(String(val).replace(/%$/, "")) || 0;
+}
+
+interface FeatureSpec {
+  emoji: string;
+  label: string;
+  trigger: string;
+  icon: typeof Users;
+  color: string;
+  enabledBg: string;
+  disabledBg: string;
+}
+
+const FEATURE_SPEC: Record<string, FeatureSpec> = {
+  "任務交辦": {
+    emoji: "📋", label: "任務交辦", trigger: "手動交辦 / 排程推播",
+    icon: ClipboardList, color: "text-blue-600 dark:text-blue-400",
+    enabledBg: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800/50",
+    disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+  },
+  "天氣預報": {
+    emoji: "🌤️", label: "天氣預報", trigger: "06:30 等回覆觸發",
+    icon: Cloud, color: "text-sky-600 dark:text-sky-400",
+    enabledBg: "bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800/50",
+    disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+  },
+  "GPS打卡": {
+    emoji: "📍", label: "GPS 打卡", trigger: "即時觸發",
+    icon: Navigation, color: "text-violet-600 dark:text-violet-400",
+    enabledBg: "bg-violet-50 border-violet-200 dark:bg-violet-950/30 dark:border-violet-800/50",
+    disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+  },
+  "水質監控": {
+    emoji: "💧", label: "水質監控", trigger: "自動辨識 / 21:00 GPT",
+    icon: Droplets, color: "text-cyan-600 dark:text-cyan-400",
+    enabledBg: "bg-cyan-50 border-cyan-200 dark:bg-cyan-950/30 dark:border-cyan-800/50",
+    disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+  },
+  "風力預報": {
+    emoji: "🌬️", label: "風力預報", trigger: "06:00 等回覆觸發",
+    icon: Wind, color: "text-teal-600 dark:text-teal-400",
+    enabledBg: "bg-teal-50 border-teal-200 dark:bg-teal-950/30 dark:border-teal-800/50",
+    disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+  },
+  "教練簽到": {
+    emoji: "🏋️", label: "教練簽到", trigger: "LIFF 即時觸發",
+    icon: Dumbbell, color: "text-emerald-600 dark:text-emerald-400",
+    enabledBg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/50",
+    disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+  },
+  "客戶調查": {
+    emoji: "📊", label: "客戶調查", trigger: "LIFF 問卷",
+    icon: BarChart3, color: "text-amber-600 dark:text-amber-400",
+    enabledBg: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/50",
+    disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
+  },
+};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -85,6 +177,18 @@ const fadeIn = {
   hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.45 } },
 };
+
+async function safeFetch<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const ct = res.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
 
 async function strictFetch<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -134,30 +238,33 @@ function SectionHeader({ emoji, title, subtitle, color }: { emoji: string; title
   );
 }
 
-interface GlobalFeatureCardProps {
+interface GlobalCardProps {
   emoji: string;
   title: string;
   description: string;
   icon: typeof Users;
   gradient: string;
   iconColor: string;
-  stats?: string;
+  stats?: { label: string; value: string | number }[];
 }
 
-function GlobalFeatureCard({ emoji, title, description, icon: Icon, gradient, iconColor, stats }: GlobalFeatureCardProps) {
+function GlobalFeatureCard({ emoji, title, description, icon: Icon, gradient, iconColor, stats }: GlobalCardProps) {
   return (
     <motion.div variants={cardVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} className="flex-1 min-w-[200px]">
       <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-5 h-full flex flex-col" data-testid={`card-global-${title}`}>
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl mb-4 ${gradient}`}>
           <Icon className={`h-5 w-5 ${iconColor}`} />
         </div>
-        <p className="text-sm font-bold text-gray-800 dark:text-zinc-100 mb-1">
-          {emoji} {title}
-        </p>
+        <p className="text-sm font-bold text-gray-800 dark:text-zinc-100 mb-1">{emoji} {title}</p>
         <p className="text-xs text-gray-400 dark:text-zinc-500 leading-relaxed flex-1">{description}</p>
-        {stats && (
-          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800">
-            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{stats}</p>
+        {stats && stats.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800 space-y-1">
+            {stats.map((s) => (
+              <div key={s.label} className="flex items-center justify-between">
+                <span className="text-[11px] text-gray-400 dark:text-zinc-500">{s.label}</span>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{s.value}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -165,7 +272,10 @@ function GlobalFeatureCard({ emoji, title, description, icon: Icon, gradient, ic
   );
 }
 
-function PrivateSection() {
+function PrivateSection({ privateData }: { privateData: any }) {
+  const generalBindings = privateData?.general?.totalBindings;
+  const adminCount = privateData?.management?.authorizedUsersCount ?? 7;
+
   return (
     <motion.div variants={fadeIn} className="grid grid-cols-1 md:grid-cols-2 gap-5">
       <div className="bg-blue-50/70 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900/40 p-6" data-testid="card-private-general">
@@ -181,6 +291,9 @@ function PrivateSection() {
             <div>
               <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">🔍 員工編號 / LINE ID 綁定查詢</p>
               <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">透過私訊查詢員工資料與帳號綁定狀態</p>
+              {generalBindings != null && (
+                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">已綁定 {generalBindings} 人</p>
+              )}
             </div>
           </div>
           <div className="flex items-start gap-3 bg-white/80 dark:bg-zinc-900/60 rounded-xl p-3.5 border border-blue-100/60 dark:border-blue-900/30">
@@ -211,17 +324,18 @@ function PrivateSection() {
                     <Info className="h-3.5 w-3.5 text-amber-400 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-[220px] text-center">
-                    <p className="text-xs">僅限特定 7 位管理員可用</p>
+                    <p className="text-xs">僅限特定 {adminCount} 位管理員可用</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
               <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">介接體育署 API + Ragic 名單，進行資格驗證</p>
             </div>
           </div>
-          <div className="mt-2 px-3">
+          <div className="mt-2 px-3 flex items-center gap-2">
             <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-amber-100/80 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
               <Lock className="h-3 w-3" /> 權限受限
             </span>
+            <span className="text-xs text-amber-600/70 dark:text-amber-400/70">{adminCount} 位授權</span>
           </div>
         </div>
       </div>
@@ -229,59 +343,63 @@ function PrivateSection() {
   );
 }
 
-interface VenueFeatureSpec {
-  key: string;
-  emoji: string;
-  label: string;
-  trigger: string;
-  icon: typeof Users;
-  color: string;
-  enabledColor: string;
-  disabledColor: string;
+function CopyableId({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(id).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, [id]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1 text-[10px] text-gray-300 dark:text-zinc-600 font-mono hover:text-gray-500 dark:hover:text-zinc-400 transition-colors cursor-pointer group"
+      data-testid={`button-copy-${id}`}
+      title="點擊複製 Group ID"
+    >
+      <span className="truncate max-w-[160px]">{id}</span>
+      {copied ? (
+        <Check className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
+      ) : (
+        <Copy className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+      )}
+    </button>
+  );
 }
 
-const FEATURE_SPEC_MAP: Record<string, Omit<VenueFeatureSpec, "key">> = {
-  tasks:   { emoji: "📋", label: "任務提醒",     trigger: "手動交辦 / 排程推播",  icon: ClipboardList, color: "text-blue-600 dark:text-blue-400",   enabledColor: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800/50",   disabledColor: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50" },
-  weather: { emoji: "🌤️", label: "天氣預報",     trigger: "06:30 等回覆觸發",     icon: Cloud,         color: "text-sky-600 dark:text-sky-400",     enabledColor: "bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800/50",       disabledColor: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50" },
-  water:   { emoji: "💧", label: "水質監控",     trigger: "自動辨識 / 21:00 GPT", icon: Droplets,      color: "text-cyan-600 dark:text-cyan-400",   enabledColor: "bg-cyan-50 border-cyan-200 dark:bg-cyan-950/30 dark:border-cyan-800/50",   disabledColor: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50" },
-  wind:    { emoji: "🌬️", label: "風力預報",     trigger: "06:00 等回覆觸發",     icon: Wind,          color: "text-teal-600 dark:text-teal-400",   enabledColor: "bg-teal-50 border-teal-200 dark:bg-teal-950/30 dark:border-teal-800/50",   disabledColor: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50" },
-  gps:     { emoji: "📍", label: "GPS 打卡",     trigger: "即時觸發",             icon: Navigation,    color: "text-violet-600 dark:text-violet-400", enabledColor: "bg-violet-50 border-violet-200 dark:bg-violet-950/30 dark:border-violet-800/50", disabledColor: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50" },
-  coach:   { emoji: "🏋️", label: "教練簽到",     trigger: "LIFF 即時觸發",        icon: Dumbbell,      color: "text-emerald-600 dark:text-emerald-400", enabledColor: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/50", disabledColor: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50" },
-  survey:  { emoji: "📊", label: "客戶調查",     trigger: "LIFF 問卷",            icon: BarChart3,     color: "text-amber-600 dark:text-amber-400", enabledColor: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/50", disabledColor: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50" },
-};
+function VenueSwimlane({ groups, venueData }: { groups: GroupData[]; venueData: any }) {
+  const displayGroups = venueData?.venues ?? groups;
 
-function VenueSwimlane({ groups }: { groups: GroupData[] }) {
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-3">
-      {groups.map((group, i) => {
+      {displayGroups.map((group: any, i: number) => {
         const featureKeys = Object.keys(group).filter((k) => !EXCLUDED_KEYS.has(k) && typeof group[k] === "number");
         const enabledKeys = featureKeys.filter((k) => Number(group[k]) > 0);
         const enabledCount = enabledKeys.length;
+        const displayName = getDisplayName(group);
 
-        const allSpecKeys = Object.keys(FEATURE_SPEC_MAP);
-        const relevantKeys = allSpecKeys.filter((k) => featureKeys.includes(k));
-        const displayKeys = relevantKeys.length > 0 ? relevantKeys : ["tasks"];
+        const venueFeatures = group.features ?? null;
+        const venueSchedules = group.schedules ?? null;
 
         return (
           <motion.div
-            key={group.name}
+            key={group.groupId || group.name || i}
             variants={cardVariants}
             className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden"
             data-testid={`row-venue-${i}`}
           >
             <div className="flex flex-col md:flex-row">
-              <div className="md:w-56 shrink-0 p-5 flex flex-col justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30">
+              <div className="md:w-60 shrink-0 p-5 flex flex-col justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30">
                 <div className="flex items-center gap-2.5">
                   <Building2 className="h-5 w-5 text-slate-500 dark:text-zinc-400 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-gray-800 dark:text-zinc-100 truncate" data-testid={`text-venue-name-${i}`}>
-                      {group.name}
+                      {displayName}
                     </p>
-                    {group.groupId && (
-                      <p className="text-[10px] text-gray-300 dark:text-zinc-600 font-mono truncate mt-0.5" data-testid={`text-venue-id-${i}`}>
-                        {group.groupId}
-                      </p>
-                    )}
+                    {group.groupId && <CopyableId id={group.groupId} />}
                   </div>
                 </div>
                 <div className="mt-2">
@@ -294,30 +412,66 @@ function VenueSwimlane({ groups }: { groups: GroupData[] }) {
 
               <div className="flex-1 p-5">
                 <div className="flex flex-wrap gap-3">
-                  {displayKeys.map((fk) => {
-                    const spec = FEATURE_SPEC_MAP[fk];
-                    if (!spec) return null;
-                    const enabled = enabledKeys.includes(fk);
-                    const FIcon = spec.icon;
-                    return (
+                  {venueFeatures ? (
+                    venueFeatures.map((f: any, fi: number) => (
                       <motion.div
-                        key={fk}
+                        key={fi}
                         whileHover={{ scale: 1.02 }}
-                        className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 border transition-colors ${enabled ? spec.enabledColor : spec.disabledColor}`}
-                        data-testid={`badge-venue-${i}-${fk}-${enabled ? "on" : "off"}`}
+                        className="flex items-center gap-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-xl px-4 py-2.5 border border-blue-200 dark:border-blue-800/50"
+                        data-testid={`badge-venue-${i}-feature-${fi}`}
                       >
-                        <FIcon className={`h-4 w-4 shrink-0 ${enabled ? spec.color : "text-gray-400 dark:text-zinc-500"}`} />
+                        <Globe className="h-4 w-4 shrink-0 text-blue-500" />
                         <div>
-                          <p className={`text-xs font-semibold ${enabled ? "text-gray-700 dark:text-zinc-200" : "text-gray-400 dark:text-zinc-500"}`}>
-                            {enabled ? "✅" : "❌"} {spec.emoji} {spec.label}
-                          </p>
-                          <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1">
-                            <Timer className="h-2.5 w-2.5" /> {spec.trigger}
-                          </p>
+                          <p className="text-xs font-semibold text-gray-700 dark:text-zinc-200">{f.name || f.label}</p>
+                          {f.trigger && (
+                            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1">
+                              <Timer className="h-2.5 w-2.5" /> {f.trigger}
+                            </p>
+                          )}
                         </div>
                       </motion.div>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    featureKeys.map((fk) => {
+                      const spec = FEATURE_SPEC[fk];
+                      if (!spec) return null;
+                      const enabled = enabledKeys.includes(fk);
+                      const FIcon = spec.icon;
+                      return (
+                        <motion.div
+                          key={fk}
+                          whileHover={{ scale: 1.02 }}
+                          className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 border transition-colors ${enabled ? spec.enabledBg : spec.disabledBg}`}
+                          data-testid={`badge-venue-${i}-${fk}-${enabled ? "on" : "off"}`}
+                        >
+                          <FIcon className={`h-4 w-4 shrink-0 ${enabled ? spec.color : "text-gray-400 dark:text-zinc-500"}`} />
+                          <div>
+                            <p className={`text-xs font-semibold ${enabled ? "text-gray-700 dark:text-zinc-200" : "text-gray-400 dark:text-zinc-500"}`}>
+                              {enabled ? "✅" : "❌"} {spec.emoji} {spec.label}
+                            </p>
+                            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1">
+                              <Timer className="h-2.5 w-2.5" /> {spec.trigger}
+                            </p>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  )}
+
+                  {venueSchedules && venueSchedules.map((s: any, si: number) => (
+                    <motion.div
+                      key={`sched-${si}`}
+                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center gap-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl px-4 py-2.5 border border-amber-200 dark:border-amber-800/50"
+                      data-testid={`badge-venue-${i}-schedule-${si}`}
+                    >
+                      <Timer className="h-4 w-4 shrink-0 text-amber-500" />
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 dark:text-zinc-200">⏰ {s.name || s.label}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5">{s.time || s.cron}</p>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -328,17 +482,50 @@ function VenueSwimlane({ groups }: { groups: GroupData[] }) {
   );
 }
 
-const MICROSERVICES = [
-  { label: "LINE Messaging API", color: "bg-emerald-500" },
-  { label: "Task Service", color: "bg-blue-500" },
-  { label: "Message Handler", color: "bg-violet-500" },
-  { label: "Scheduler", color: "bg-amber-500" },
-  { label: "LLM / GPT", color: "bg-pink-500" },
-  { label: "Weather Service", color: "bg-sky-500" },
-  { label: "Water Quality", color: "bg-cyan-500" },
+interface ServiceStatus {
+  name: string;
+  status: string;
+  color: string;
+}
+
+const DEFAULT_SERVICES: ServiceStatus[] = [
+  { name: "LINE Messaging API", status: "healthy", color: "bg-emerald-500" },
+  { name: "Task Service", status: "healthy", color: "bg-emerald-500" },
+  { name: "Message Handler", status: "healthy", color: "bg-emerald-500" },
+  { name: "Scheduler", status: "healthy", color: "bg-emerald-500" },
+  { name: "LLM / GPT", status: "healthy", color: "bg-emerald-500" },
+  { name: "Weather Service", status: "healthy", color: "bg-emerald-500" },
+  { name: "Water Quality", status: "healthy", color: "bg-emerald-500" },
 ];
 
-function MicroservicesSection() {
+function MicroservicesSection({ healthData }: { healthData: any }) {
+  let services: ServiceStatus[] = DEFAULT_SERVICES;
+
+  if (healthData && typeof healthData === "object") {
+    const mapped: ServiceStatus[] = [];
+    const nameMap: Record<string, string> = {
+      lineService: "LINE Messaging API",
+      taskService: "Task Service",
+      messageHandler: "Message Handler",
+      scheduler: "Scheduler",
+      llmService: "LLM / GPT",
+      weatherService: "Weather Service",
+      waterQualityService: "Water Quality",
+    };
+    for (const [key, val] of Object.entries(healthData)) {
+      if (typeof val === "object" && val !== null) {
+        const v = val as any;
+        const status = v.status || "unknown";
+        mapped.push({
+          name: nameMap[key] || key,
+          status,
+          color: status === "healthy" ? "bg-emerald-500" : status === "degraded" ? "bg-amber-500" : "bg-red-500",
+        });
+      }
+    }
+    if (mapped.length > 0) services = mapped;
+  }
+
   return (
     <motion.div variants={fadeIn} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6" data-testid="section-microservices">
       <div className="flex items-center gap-2 mb-4">
@@ -346,17 +533,24 @@ function MicroservicesSection() {
         <p className="text-sm font-bold text-gray-700 dark:text-zinc-200">系統微服務架構</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {MICROSERVICES.map((svc, i) => (
-          <div key={svc.label} className="flex items-center gap-2">
-            <motion.span
-              whileHover={{ scale: 1.05 }}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 border border-gray-100 dark:border-zinc-700 cursor-default"
-              data-testid={`badge-service-${i}`}
-            >
-              <span className={`h-2 w-2 rounded-full ${svc.color}`} />
-              {svc.label}
-            </motion.span>
-            {i < MICROSERVICES.length - 1 && (
+        {services.map((svc, i) => (
+          <div key={svc.name} className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.span
+                  whileHover={{ scale: 1.05 }}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 border border-gray-100 dark:border-zinc-700 cursor-default"
+                  data-testid={`badge-service-${i}`}
+                >
+                  <span className={`h-2 w-2 rounded-full ${svc.color}`} />
+                  {svc.name}
+                </motion.span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs capitalize">{svc.status}</p>
+              </TooltipContent>
+            </Tooltip>
+            {i < services.length - 1 && (
               <ArrowRight className="h-3.5 w-3.5 text-gray-300 dark:text-zinc-600 shrink-0" />
             )}
           </div>
@@ -370,7 +564,7 @@ function LoadingSkeleton() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap gap-5">
-        {[0, 1, 2].map((i) => (
+        {[0, 1, 2, 3].map((i) => (
           <div key={i} className="flex-1 min-w-[200px]">
             <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-zinc-800">
               <div className="flex items-center justify-between gap-3">
@@ -384,7 +578,7 @@ function LoadingSkeleton() {
       {[0, 1, 2].map((s) => (
         <div key={s} className="space-y-4">
           <div><Skeleton className="h-5 w-40 mb-1" /><Skeleton className="h-3 w-64" /></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[0, 1].map((c) => (
               <div key={c} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-zinc-800 space-y-3">
                 <Skeleton className="h-10 w-10 rounded-xl" />
@@ -424,34 +618,53 @@ export default function Dashboard() {
   const [featureStats, setFeatureStats] = useState<FeatureStatsResponse | null>(null);
   const [tasksStats, setTasksStats] = useState<TasksStatsResponse | null>(null);
   const [attendanceStats, setAttendanceStats] = useState<AttendanceStatsResponse | null>(null);
+  const [globalApps, setGlobalApps] = useState<any>(null);
+  const [privateServices, setPrivateServices] = useState<any>(null);
+  const [venueAutomations, setVenueAutomations] = useState<any>(null);
+  const [servicesHealth, setServicesHealth] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    setFeatureStats(null);
-    setTasksStats(null);
-    setAttendanceStats(null);
-    try {
-      const [fs, ts, as] = await Promise.all([
-        strictFetch<FeatureStatsResponse>(API.featureStats),
-        strictFetch<TasksStatsResponse>(API.tasksStats),
-        strictFetch<AttendanceStatsResponse>(API.attendanceStats),
-      ]);
-      setFeatureStats(fs);
-      setTasksStats(ts);
-      setAttendanceStats(as);
-    } catch (err: any) {
-      setError(err.message || "未知錯誤");
-    } finally {
+
+    const results = await Promise.allSettled([
+      strictFetch<FeatureStatsResponse>(API.featureStats),
+      strictFetch<TasksStatsResponse>(API.tasksStats),
+      strictFetch<AttendanceStatsResponse>(API.attendanceStats),
+      safeFetch(API.globalApps),
+      safeFetch(API.privateServices),
+      safeFetch(API.venueAutomations),
+      safeFetch(API.servicesHealth),
+    ]);
+
+    const [fsResult, tsResult, asResult, gaResult, psResult, vaResult, shResult] = results;
+
+    if (fsResult.status === "rejected" && tsResult.status === "rejected" && asResult.status === "rejected") {
+      setError(fsResult.reason?.message || "所有核心 API 皆無法連線");
       setIsLoading(false);
+      return;
     }
+
+    if (fsResult.status === "fulfilled") setFeatureStats(fsResult.value);
+    if (tsResult.status === "fulfilled") setTasksStats(tsResult.value);
+    if (asResult.status === "fulfilled") setAttendanceStats(asResult.value);
+    if (gaResult.status === "fulfilled" && gaResult.value) setGlobalApps(gaResult.value);
+    if (psResult.status === "fulfilled" && psResult.value) setPrivateServices(psResult.value);
+    if (vaResult.status === "fulfilled" && vaResult.value) setVenueAutomations(vaResult.value);
+    if (shResult.status === "fulfilled" && shResult.value) setServicesHealth(shResult.value);
+
+    if (fsResult.status === "rejected") {
+      setError(fsResult.reason?.message || "功能統計 API 無法連線");
+    }
+
+    setIsLoading(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const hasData = featureStats && tasksStats && attendanceStats;
+  const hasData = featureStats || tasksStats || attendanceStats;
   const groups = featureStats?.groups ?? [];
   const penetration = featureStats?.featurePenetration ?? [];
 
@@ -459,16 +672,58 @@ export default function Dashboard() {
     (p) => p.feature === "GPS打卡" || p.feature?.toLowerCase().includes("gps")
   );
   const gpsRate = gpsPenetration ? gpsPenetration.rate : null;
+  const taskRate = tasksStats ? parseRate(tasksStats.completionRate) : 0;
 
-  const kpi: KpiItem[] = hasData
-    ? [
-        { title: "活躍場館", value: groups.length, suffix: "", icon: Users, accentColor: "text-blue-600 dark:text-blue-400", iconBg: "bg-blue-500" },
-        { title: "任務完成率", value: typeof tasksStats!.completionRate === "number" ? tasksStats!.completionRate.toFixed(1) : String(tasksStats!.completionRate).replace(/%$/, ""), suffix: "%", icon: CheckCircle2, accentColor: "text-emerald-600 dark:text-emerald-400", iconBg: "bg-emerald-500" },
-        { title: "今日打卡數", value: attendanceStats!.successful, suffix: "", icon: MapPin, accentColor: "text-violet-600 dark:text-violet-400", iconBg: "bg-violet-500" },
-      ]
-    : [];
+  const kpi: KpiItem[] = [];
+  if (featureStats) {
+    kpi.push({ title: "活躍場館", value: featureStats.totalGroups ?? groups.length, suffix: "", icon: Users, accentColor: "text-blue-600 dark:text-blue-400", iconBg: "bg-blue-500" });
+  }
+  if (tasksStats) {
+    kpi.push({ title: "任務完成率", value: taskRate.toFixed(1), suffix: "%", icon: CheckCircle2, accentColor: "text-emerald-600 dark:text-emerald-400", iconBg: "bg-emerald-500" });
+    kpi.push({ title: "總任務數", value: tasksStats.total, suffix: "", icon: ClipboardList, accentColor: "text-blue-600 dark:text-blue-400", iconBg: "bg-blue-500" });
+  }
+  if (attendanceStats) {
+    kpi.push({ title: "今日打卡數", value: attendanceStats.todayCheckins ?? attendanceStats.successful, suffix: "", icon: MapPin, accentColor: "text-violet-600 dark:text-violet-400", iconBg: "bg-violet-500" });
+  }
 
-  const gpsStatsText = gpsRate !== null ? `全域打卡率 ${Math.round(gpsRate)}%` : undefined;
+  const taskPenRate = penetration.find((p) => p.feature === "任務交辦");
+  const gpsPenRate = penetration.find((p) => p.feature === "GPS打卡");
+
+  const globalTaskStats: { label: string; value: string | number }[] = [];
+  if (globalApps?.tasks) {
+    if (globalApps.tasks.totalToday != null) globalTaskStats.push({ label: "今日交辦", value: globalApps.tasks.totalToday });
+    if (globalApps.tasks.status) globalTaskStats.push({ label: "狀態", value: globalApps.tasks.status });
+  }
+  if (tasksStats) {
+    globalTaskStats.push({ label: "完成率", value: `${taskRate.toFixed(1)}%` });
+    globalTaskStats.push({ label: "待處理", value: tasksStats.pending });
+  }
+  if (taskPenRate) {
+    globalTaskStats.push({ label: "場館覆蓋", value: `${taskPenRate.count}/${featureStats?.totalGroups ?? groups.length} (${taskPenRate.rate}%)` });
+  }
+
+  const globalGpsStats: { label: string; value: string | number }[] = [];
+  if (globalApps?.gps) {
+    if (globalApps.gps.todayCheckins != null) globalGpsStats.push({ label: "今日打卡", value: globalApps.gps.todayCheckins });
+    if (globalApps.gps.status) globalGpsStats.push({ label: "狀態", value: globalApps.gps.status });
+  }
+  if (attendanceStats) {
+    globalGpsStats.push({ label: "今日打卡", value: attendanceStats.todayCheckins ?? attendanceStats.successful });
+    if (attendanceStats.uniqueCheckers > 0) globalGpsStats.push({ label: "不重複人數", value: attendanceStats.uniqueCheckers });
+  }
+  if (gpsRate != null) {
+    globalGpsStats.push({ label: "全域覆蓋率", value: `${Math.round(gpsRate)}%` });
+  }
+
+  const globalCoachStats: { label: string; value: string | number }[] = [];
+  if (globalApps?.coach) {
+    if (globalApps.coach.todayCheckins != null) globalCoachStats.push({ label: "今日簽到", value: globalApps.coach.todayCheckins });
+  }
+
+  const globalSurveyStats: { label: string; value: string | number }[] = [];
+  if (globalApps?.survey) {
+    if (globalApps.survey.totalResponses != null) globalSurveyStats.push({ label: "回覆數", value: globalApps.survey.totalResponses });
+  }
 
   return (
     <div className="h-full overflow-y-auto bg-gray-50/80 dark:bg-zinc-950">
@@ -490,7 +745,7 @@ export default function Dashboard() {
           )}
         </motion.div>
 
-        {error && !isLoading && <ErrorBlock message={error} onRetry={fetchData} isRetrying={isLoading} />}
+        {error && !isLoading && !hasData && <ErrorBlock message={error} onRetry={fetchData} isRetrying={isLoading} />}
 
         {isLoading && <LoadingSkeleton />}
 
@@ -510,38 +765,28 @@ export default function Dashboard() {
               />
               <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" variants={containerVariants}>
                 <GlobalFeatureCard
-                  emoji="📋"
-                  title="任務管理系統"
+                  emoji="📋" title="任務管理系統"
                   description="包含任務交辦、完成標記、待辦查詢，支援群組內快速指派與追蹤"
-                  icon={ClipboardList}
-                  gradient="bg-blue-50 dark:bg-blue-950/30"
-                  iconColor="text-blue-500"
-                  stats={`完成率 ${kpi[1]?.value}%`}
+                  icon={ClipboardList} gradient="bg-blue-50 dark:bg-blue-950/30" iconColor="text-blue-500"
+                  stats={globalTaskStats}
                 />
                 <GlobalFeatureCard
-                  emoji="📍"
-                  title="GPS 打卡系統"
+                  emoji="📍" title="GPS 打卡系統"
                   description="員工透過 LINE 進行即時 GPS 定位打卡，管理端可即時查看出勤紀錄"
-                  icon={Navigation}
-                  gradient="bg-violet-50 dark:bg-violet-950/30"
-                  iconColor="text-violet-500"
-                  stats={gpsStatsText}
+                  icon={Navigation} gradient="bg-violet-50 dark:bg-violet-950/30" iconColor="text-violet-500"
+                  stats={globalGpsStats}
                 />
                 <GlobalFeatureCard
-                  emoji="🏋️"
-                  title="教練簽到"
+                  emoji="🏋️" title="教練簽到"
                   description="教練透過 LIFF 網頁完成簽到流程，自動記錄到班時間"
-                  icon={Dumbbell}
-                  gradient="bg-emerald-50 dark:bg-emerald-950/30"
-                  iconColor="text-emerald-500"
+                  icon={Dumbbell} gradient="bg-emerald-50 dark:bg-emerald-950/30" iconColor="text-emerald-500"
+                  stats={globalCoachStats.length > 0 ? globalCoachStats : undefined}
                 />
                 <GlobalFeatureCard
-                  emoji="📊"
-                  title="客戶調查"
+                  emoji="📊" title="客戶調查"
                   description="透過 LIFF 問卷發送滿意度調查，自動收集並彙整回覆結果"
-                  icon={BarChart3}
-                  gradient="bg-amber-50 dark:bg-amber-950/30"
-                  iconColor="text-amber-500"
+                  icon={BarChart3} gradient="bg-amber-50 dark:bg-amber-950/30" iconColor="text-amber-500"
+                  stats={globalSurveyStats.length > 0 ? globalSurveyStats : undefined}
                 />
               </motion.div>
             </section>
@@ -553,18 +798,20 @@ export default function Dashboard() {
                 subtitle="基於身份權限的 1 對 1 私人對話服務"
                 color="text-amber-700 dark:text-amber-300"
               />
-              <PrivateSection />
+              <PrivateSection privateData={privateServices} />
             </section>
 
-            <section data-testid="section-venue">
-              <SectionHeader
-                emoji="🏢"
-                title="實體場館自動化矩陣"
-                subtitle="各實體場館群組的專屬觸發指令與定時推播"
-                color="text-slate-700 dark:text-zinc-200"
-              />
-              <VenueSwimlane groups={groups} />
-            </section>
+            {groups.length > 0 && (
+              <section data-testid="section-venue">
+                <SectionHeader
+                  emoji="🏢"
+                  title="實體場館自動化矩陣"
+                  subtitle="各實體場館群組的專屬觸發指令與定時推播"
+                  color="text-slate-700 dark:text-zinc-200"
+                />
+                <VenueSwimlane groups={groups} venueData={venueAutomations} />
+              </section>
+            )}
 
             <section data-testid="section-architecture">
               <SectionHeader
@@ -573,7 +820,7 @@ export default function Dashboard() {
                 subtitle="核心微服務元件與資料流向"
                 color="text-gray-600 dark:text-zinc-300"
               />
-              <MicroservicesSection />
+              <MicroservicesSection healthData={servicesHealth} />
             </section>
 
           </motion.div>
