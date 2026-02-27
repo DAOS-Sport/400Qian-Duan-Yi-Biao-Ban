@@ -738,12 +738,13 @@ export default function Dashboard() {
   }
 
   const globalGpsStats: { label: string; value: string | number }[] = [];
+  const hasGpsFromApps = globalApps?.gps?.todayCheckins != null;
   if (globalApps?.gps) {
-    if (globalApps.gps.todayCheckins != null) globalGpsStats.push({ label: "今日打卡", value: globalApps.gps.todayCheckins });
+    if (hasGpsFromApps) globalGpsStats.push({ label: "今日打卡", value: globalApps.gps.todayCheckins });
     if (globalApps.gps.status) globalGpsStats.push({ label: "狀態", value: globalApps.gps.status });
   }
   if (attendanceStats) {
-    globalGpsStats.push({ label: "今日打卡", value: attendanceStats.todayCheckins ?? attendanceStats.successful });
+    if (!hasGpsFromApps) globalGpsStats.push({ label: "今日打卡", value: attendanceStats.todayCheckins ?? attendanceStats.successful });
     if (attendanceStats.uniqueCheckers > 0) globalGpsStats.push({ label: "不重複人數", value: attendanceStats.uniqueCheckers });
   }
   if (gpsRate != null) {

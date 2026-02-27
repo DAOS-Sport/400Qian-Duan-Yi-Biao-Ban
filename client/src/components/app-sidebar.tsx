@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -20,14 +20,16 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { title: "📊 營運戰情總覽", url: "/", icon: LayoutDashboard, active: true },
-  { title: "📈 決策與數據洞察", url: "#", icon: TrendingUp },
-  { title: "🏢 跨館資源監控", url: "#", icon: Building2 },
-  { title: "🛡️ HR 與權限稽核", url: "#", icon: ShieldCheck },
-  { title: "⚙️ 微服務健康監控", url: "#", icon: Activity },
+  { title: "📊 營運戰情總覽", url: "/", icon: LayoutDashboard },
+  { title: "📈 決策與數據洞察", url: "/analytics", icon: TrendingUp },
+  { title: "🏢 跨館資源監控", url: "/operations", icon: Building2 },
+  { title: "🛡️ HR 與權限稽核", url: "/hr-audit", icon: ShieldCheck },
+  { title: "⚙️ 微服務健康監控", url: "/system-health", icon: Activity },
 ];
 
 export function AppSidebar() {
+  const [location] = useLocation();
+
   return (
     <Sidebar>
       <SidebarHeader className="p-5">
@@ -48,20 +50,23 @@ export function AppSidebar() {
           <SidebarGroupLabel>營運管理</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    data-active={item.active || undefined}
-                    className={item.active ? "data-[active=true]:bg-sidebar-accent" : ""}
-                  >
-                    <Link href={item.url} data-testid={`link-nav-${item.title}`}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {navItems.map((item) => {
+                const isActive = location === item.url;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      data-active={isActive || undefined}
+                      className={isActive ? "data-[active=true]:bg-sidebar-accent" : ""}
+                    >
+                      <Link href={item.url} data-testid={`link-nav-${item.title}`}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

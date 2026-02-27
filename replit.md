@@ -1,25 +1,30 @@
 # LINE Bot 系統全局藍圖 (System Blueprint)
 
 ## Overview
-Enterprise-grade dashboard for the 駿斯 LINE Bot system. Displays operational status across venues, features, permissions, and microservices. Fetches from 7 API endpoints using `Promise.allSettled` — 3 core (required) + 4 new (graceful fallback if unavailable).
+Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS application with 5 views: main dashboard with live API data, analytics, cross-venue operations, HR audit, and system health monitoring.
 
 ## Tech Stack
 - **Frontend**: React, Vite, TypeScript
 - **Styling**: Tailwind CSS, Shadcn UI
 - **Animation**: Framer Motion
+- **Charts**: Recharts (used in Analytics page)
 - **Icons**: Lucide React
-- **Routing**: Wouter
+- **Routing**: Wouter (5 routes)
 - **Backend**: Express (minimal, serves frontend only)
 
 ## Project Structure
-- `client/src/pages/dashboard.tsx` - Main dashboard with 4 blueprint sections
-- `client/src/components/app-sidebar.tsx` - Enterprise sidebar navigation
-- `client/src/App.tsx` - App root with sidebar layout and routing
+- `client/src/App.tsx` - App root with sidebar layout, routing (5 routes), dynamic header title
+- `client/src/components/app-sidebar.tsx` - Enterprise sidebar with active state via `useLocation`
+- `client/src/pages/dashboard.tsx` - Main dashboard with 4 blueprint sections (live API data)
+- `client/src/pages/analytics.tsx` - Analytics with KPIs, Recharts trend chart, venue task ranking (live API)
+- `client/src/pages/operations.tsx` - Cross-venue resource monitoring with alerts and data grid (mock data)
+- `client/src/pages/hr-audit.tsx` - HR audit with search bar, Ragic/lifeguard verification (mock data)
+- `client/src/pages/system-health.tsx` - Microservice health grid and terminal audit logs (mock data)
 
 ## External APIs (Base: `https://line-bot-assistant-ronchen2.replit.app`)
 ### Core (required — `strictFetch`, errors shown to user):
 1. `GET /api/admin/dashboard/feature-stats` → groups[], featurePenetration[], totalGroups
-2. `GET /api/admin/tasks/stats` → total, completed, pending, completionRate (string "64.9%")
+2. `GET /api/admin/tasks/stats` → total, completed, pending, completionRate (string "64.9%"), byGroup
 3. `GET /api/admin/attendance/stats` → todayCheckins, successful, failed, uniqueCheckers
 
 ### Extended (optional — `safeFetch`, graceful null fallback):
@@ -36,16 +41,26 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Displays operational 
 - `VENUE_NAME_MAP` maps groupId to display names (e.g., "DAOS-新北高中（工作群）")
 - `completionRate` from tasks API is a string like "64.9%" — parsed via `parseRate()`
 - Non-feature keys excluded via `EXCLUDED_KEYS`: name, groupId, totalEnabled
+- Emojis are explicitly requested by user — intentional, not a bug
+
+## Routing (5 Pages)
+| Route | Page | Data Source |
+|-------|------|-------------|
+| `/` | 營運戰情總覽 (Dashboard) | Live API (7 endpoints) |
+| `/analytics` | 決策與數據洞察 | Live API (tasks/stats) + mock chart data |
+| `/operations` | 跨館資源監控 | Mock alerts + data grid |
+| `/hr-audit` | HR 與權限稽核 | Mock search results (Ragic + 體育署) |
+| `/system-health` | 微服務健康監控 | Mock service status + audit logs |
 
 ## Dashboard Layout (4 Sections)
-1. **🌐 全域通用與網頁應用**: 4 cards with live stats, LIFF badges on GPS/教練/客戶調查, usage guide text blocks per card
-2. **👤 私人專屬與權限對話**: Split panels (general/admin) with trigger command guides (employee query, interview)
-3. **🏢 實體場館自動化矩陣**: 10-feature grid per venue, each badge shows icon + label + instruction line, CSS Grid layout (5 cols on lg), enabled/disabled styling with instruction always visible
-4. **⚙️ 架構與依賴關係**: Microservices with health status from services-health API or defaults
+1. **🌐 全域通用與網頁應用**: 4 cards with live stats, LIFF badges on GPS/教練/客戶調查, usage guide text blocks
+2. **👤 私人專屬與權限對話**: Split panels (general/admin) with trigger command guides
+3. **🏢 實體場館自動化矩陣**: Only enabled features shown (filtered), 10-feature CSS Grid, instruction line per badge
+4. **⚙️ 架構與依賴關係**: Microservices with health status from API or defaults
 
 ## Sidebar Navigation
-- 📊 營運戰情總覽 (active, routes to /)
-- 📈 決策與數據洞察
-- 🏢 跨館資源監控
-- 🛡️ HR 與權限稽核
-- ⚙️ 微服務健康監控
+- 📊 營運戰情總覽 → /
+- 📈 決策與數據洞察 → /analytics
+- 🏢 跨館資源監控 → /operations
+- 🛡️ HR 與權限稽核 → /hr-audit
+- ⚙️ 微服務健康監控 → /system-health
