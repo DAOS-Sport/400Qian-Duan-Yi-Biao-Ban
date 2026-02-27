@@ -513,15 +513,9 @@ function TaskTicket({ task, isCompleted }: { task: HistoryTask; isCompleted: boo
   );
 }
 
-function TaskHistoryDrawer({
-  groupId,
-  venueName,
-  onClose,
-}: {
-  groupId: string;
-  venueName: string;
-  onClose: () => void;
-}) {
+const TASK_FEATURES = new Set(["交辦任務", "處理事項查詢", "任務完成"]);
+
+function TaskSwimlaneContent({ groupId }: { groupId: string }) {
   const [tasks, setTasks] = useState<HistoryTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -531,32 +525,19 @@ function TaskHistoryDrawer({
     async function load() {
       setLoading(true);
       setError(null);
-
       let data = await safeFetch<HistoryTask[]>(API.taskHistory(groupId));
-
       if (!data) {
         const stats = await safeFetch<any>(API.tasksStats);
         if (stats?.recentTasks) {
-          data = (stats.recentTasks as HistoryTask[]).filter(
-            (t) => t.groupId === groupId
-          );
+          data = (stats.recentTasks as HistoryTask[]).filter((t) => t.groupId === groupId);
         }
       }
-
       if (cancelled) return;
-
-      if (data && Array.isArray(data)) {
-        setTasks(data);
-      } else {
-        setTasks([]);
-      }
+      setTasks(data && Array.isArray(data) ? data : []);
       setLoading(false);
     }
     load().catch((e) => {
-      if (!cancelled) {
-        setError(e?.message || "載入失敗");
-        setLoading(false);
-      }
+      if (!cancelled) { setError(e?.message || "載入失敗"); setLoading(false); }
     });
     return () => { cancelled = true; };
   }, [groupId]);
@@ -566,6 +547,252 @@ function TaskHistoryDrawer({
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   const openTasks = tasks.filter((t) => !completedStatuses.has(t.status?.toLowerCase())).sort(sortByDateDesc);
   const completedTasks = tasks.filter((t) => completedStatuses.has(t.status?.toLowerCase())).sort(sortByDateDesc);
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-loading">
+      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      <p className="text-sm text-gray-400 dark:text-zinc-500">載入任務歷史中...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-error">
+      <AlertCircle className="h-8 w-8 text-red-400" />
+      <p className="text-sm text-red-500">{error}</p>
+    </div>
+  );
+
+  if (tasks.length === 0) return (
+    <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-empty">
+      <Inbox className="h-12 w-12 text-gray-300 dark:text-zinc-600" />
+      <p className="text-sm text-gray-400 dark:text-zinc-500">尚無歷史交辦任務紀錄</p>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="swimlane-container">
+      <div data-testid="swimlane-open">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900/40">
+            <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+          </span>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-open-title">🟡 待處理 ({openTasks.length})</h3>
+        </div>
+        {openTasks.length === 0 ? (
+          <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
+            <p className="text-xs text-gray-400 dark:text-zinc-500">目前無待處理任務 🎉</p>
+          </div>
+        ) : (
+          <div className="space-y-3">{openTasks.map((t) => <TaskTicket key={t.id || t.taskId} task={t} isCompleted={false} />)}</div>
+        )}
+      </div>
+      <div data-testid="swimlane-completed">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+          </span>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-completed-title">🟢 已完成 ({completedTasks.length})</h3>
+        </div>
+        {completedTasks.length === 0 ? (
+          <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
+            <p className="text-xs text-gray-400 dark:text-zinc-500">尚無已完成的任務</p>
+          </div>
+        ) : (
+          <div className="space-y-3">{completedTasks.map((t) => <TaskTicket key={t.id || t.taskId} task={t} isCompleted={true} />)}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WeatherPanel() {
+  return (
+    <div className="space-y-5" data-testid="panel-weather">
+      <div className="bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="text-sm font-medium opacity-80">📍 新竹科學園區</p>
+            <p className="text-4xl font-light mt-2">27°C</p>
+            <p className="text-sm opacity-80 mt-1">多雲時晴</p>
+          </div>
+          <div className="text-6xl">⛅</div>
+        </div>
+        <div className="grid grid-cols-3 gap-3 mt-6 pt-4 border-t border-white/20">
+          <div className="text-center">
+            <p className="text-xs opacity-70">體感溫度</p>
+            <p className="text-lg font-semibold">29°C</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs opacity-70">濕度</p>
+            <p className="text-lg font-semibold">72%</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs opacity-70">降雨機率</p>
+            <p className="text-lg font-semibold">15%</p>
+          </div>
+        </div>
+      </div>
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800">
+        <h4 className="text-sm font-bold text-gray-700 dark:text-zinc-200 mb-4">🕐 未來 6 小時預報</h4>
+        <div className="grid grid-cols-6 gap-2">
+          {[
+            { time: "10:00", icon: "☀️", temp: "26°C" },
+            { time: "12:00", icon: "⛅", temp: "28°C" },
+            { time: "14:00", icon: "🌤️", temp: "27°C" },
+            { time: "16:00", icon: "⛅", temp: "26°C" },
+            { time: "18:00", icon: "🌥️", temp: "25°C" },
+            { time: "20:00", icon: "🌙", temp: "23°C" },
+          ].map((h) => (
+            <div key={h.time} className="text-center py-3 rounded-xl bg-gray-50 dark:bg-zinc-800">
+              <p className="text-[10px] text-gray-400 dark:text-zinc-500">{h.time}</p>
+              <p className="text-xl my-1">{h.icon}</p>
+              <p className="text-xs font-semibold text-gray-700 dark:text-zinc-200">{h.temp}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800">
+        <h4 className="text-sm font-bold text-gray-700 dark:text-zinc-200 mb-3">💨 風力資訊</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-gray-50 dark:bg-zinc-800 rounded-xl p-4 text-center">
+            <p className="text-xs text-gray-400 dark:text-zinc-500">目前風速</p>
+            <p className="text-2xl font-bold text-sky-600 dark:text-sky-400 mt-1">3.2 m/s</p>
+            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1">微風 · 適合戶外活動</p>
+          </div>
+          <div className="bg-gray-50 dark:bg-zinc-800 rounded-xl p-4 text-center">
+            <p className="text-xs text-gray-400 dark:text-zinc-500">風向</p>
+            <p className="text-2xl font-bold text-sky-600 dark:text-sky-400 mt-1">東北風</p>
+            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1">NE 45°</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WaterQualityPanel() {
+  const metrics = [
+    { label: "PH 值", value: "7.2", unit: "", status: "穩定", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30", icon: "🧪", range: "標準 6.5-8.0" },
+    { label: "餘氯", value: "0.5", unit: "ppm", status: "正常", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/30", icon: "💧", range: "標準 0.3-0.7 ppm" },
+    { label: "水溫", value: "28", unit: "°C", status: "正常", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30", icon: "🌡️", range: "標準 26-30°C" },
+    { label: "濁度", value: "0.8", unit: "NTU", status: "清澈", color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-950/30", icon: "🔬", range: "標準 < 2 NTU" },
+  ];
+  return (
+    <div className="space-y-5" data-testid="panel-water-quality">
+      <div className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium opacity-80">💧 即時水質總覽</p>
+            <p className="text-2xl font-bold mt-2">所有指標正常</p>
+            <p className="text-sm opacity-80 mt-1">最後更新：今日 09:30</p>
+          </div>
+          <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center text-3xl">✅</div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        {metrics.map((m) => (
+          <div key={m.label} className={`${m.bg} rounded-2xl p-5 border border-gray-100 dark:border-zinc-800`}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">{m.icon}</span>
+              <span className="text-sm font-bold text-gray-700 dark:text-zinc-200">{m.label}</span>
+            </div>
+            <p className={`text-3xl font-bold ${m.color}`}>{m.value}<span className="text-base ml-1">{m.unit}</span></p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">{m.status}</span>
+              <span className="text-[10px] text-gray-400 dark:text-zinc-500">{m.range}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-sm">📋</span>
+          <h4 className="text-sm font-bold text-gray-700 dark:text-zinc-200">AI 建議</h4>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-zinc-400 leading-relaxed">目前所有水質指標皆在正常範圍內，建議維持現有加藥量。下次檢測排程：今日 15:00。</p>
+      </div>
+    </div>
+  );
+}
+
+function GptChatPanel() {
+  const mockMessages = [
+    { role: "user", text: "請幫我查看今天竹科泳池的水質報告" },
+    { role: "assistant", text: "好的！根據今日 09:30 的水質檢測數據：\n\n📊 PH 值：7.2（穩定）\n💧 餘氯：0.5 ppm（正常）\n🌡️ 水溫：28°C（正常）\n\n所有指標皆在安全範圍內，建議維持目前加藥量。" },
+    { role: "user", text: "那風速狀況適合開放嗎？" },
+    { role: "assistant", text: "目前新竹地區風速為 3.2 m/s（微風），風向東北風。根據安全標準（< 8 m/s），✅ 適合開放戶外活動。\n\n若風速超過 6 m/s 系統會自動發出預警通知。" },
+  ];
+  return (
+    <div className="space-y-4" data-testid="panel-gpt">
+      <div className="bg-gradient-to-r from-rose-500 to-pink-600 rounded-2xl p-5 text-white shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">🤖</div>
+          <div>
+            <p className="font-bold">GPT 小助理</p>
+            <p className="text-xs opacity-80">駿斯專屬 AI 對話助手 · 即時回覆</p>
+          </div>
+        </div>
+      </div>
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden">
+        <div className="p-5 space-y-4 max-h-[50vh] overflow-y-auto">
+          {mockMessages.map((msg, idx) => (
+            <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user"
+                ? "bg-blue-500 text-white rounded-br-md"
+                : "bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 rounded-bl-md"
+              }`}>
+                <p className="text-sm whitespace-pre-line leading-relaxed">{msg.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-gray-100 dark:border-zinc-800 p-4 flex items-center gap-3">
+          <div className="flex-1 bg-gray-100 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm text-gray-400 dark:text-zinc-500">
+            輸入訊息...（展示模式）
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0">
+            <ArrowRight className="h-4 w-4" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GenericFeaturePanel({ featureName }: { featureName: string }) {
+  const featureSpec = VENUE_FEATURES.find((f) => f.label === featureName);
+  const FIcon = featureSpec?.icon || Layers;
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4" data-testid="panel-generic">
+      <div className={`h-16 w-16 rounded-2xl flex items-center justify-center ${featureSpec?.enabledBg || "bg-gray-100 dark:bg-zinc-800"}`}>
+        <FIcon className={`h-8 w-8 ${featureSpec?.color || "text-gray-400"}`} />
+      </div>
+      <div className="text-center">
+        <p className="text-lg font-bold text-gray-700 dark:text-zinc-200">{featureSpec?.emoji || "📦"} {featureName}</p>
+        <p className="text-sm text-gray-400 dark:text-zinc-500 mt-2">模組詳細數據建置中...</p>
+        <p className="text-xs text-gray-300 dark:text-zinc-600 mt-1">後端 API 開發完成後將自動串接真實資料</p>
+      </div>
+    </div>
+  );
+}
+
+function FeatureDetailDrawer({
+  groupId,
+  venueName,
+  feature,
+  onClose,
+}: {
+  groupId: string;
+  venueName: string;
+  feature: string;
+  onClose: () => void;
+}) {
+  const featureSpec = VENUE_FEATURES.find((f) => f.label === feature);
+  const drawerTitle = TASK_FEATURES.has(feature) ? "任務歷史紀錄 · 雙欄泳道圖"
+    : feature === "天氣預報" || feature === "風力預報" ? "即時氣象儀表板"
+    : feature === "水質監控" ? "即時水質監控面板"
+    : feature === "GPT小助理" ? "AI 對話助手"
+    : `${feature} · 功能面板`;
 
   return (
     <>
@@ -590,87 +817,22 @@ function TaskHistoryDrawer({
         <div className="sticky top-0 z-10 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between">
           <div className="min-w-0">
             <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100 truncate" data-testid="text-drawer-title">
-              📋 {venueName}
+              {featureSpec?.emoji || "📋"} {venueName}
             </h2>
-            <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">任務歷史紀錄 · 雙欄泳道圖</p>
+            <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">{drawerTitle}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-            data-testid="button-close-drawer"
-          >
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors" data-testid="button-close-drawer">
             <X className="h-5 w-5 text-gray-500 dark:text-zinc-400" />
           </button>
         </div>
 
         <div className="p-6">
-          {loading && (
-            <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-loading">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-              <p className="text-sm text-gray-400 dark:text-zinc-500">載入任務歷史中...</p>
-            </div>
-          )}
-
-          {error && !loading && (
-            <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-error">
-              <AlertCircle className="h-8 w-8 text-red-400" />
-              <p className="text-sm text-red-500">{error}</p>
-            </div>
-          )}
-
-          {!loading && !error && tasks.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-empty">
-              <Inbox className="h-12 w-12 text-gray-300 dark:text-zinc-600" />
-              <p className="text-sm text-gray-400 dark:text-zinc-500">尚無歷史交辦任務紀錄</p>
-            </div>
-          )}
-
-          {!loading && !error && tasks.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="swimlane-container">
-              <div data-testid="swimlane-open">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900/40">
-                    <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                  </span>
-                  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-open-title">
-                    🟡 待處理 ({openTasks.length})
-                  </h3>
-                </div>
-                {openTasks.length === 0 ? (
-                  <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
-                    <p className="text-xs text-gray-400 dark:text-zinc-500">目前無待處理任務 🎉</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {openTasks.map((task) => (
-                      <TaskTicket key={task.id || task.taskId} task={task} isCompleted={false} />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div data-testid="swimlane-completed">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  </span>
-                  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-completed-title">
-                    🟢 已完成 ({completedTasks.length})
-                  </h3>
-                </div>
-                {completedTasks.length === 0 ? (
-                  <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
-                    <p className="text-xs text-gray-400 dark:text-zinc-500">尚無已完成的任務</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {completedTasks.map((task) => (
-                      <TaskTicket key={task.id || task.taskId} task={task} isCompleted={true} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+          {TASK_FEATURES.has(feature) && <TaskSwimlaneContent groupId={groupId} />}
+          {(feature === "天氣預報" || feature === "風力預報") && <WeatherPanel />}
+          {feature === "水質監控" && <WaterQualityPanel />}
+          {feature === "GPT小助理" && <GptChatPanel />}
+          {!TASK_FEATURES.has(feature) && feature !== "天氣預報" && feature !== "風力預報" && feature !== "水質監控" && feature !== "GPT小助理" && (
+            <GenericFeaturePanel featureName={feature} />
           )}
         </div>
       </motion.div>
@@ -678,7 +840,7 @@ function TaskHistoryDrawer({
   );
 }
 
-function VenueSwimlane({ groups, venueData, onVenueClick }: { groups: GroupData[]; venueData: any; onVenueClick: (groupId: string, name: string) => void }) {
+function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupData[]; venueData: any; onFeatureClick: (groupId: string, name: string, feature: string) => void }) {
   const displayGroups = venueData?.venues ?? groups;
 
   return (
@@ -705,9 +867,8 @@ function VenueSwimlane({ groups, venueData, onVenueClick }: { groups: GroupData[
           <motion.div
             key={group.groupId || group.name || i}
             variants={cardVariants}
-            className="group bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden cursor-pointer hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800/60 transition-all"
+            className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden"
             data-testid={`row-venue-${i}`}
-            onClick={() => group.groupId && onVenueClick(group.groupId, displayName)}
           >
             <div className="flex flex-col md:flex-row">
               <div className="md:w-60 shrink-0 p-5 flex flex-col justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30">
@@ -720,14 +881,10 @@ function VenueSwimlane({ groups, venueData, onVenueClick }: { groups: GroupData[
                     {group.groupId && <CopyableId id={group.groupId} />}
                   </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-2">
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 dark:text-zinc-500">
                     <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                     {enabledCount} / {VENUE_FEATURES.length} 項啟用
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-500 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ArrowRight className="h-3 w-3" />
-                    查看任務
                   </span>
                 </div>
               </div>
@@ -744,9 +901,14 @@ function VenueSwimlane({ groups, venueData, onVenueClick }: { groups: GroupData[
                     return (
                       <motion.div
                         key={fi}
-                        whileHover={{ scale: 1.02 }}
-                        className={`flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 border transition-colors ${spec.enabledBg}`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.97 }}
+                        className={`flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 border transition-all cursor-pointer hover:shadow-md ${spec.enabledBg}`}
                         data-testid={`badge-venue-${i}-${spec.label}-on`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (group.groupId) onFeatureClick(group.groupId, displayName, spec.label);
+                        }}
                       >
                         <FIcon className={`h-4 w-4 shrink-0 mt-0.5 ${spec.color}`} />
                         <div className="min-w-0">
@@ -928,10 +1090,10 @@ export default function Dashboard() {
   const [servicesHealth, setServicesHealth] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedVenue, setSelectedVenue] = useState<{ groupId: string; name: string } | null>(null);
+  const [selectedVenue, setSelectedVenue] = useState<{ groupId: string; name: string; feature: string } | null>(null);
 
-  const handleVenueClick = useCallback((groupId: string, name: string) => {
-    setSelectedVenue({ groupId, name });
+  const handleFeatureClick = useCallback((groupId: string, name: string, feature: string) => {
+    setSelectedVenue({ groupId, name, feature });
   }, []);
 
   const handleDrawerClose = useCallback(() => {
@@ -1130,7 +1292,7 @@ export default function Dashboard() {
                   subtitle="各實體場館群組的專屬觸發指令與定時推播"
                   color="text-slate-700 dark:text-zinc-200"
                 />
-                <VenueSwimlane groups={groups} venueData={venueAutomations} onVenueClick={handleVenueClick} />
+                <VenueSwimlane groups={groups} venueData={venueAutomations} onFeatureClick={handleFeatureClick} />
               </section>
             )}
 
@@ -1150,9 +1312,10 @@ export default function Dashboard() {
 
       <AnimatePresence>
         {selectedVenue && (
-          <TaskHistoryDrawer
+          <FeatureDetailDrawer
             groupId={selectedVenue.groupId}
             venueName={selectedVenue.name}
+            feature={selectedVenue.feature}
             onClose={handleDrawerClose}
           />
         )}

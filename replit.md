@@ -56,7 +56,12 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 ## Dashboard Layout (4 Sections)
 1. **🌐 全域通用與網頁應用**: 4 cards with live stats, LIFF badges on GPS/教練/客戶調查, usage guide text blocks
 2. **👤 私人專屬與權限對話**: Split panels (general/admin) with trigger command guides
-3. **🏢 實體場館自動化矩陣**: Only enabled features shown (filtered), 10-feature CSS Grid, instruction line per badge. Clicking a venue card opens a **TaskHistoryDrawer** (slide-out panel) with dual-column swimlane: 🟡 待處理 (open/pending) | 🟢 已完成 (completed). Each task rendered as a Ticket card with #taskId, description, reporter, timestamps.
+3. **🏢 實體場館自動化矩陣**: Only enabled features shown (filtered), 10-feature CSS Grid, instruction line per badge. Each feature badge is clickable and opens a **FeatureDetailDrawer** with content based on the feature type:
+   - 交辦任務/處理事項查詢/任務完成 → TaskSwimlaneContent (dual-column Kanban with real API data)
+   - 天氣預報/風力預報 → WeatherPanel (Apple-style weather dashboard with hourly forecast)
+   - 水質監控 → WaterQualityPanel (4-metric dashboard: PH, chlorine, temp, turbidity + AI suggestions)
+   - GPT小助理 → GptChatPanel (ChatGPT-style conversation mockup)
+   - Others → GenericFeaturePanel ("建置中" placeholder)
 4. **⚙️ 架構與依賴關係**: Microservices with health status from API or defaults
 
 ## Sidebar Navigation
