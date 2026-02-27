@@ -844,107 +844,118 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
   const displayGroups = venueData?.venues ?? groups;
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-3">
-      {displayGroups.map((group: any, i: number) => {
-        const displayName = getDisplayName(group);
-        const venueSchedules = group.schedules ?? null;
+    <div className="relative">
+      <div className="flex overflow-x-auto pb-6 gap-5 snap-x scroll-smooth" style={{ scrollbarWidth: "thin" }}>
+        {displayGroups.map((group: any, i: number) => {
+          const displayName = getDisplayName(group);
+          const venueSchedules = group.schedules ?? null;
 
-        const hardcodedFeatures = group.groupId ? VENUE_FEATURE_MATRIX[group.groupId] : null;
+          const hardcodedFeatures = group.groupId ? VENUE_FEATURE_MATRIX[group.groupId] : null;
 
-        const resolvedFeatures = VENUE_FEATURES.map((spec) => {
-          if (hardcodedFeatures) {
-            const enabled = hardcodedFeatures.includes(spec.label);
+          const resolvedFeatures = VENUE_FEATURES.map((spec) => {
+            if (hardcodedFeatures) {
+              const enabled = hardcodedFeatures.includes(spec.label);
+              return { spec, enabled };
+            }
+            const rawKeys = Object.keys(group).filter((k) => !EXCLUDED_KEYS.has(k) && typeof group[k] === "number");
+            const enabledApiKeys = rawKeys.filter((k) => Number(group[k]) > 0);
+            const enabled = spec.apiKeys.some((ak) => enabledApiKeys.includes(ak));
             return { spec, enabled };
-          }
-          const rawKeys = Object.keys(group).filter((k) => !EXCLUDED_KEYS.has(k) && typeof group[k] === "number");
-          const enabledApiKeys = rawKeys.filter((k) => Number(group[k]) > 0);
-          const enabled = spec.apiKeys.some((ak) => enabledApiKeys.includes(ak));
-          return { spec, enabled };
-        });
-        const enabledCount = resolvedFeatures.filter((f) => f.enabled).length;
+          });
+          const enabledCount = resolvedFeatures.filter((f) => f.enabled).length;
+          const activeFeatures = resolvedFeatures.filter(({ enabled }) => enabled);
 
-        return (
-          <motion.div
-            key={group.groupId || group.name || i}
-            variants={cardVariants}
-            className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden"
-            data-testid={`row-venue-${i}`}
-          >
-            <div className="flex flex-col md:flex-row">
-              <div className="md:w-60 shrink-0 p-5 flex flex-col justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30">
+          return (
+            <motion.div
+              key={group.groupId || group.name || i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.05 }}
+              className="min-w-[300px] max-w-[300px] bg-slate-50/80 dark:bg-zinc-900/60 rounded-2xl p-4 flex flex-col shrink-0 snap-start shadow-inner border border-slate-200 dark:border-zinc-800"
+              data-testid={`row-venue-${i}`}
+            >
+              <div className="pb-3 mb-3 border-b border-slate-200 dark:border-zinc-700">
                 <div className="flex items-center gap-2.5">
-                  <Building2 className="h-5 w-5 text-slate-500 dark:text-zinc-400 shrink-0" />
-                  <div className="min-w-0">
+                  <div className="h-8 w-8 rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-slate-200 dark:border-zinc-700 flex items-center justify-center shrink-0">
+                    <Building2 className="h-4 w-4 text-slate-500 dark:text-zinc-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-gray-800 dark:text-zinc-100 truncate" data-testid={`text-venue-name-${i}`}>
                       {displayName}
                     </p>
                     {group.groupId && <CopyableId id={group.groupId} />}
                   </div>
                 </div>
-                <div className="mt-2">
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 dark:text-zinc-500">
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 dark:text-zinc-500">
                     <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                     {enabledCount} / {VENUE_FEATURES.length} 項啟用
                   </span>
                 </div>
               </div>
 
-              <div className="flex-1 p-5">
-                {enabledCount === 0 ? (
-                  <p className="text-sm text-gray-400 dark:text-zinc-500 italic py-4 text-center" data-testid={`text-venue-empty-${i}`}>
-                    尚無啟用的專屬自動化功能
+              <div className="flex flex-col gap-2.5 flex-1">
+                {activeFeatures.length === 0 ? (
+                  <p className="text-xs text-gray-400 dark:text-zinc-500 italic py-6 text-center" data-testid={`text-venue-empty-${i}`}>
+                    尚無啟用功能
                   </p>
                 ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-                  {resolvedFeatures.filter(({ enabled }) => enabled).map(({ spec }, fi) => {
-                    const FIcon = spec.icon;
-                    return (
-                      <motion.div
-                        key={fi}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.97 }}
-                        className={`flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 border transition-all cursor-pointer hover:shadow-md ${spec.enabledBg}`}
-                        data-testid={`badge-venue-${i}-${spec.label}-on`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (group.groupId) onFeatureClick(group.groupId, displayName, spec.label);
-                        }}
-                      >
-                        <FIcon className={`h-4 w-4 shrink-0 mt-0.5 ${spec.color}`} />
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold leading-tight text-gray-700 dark:text-zinc-200">
-                            ✅ {spec.emoji} {spec.label}
-                          </p>
-                          <p className="text-[10px] mt-1 leading-tight text-gray-500 dark:text-zinc-400">
+                  <>
+                    {activeFeatures.map(({ spec }, fi) => {
+                      const FIcon = spec.icon;
+                      return (
+                        <motion.div
+                          key={fi}
+                          whileHover={{ scale: 1.02, y: -1 }}
+                          className="bg-white dark:bg-zinc-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-zinc-700 flex flex-col gap-1 hover:shadow-md transition-shadow"
+                          data-testid={`badge-venue-${i}-${spec.label}-on`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`h-6 w-6 rounded-lg flex items-center justify-center ${spec.enabledBg}`}>
+                              <FIcon className={`h-3.5 w-3.5 ${spec.color}`} />
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700 dark:text-zinc-200">{spec.emoji} {spec.label}</span>
+                          </div>
+                          <p className="text-[10px] leading-tight text-gray-400 dark:text-zinc-500 ml-8">
                             {spec.instruction}
                           </p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                        </motion.div>
+                      );
+                    })}
 
-                  {venueSchedules && venueSchedules.map((s: any, si: number) => (
-                    <motion.div
-                      key={`sched-${si}`}
-                      whileHover={{ scale: 1.02 }}
-                      className="flex items-center gap-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl px-4 py-2.5 border border-amber-200 dark:border-amber-800/50"
-                      data-testid={`badge-venue-${i}-schedule-${si}`}
-                    >
-                      <Timer className="h-4 w-4 shrink-0 text-amber-500" />
-                      <div>
-                        <p className="text-xs font-semibold text-gray-700 dark:text-zinc-200">⏰ {s.name || s.label}</p>
-                        <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5">{s.time || s.cron}</p>
+                    {venueSchedules && venueSchedules.map((s: any, si: number) => (
+                      <div
+                        key={`sched-${si}`}
+                        className="bg-amber-50/80 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-200/60 dark:border-amber-800/40 flex items-center gap-2"
+                        data-testid={`badge-venue-${i}-schedule-${si}`}
+                      >
+                        <div className="h-6 w-6 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+                          <Timer className="h-3.5 w-3.5 text-amber-500" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-700 dark:text-zinc-200 truncate">⏰ {s.name || s.label}</p>
+                          <p className="text-[10px] text-gray-400 dark:text-zinc-500">{s.time || s.cron}</p>
+                        </div>
                       </div>
-                    </motion.div>
-                  ))}
-                </div>
+                    ))}
+                  </>
                 )}
               </div>
-            </div>
-          </motion.div>
-        );
-      })}
-    </motion.div>
+
+              {group.groupId && (
+                <button
+                  className="mt-4 w-full py-2.5 bg-white dark:bg-zinc-800 border border-slate-300 dark:border-zinc-600 rounded-xl text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors shadow-sm flex justify-center items-center gap-2"
+                  data-testid={`button-venue-history-${i}`}
+                  onClick={() => onFeatureClick(group.groupId!, displayName, "交辦任務")}
+                >
+                  📋 查看歷史交辦紀錄
+                </button>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
