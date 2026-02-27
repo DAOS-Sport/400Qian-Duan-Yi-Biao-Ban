@@ -39,6 +39,11 @@ const VENUE_NAME_MAP: Record<string, string> = {
   "C360be1fe6ea876a4df3ca0497bca4e3b": "駿斯-戶外運動園區",
   "C2dd9a5fce7c276f2cbfdd02c2342661c": "駿斯-社區&勞務業務群",
   "Ce936c6bebb59b8b5683ffbcf97bf20de": "駿斯總部辦公室群",
+  "Ce8fe61736e38bfc1b00d1148fe17b262": "駿斯社區回報群",
+  "Cdfff89ff48bdf009c3b22ad0dfc62e2c": "駿斯松山營運小組",
+  "Cc2100498c7c5627c1e86e93f7c4eb817": "駿斯-三蘆區櫃台",
+  "C7df140dbcf9b99cd7a4e8bff32849a06": "竹科泳池工作群",
+  "Cf7ab973766c258e5b4b4f040d35b2175": "駿斯IT技術群",
 };
 
 interface TasksStatsResponse {
