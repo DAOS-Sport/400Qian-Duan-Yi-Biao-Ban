@@ -92,6 +92,14 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - ⚙️ 微服務健康監控 → /system-health
 - 🚨 打卡異常管理 → /anomaly-reports
 
+## Anomaly Reports API
+- `POST /api/anomaly-report` — JSON or multipart/form-data (data + images fields)
+- `GET /api/anomaly-reports` — all reports descending by time
+- `GET /api/anomaly-reports/:id` — single report
+- `PATCH /api/anomaly-reports/:id/resolution` — update single resolution
+- `PATCH /api/anomaly-reports/batch/resolution` — batch update resolution (ids[], resolution, resolvedNote)
+- Frontend: search by name/code/venue, filter by venue dropdown, filter by status (pending/resolved), batch select + batch resolve/unresolve
+
 ## Environment Variables
 - `GMAIL_USER` — Gmail address for anomaly notifications (daos.ragic.system@gmail.com)
 - `GMAIL_APP_PASSWORD` — Gmail app password for SMTP auth

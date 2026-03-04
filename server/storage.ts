@@ -1,6 +1,6 @@
 import { type User, type InsertUser, type AnomalyReport, type InsertAnomalyReport, users, anomalyReports } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -11,6 +11,7 @@ export interface IStorage {
   getAllAnomalyReports(): Promise<AnomalyReport[]>;
   getAnomalyReportById(id: number): Promise<AnomalyReport | undefined>;
   updateAnomalyReportResolution(id: number, resolution: string, resolvedNote: string | null): Promise<AnomalyReport | undefined>;
+  batchUpdateResolution(ids: number[], resolution: string, resolvedNote: string | null): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -50,6 +51,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(anomalyReports.id, id))
       .returning();
     return updated;
+  }
+
+  async batchUpdateResolution(ids: number[], resolution: string, resolvedNote: string | null): Promise<number> {
+    const result = await db
+      .update(anomalyReports)
+      .set({ resolution, resolvedNote })
+      .where(inArray(anomalyReports.id, ids))
+      .returning();
+    return result.length;
   }
 }
 

@@ -225,5 +225,21 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/anomaly-reports/batch/resolution", async (req, res) => {
+    try {
+      const { ids, resolution, resolvedNote } = req.body || {};
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "ids 必須為非空陣列" });
+      }
+      if (!resolution || !["pending", "resolved"].includes(resolution)) {
+        return res.status(400).json({ message: "resolution 必須為 'pending' 或 'resolved'" });
+      }
+      const count = await storage.batchUpdateResolution(ids, resolution, resolvedNote ?? null);
+      res.json({ updated: count });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "伺服器內部錯誤" });
+    }
+  });
+
   return httpServer;
 }
