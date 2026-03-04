@@ -447,5 +447,11 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/hr-audit", async (req, res) => {
+    res.status(503).json({
+      message: "稽核 API 尚未接入，待體育署 API 與 Ragic 慎用名單介接完成後即可使用",
+    });
+  });
+
   return httpServer;
 }

@@ -18,17 +18,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from "recharts";
 
 const BASE_URL = "https://line-bot-assistant-ronchen2.replit.app";
 
@@ -69,15 +58,6 @@ interface TasksStatsResponse {
   [key: string]: any;
 }
 
-const MOCK_DAILY_DATA = [
-  { day: "Mon", label: "週一", interactions: 42 },
-  { day: "Tue", label: "週二", interactions: 58 },
-  { day: "Wed", label: "週三", interactions: 35 },
-  { day: "Thu", label: "週四", interactions: 67 },
-  { day: "Fri", label: "週五", interactions: 49 },
-  { day: "Sat", label: "週六", interactions: 28 },
-  { day: "Sun", label: "週日", interactions: 31 },
-];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -333,50 +313,12 @@ function InteractionChart() {
         <TrendingUp className="h-4 w-4 text-blue-500" />
         <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-chart-title">近七日系統互動趨勢</h3>
       </div>
-      <div className="h-[280px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={MOCK_DAILY_DATA} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-            <defs>
-              <linearGradient id="colorInteractions" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:opacity-20" />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 12, fill: "#9ca3af" }}
-              axisLine={{ stroke: "#e5e7eb" }}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fontSize: 12, fill: "#9ca3af" }}
-              axisLine={false}
-              tickLine={false}
-              width={35}
-            />
-            <RechartsTooltip
-              contentStyle={{
-                backgroundColor: "rgba(255,255,255,0.95)",
-                border: "1px solid #e5e7eb",
-                borderRadius: "12px",
-                fontSize: "12px",
-                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-              }}
-              formatter={(value: number) => [`${value} 次`, "互動次數"]}
-              labelFormatter={(label: string) => `${label}`}
-            />
-            <Area
-              type="monotone"
-              dataKey="interactions"
-              stroke="#3b82f6"
-              strokeWidth={2.5}
-              fill="url(#colorInteractions)"
-              dot={{ r: 4, fill: "#3b82f6", strokeWidth: 2, stroke: "#fff" }}
-              activeDot={{ r: 6, fill: "#3b82f6", strokeWidth: 2, stroke: "#fff" }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+      <div className="h-[280px] w-full flex flex-col items-center justify-center">
+        <div className="h-12 w-12 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-3">
+          <BarChart3 className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
+        </div>
+        <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">尚無互動趨勢資料</p>
+        <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">系統互動數據將於 API 接入後自動顯示</p>
       </div>
     </motion.div>
   );

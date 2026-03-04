@@ -461,6 +461,12 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
                   {report.failReason}
                 </span>
               )}
+              {report.imageUrls && report.imageUrls.length > 0 && (
+                <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 rounded-full px-2 py-0.5">
+                  <ImageIcon className="h-3 w-3" />
+                  {report.imageUrls.length} 張圖片
+                </span>
+              )}
             </div>
           </div>
 
@@ -643,7 +649,8 @@ export default function AnomalyReportsPage() {
 
   const { data: reports, isLoading, error, refetch, isRefetching } = useQuery<AnomalyReport[]>({
     queryKey: ["/api/anomaly-reports"],
-    refetchInterval: 30000,
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
   });
 
   const venues = useMemo(() => {
@@ -740,7 +747,7 @@ export default function AnomalyReportsPage() {
                 打卡異常管理
               </h1>
               <p className="text-sm text-gray-400 dark:text-zinc-500">
-                即時監控排班系統打卡異常紀錄 · 自動 30 秒刷新
+                即時監控排班系統打卡異常紀錄 · 自動 10 秒刷新
               </p>
             </div>
           </div>

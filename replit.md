@@ -18,10 +18,10 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - `client/src/App.tsx` - App root with sidebar layout, routing (6 routes), dynamic header title
 - `client/src/components/app-sidebar.tsx` - Enterprise sidebar with active state via `useLocation`
 - `client/src/pages/dashboard.tsx` - Main dashboard with 4 blueprint sections (live API data)
-- `client/src/pages/analytics.tsx` - Analytics with KPIs, Recharts trend chart, venue task ranking (live API)
-- `client/src/pages/operations.tsx` - Cross-venue resource monitoring with alerts and data grid (mock data)
-- `client/src/pages/hr-audit.tsx` - HR audit with search bar, Ragic/lifeguard verification (mock data)
-- `client/src/pages/system-health.tsx` - Microservice health grid and terminal audit logs (mock data)
+- `client/src/pages/analytics.tsx` - Analytics with KPIs, venue task ranking (live API); interaction chart shows empty state until API connected
+- `client/src/pages/operations.tsx` - Cross-venue resource monitoring with alerts and data grid
+- `client/src/pages/hr-audit.tsx` - HR audit with search bar, calls POST /api/hr-audit (returns 503 until API connected)
+- `client/src/pages/system-health.tsx` - Microservice health grid and terminal audit logs
 - `client/src/pages/anomaly-reports.tsx` - Anomaly report management with expandable cards (live DB data)
 - `server/routes.ts` - API routes for anomaly reports (POST, GET, GET/:id) + Gmail notification
 - `server/storage.ts` - DatabaseStorage using Drizzle ORM with PostgreSQL
@@ -42,11 +42,12 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 8. `GET /api/admin/tasks/history/${groupId}` → HistoryTask[] (taskId, description, status, createdAt, completedAt, reporter) — falls back to filtering recentTasks from tasks/stats API if not deployed
 
 ## Data Model
-- Feature keys from API are **Chinese**: "任務交辦", "天氣預報", "GPS打卡" (not English)
+- **STRICT RULE**: No mock/fake/hardcoded data anywhere. All data must come from real APIs or show empty state.
+- Feature keys from API are **Chinese**: "📋 任務管理", "🌤️ 竹科天氣預報" etc.
 - `VENUE_FEATURES` array: 10 feature specs with label, instruction, apiKeys mapping, icon, colors
-  - Each feature has `apiKeys[]` to map display names to API-returned Chinese keys
+  - `API_FEATURE_KEYWORDS` maps API feature names (with emoji) to frontend spec labels via keyword matching
   - 10 features: 交辦任務, 處理事項查詢, 任務完成, 排程提醒, 水質監控, 天氣預報, 風力預報, 合併報告推送, 滿意度調查, GPT小助理
-- `VENUE_NAME_MAP` maps groupId to display names (e.g., "DAOS-新北高中（工作群）")
+- Venue names: prefer `group.venue` from API, fallback to `VENUE_NAME_MAP` for groupId→display name
 - `completionRate` from tasks API is a string like "64.9%" — parsed via `parseRate()`
 - Non-feature keys excluded via `EXCLUDED_KEYS`: name, groupId, totalEnabled
 - Emojis are explicitly requested by user — intentional, not a bug

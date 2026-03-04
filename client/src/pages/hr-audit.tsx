@@ -44,33 +44,37 @@ interface AuditResult {
   };
 }
 
-const MOCK_RESULT: AuditResult = {
-  blacklist: {
-    found: true,
-    name: "李阡鈺",
-    idMasked: "A***7582",
-    reason: "永遠不得錄用",
-  },
-  lifeguard: {
-    valid: true,
-    qualification: "開放性水域救生員",
-    expiry: "2027/04/14",
-    status: "有效",
-  },
-};
-
 export default function HrAuditPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
+  const [auditError, setAuditError] = useState<string | null>(null);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setIsSearching(true);
-    setTimeout(() => {
+    setAuditError(null);
+    setAuditResult(null);
+    try {
+      const res = await fetch(`/api/hr-audit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: searchQuery.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "查詢失敗" }));
+        setAuditError(err.message || `HTTP ${res.status}`);
+      } else {
+        const data = await res.json();
+        setAuditResult(data);
+      }
+    } catch {
+      setAuditError("無法連線至稽核 API，請確認後端是否已接入");
+    } finally {
       setIsSearching(false);
       setHasSearched(true);
-    }, 800);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -173,103 +177,114 @@ export default function HrAuditPage() {
               </div>
             </motion.div>
 
-            <motion.div variants={cardVariants}>
-              <div
-                className="bg-red-50 dark:bg-red-950/20 rounded-2xl border-2 border-red-200 dark:border-red-800/50 p-6"
-                data-testid="card-blacklist-result"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/50">
-                    <ShieldAlert className="h-5 w-5 text-red-600 dark:text-red-400" />
+            {auditError && (
+              <motion.div variants={cardVariants}>
+                <div className="bg-amber-50 dark:bg-amber-950/20 rounded-2xl border-2 border-amber-200 dark:border-amber-800/50 p-6 text-center" data-testid="card-audit-error">
+                  <div className="flex justify-center mb-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50">
+                      <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-red-700 dark:text-red-300" data-testid="text-blacklist-title">
-                      慎用名單檢核結果
-                    </h3>
-                    <p className="text-xs text-red-500/80 dark:text-red-400/60">Ragic 慎用名單資料庫比對</p>
-                  </div>
-                  <div className="ml-auto">
-                    <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300 border border-red-200 dark:border-red-800/50">
-                      <UserX className="h-3.5 w-3.5" />
-                      命中
-                    </span>
-                  </div>
+                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-300 mb-1">稽核 API 尚未接入</p>
+                  <p className="text-xs text-amber-500 dark:text-amber-400/70">{auditError}</p>
+                  <p className="text-xs text-gray-400 dark:text-zinc-500 mt-2">待體育署 API 與 Ragic 慎用名單介接完成後即可使用</p>
                 </div>
+              </motion.div>
+            )}
 
-                <div className="bg-white/80 dark:bg-zinc-900/60 rounded-xl p-5 border border-red-200/60 dark:border-red-800/30 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-[11px] font-medium text-red-400 dark:text-red-500 uppercase tracking-wide mb-1">姓名</p>
-                      <p className="text-sm font-bold text-gray-800 dark:text-zinc-100" data-testid="text-blacklist-name">
-                        {MOCK_RESULT.blacklist.name}
-                      </p>
+            {auditResult && (
+              <>
+                <motion.div variants={cardVariants}>
+                  <div
+                    className={`${auditResult.blacklist.found ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50" : "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50"} rounded-2xl border-2 p-6`}
+                    data-testid="card-blacklist-result"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${auditResult.blacklist.found ? "bg-red-100 dark:bg-red-900/50" : "bg-emerald-100 dark:bg-emerald-900/50"}`}>
+                        <ShieldAlert className={`h-5 w-5 ${auditResult.blacklist.found ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`} />
+                      </div>
+                      <div>
+                        <h3 className={`text-sm font-bold ${auditResult.blacklist.found ? "text-red-700 dark:text-red-300" : "text-emerald-700 dark:text-emerald-300"}`} data-testid="text-blacklist-title">
+                          慎用名單檢核結果
+                        </h3>
+                        <p className={`text-xs ${auditResult.blacklist.found ? "text-red-500/80 dark:text-red-400/60" : "text-emerald-500/80 dark:text-emerald-400/60"}`}>Ragic 慎用名單資料庫比對</p>
+                      </div>
+                      <div className="ml-auto">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold border ${auditResult.blacklist.found ? "bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300 border-red-200 dark:border-red-800/50" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50"}`}>
+                          {auditResult.blacklist.found ? <UserX className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                          {auditResult.blacklist.found ? "命中" : "未命中"}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[11px] font-medium text-red-400 dark:text-red-500 uppercase tracking-wide mb-1">身分證</p>
-                      <p className="text-sm font-bold text-gray-800 dark:text-zinc-100 font-mono" data-testid="text-blacklist-id">
-                        {MOCK_RESULT.blacklist.idMasked}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-medium text-red-400 dark:text-red-500 uppercase tracking-wide mb-1">緣由</p>
-                      <p className="text-sm font-bold text-red-700 dark:text-red-300" data-testid="text-blacklist-reason">
-                        {MOCK_RESULT.blacklist.reason}
-                      </p>
-                    </div>
+                    {auditResult.blacklist.found && (
+                      <div className="bg-white/80 dark:bg-zinc-900/60 rounded-xl p-5 border border-red-200/60 dark:border-red-800/30 space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-[11px] font-medium text-red-400 dark:text-red-500 uppercase tracking-wide mb-1">姓名</p>
+                            <p className="text-sm font-bold text-gray-800 dark:text-zinc-100" data-testid="text-blacklist-name">{auditResult.blacklist.name}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-medium text-red-400 dark:text-red-500 uppercase tracking-wide mb-1">身分證</p>
+                            <p className="text-sm font-bold text-gray-800 dark:text-zinc-100 font-mono" data-testid="text-blacklist-id">{auditResult.blacklist.idMasked}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-medium text-red-400 dark:text-red-500 uppercase tracking-wide mb-1">緣由</p>
+                            <p className="text-sm font-bold text-red-700 dark:text-red-300" data-testid="text-blacklist-reason">{auditResult.blacklist.reason}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
-            </motion.div>
+                </motion.div>
 
-            <motion.div variants={cardVariants}>
-              <div
-                className="bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800/50 p-6"
-                data-testid="card-lifeguard-result"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/50">
-                    <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-emerald-700 dark:text-emerald-300" data-testid="text-lifeguard-title">
-                      體育署救生員證照查核
-                    </h3>
-                    <p className="text-xs text-emerald-500/80 dark:text-emerald-400/60">體育署 API 即時驗證</p>
-                  </div>
-                  <div className="ml-auto">
-                    <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      通過
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-white/80 dark:bg-zinc-900/60 rounded-xl p-5 border border-emerald-200/60 dark:border-emerald-800/30 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-[11px] font-medium text-emerald-400 dark:text-emerald-500 uppercase tracking-wide mb-1">資格</p>
-                      <p className="text-sm font-bold text-gray-800 dark:text-zinc-100 flex items-center gap-1.5" data-testid="text-lifeguard-qualification">
-                        <Award className="h-4 w-4 text-emerald-500" />
-                        {MOCK_RESULT.lifeguard.qualification}
-                      </p>
+                <motion.div variants={cardVariants}>
+                  <div
+                    className={`${auditResult.lifeguard.valid ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50" : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50"} rounded-2xl border-2 p-6`}
+                    data-testid="card-lifeguard-result"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${auditResult.lifeguard.valid ? "bg-emerald-100 dark:bg-emerald-900/50" : "bg-red-100 dark:bg-red-900/50"}`}>
+                        <ShieldCheck className={`h-5 w-5 ${auditResult.lifeguard.valid ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`} />
+                      </div>
+                      <div>
+                        <h3 className={`text-sm font-bold ${auditResult.lifeguard.valid ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"}`} data-testid="text-lifeguard-title">
+                          體育署救生員證照查核
+                        </h3>
+                        <p className={`text-xs ${auditResult.lifeguard.valid ? "text-emerald-500/80 dark:text-emerald-400/60" : "text-red-500/80 dark:text-red-400/60"}`}>體育署 API 即時驗證</p>
+                      </div>
+                      <div className="ml-auto">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold border ${auditResult.lifeguard.valid ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50" : "bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300 border-red-200 dark:border-red-800/50"}`}>
+                          {auditResult.lifeguard.valid ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                          {auditResult.lifeguard.valid ? "通過" : "未通過"}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[11px] font-medium text-emerald-400 dark:text-emerald-500 uppercase tracking-wide mb-1">效期</p>
-                      <p className="text-sm font-bold text-gray-800 dark:text-zinc-100" data-testid="text-lifeguard-expiry">
-                        {MOCK_RESULT.lifeguard.expiry}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-medium text-emerald-400 dark:text-emerald-500 uppercase tracking-wide mb-1">狀態</p>
-                      <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5" data-testid="text-lifeguard-status">
-                        <CheckCircle2 className="h-4 w-4" />
-                        {MOCK_RESULT.lifeguard.status}
-                      </p>
+                    <div className={`bg-white/80 dark:bg-zinc-900/60 rounded-xl p-5 border ${auditResult.lifeguard.valid ? "border-emerald-200/60 dark:border-emerald-800/30" : "border-red-200/60 dark:border-red-800/30"} space-y-3`}>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-[11px] font-medium text-emerald-400 dark:text-emerald-500 uppercase tracking-wide mb-1">資格</p>
+                          <p className="text-sm font-bold text-gray-800 dark:text-zinc-100 flex items-center gap-1.5" data-testid="text-lifeguard-qualification">
+                            <Award className="h-4 w-4 text-emerald-500" />
+                            {auditResult.lifeguard.qualification}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-medium text-emerald-400 dark:text-emerald-500 uppercase tracking-wide mb-1">效期</p>
+                          <p className="text-sm font-bold text-gray-800 dark:text-zinc-100" data-testid="text-lifeguard-expiry">{auditResult.lifeguard.expiry}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-medium text-emerald-400 dark:text-emerald-500 uppercase tracking-wide mb-1">狀態</p>
+                          <p className={`text-sm font-bold flex items-center gap-1.5 ${auditResult.lifeguard.valid ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`} data-testid="text-lifeguard-status">
+                            {auditResult.lifeguard.valid ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                            {auditResult.lifeguard.status}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </motion.div>
+                </motion.div>
+              </>
+            )}
           </motion.div>
         )}
 

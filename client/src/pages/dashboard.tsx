@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -33,6 +35,9 @@ import {
   Clock,
   Loader2,
   Inbox,
+  AlertTriangle,
+  ShieldAlert,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -113,24 +118,30 @@ const VENUE_NAME_MAP: Record<string, string> = {
   "C755681bd26a1322bd94183478baeda24": "C755681bd26a1322bd94183478baeda24（未找到）",
 };
 
-const BASIC_FEATURES = ["交辦任務", "處理事項查詢", "任務完成", "GPT小助理"];
-const ALL_FEATURES = ["交辦任務", "處理事項查詢", "任務完成", "排程提醒", "水質監控", "天氣預報", "風力預報", "合併報告推送", "滿意度調查", "GPT小助理"];
-const OUTDOOR_FEATURES = ["交辦任務", "處理事項查詢", "任務完成", "排程提醒", "天氣預報", "風力預報", "合併報告推送", "GPT小助理"];
-
-const VENUE_FEATURE_MATRIX: Record<string, string[]> = {
-  "C66a4b3bb3fbc3dcf52d42626ec512484": BASIC_FEATURES,
-  "C6f6f163895d5b528a6ab044015e1a37b": BASIC_FEATURES,
-  "C2dc6991e51074dd47d5d275d568318f7": BASIC_FEATURES,
-  "C9b3c5dfe2e005adafd2ed914714a1930": BASIC_FEATURES,
-  "C50c2a9623a78cc5f5e9f39557e3abfe6": ALL_FEATURES,
-  "C360be1fe6ea876a4df3ca0497bca4e3b": OUTDOOR_FEATURES,
-  "C2dd9a5fce7c276f2cbfdd02c2342661c": BASIC_FEATURES,
-  "Ce936c6bebb59b8b5683ffbcf97bf20de": BASIC_FEATURES,
+const API_FEATURE_KEYWORDS: Record<string, string> = {
+  "任務": "交辦任務",
+  "處理事項": "處理事項查詢",
+  "天氣": "天氣預報",
+  "風力": "風力預報",
+  "水質": "水質監控",
+  "GPT": "GPT小助理",
+  "客滿": "滿意度調查",
+  "調查": "滿意度調查",
+  "報告推送": "合併報告推送",
+  "排程": "排程提醒",
 };
+
+function matchApiFeatureToSpec(apiFeature: string): string | null {
+  for (const [keyword, specLabel] of Object.entries(API_FEATURE_KEYWORDS)) {
+    if (apiFeature.includes(keyword)) return specLabel;
+  }
+  return null;
+}
 
 const EXCLUDED_KEYS = new Set(["name", "groupId", "totalEnabled"]);
 
-function getDisplayName(group: GroupData): string {
+function getDisplayName(group: any): string {
+  if (group.venue) return group.venue;
   if (group.groupId && VENUE_NAME_MAP[group.groupId]) {
     return VENUE_NAME_MAP[group.groupId];
   }
@@ -716,12 +727,6 @@ function WaterQualityPanel() {
 }
 
 function GptChatPanel() {
-  const mockMessages = [
-    { role: "user", text: "請幫我查看今天竹科泳池的水質報告" },
-    { role: "assistant", text: "好的！根據今日 09:30 的水質檢測數據：\n\n📊 PH 值：7.2（穩定）\n💧 餘氯：0.5 ppm（正常）\n🌡️ 水溫：28°C（正常）\n\n所有指標皆在安全範圍內，建議維持目前加藥量。" },
-    { role: "user", text: "那風速狀況適合開放嗎？" },
-    { role: "assistant", text: "目前新竹地區風速為 3.2 m/s（微風），風向東北風。根據安全標準（< 8 m/s），✅ 適合開放戶外活動。\n\n若風速超過 6 m/s 系統會自動發出預警通知。" },
-  ];
   return (
     <div className="space-y-4" data-testid="panel-gpt">
       <div className="bg-gradient-to-r from-rose-500 to-pink-600 rounded-2xl p-5 text-white shadow-lg">
@@ -734,25 +739,12 @@ function GptChatPanel() {
         </div>
       </div>
       <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden">
-        <div className="p-5 space-y-4 max-h-[50vh] overflow-y-auto">
-          {mockMessages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user"
-                ? "bg-blue-500 text-white rounded-br-md"
-                : "bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 rounded-bl-md"
-              }`}>
-                <p className="text-sm whitespace-pre-line leading-relaxed">{msg.text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-gray-100 dark:border-zinc-800 p-4 flex items-center gap-3">
-          <div className="flex-1 bg-gray-100 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm text-gray-400 dark:text-zinc-500">
-            輸入訊息...（展示模式）
+        <div className="p-8 flex flex-col items-center justify-center text-center">
+          <div className="h-12 w-12 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-3">
+            <Inbox className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
           </div>
-          <div className="h-10 w-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0">
-            <ArrowRight className="h-4 w-4" />
-          </div>
+          <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">尚無對話紀錄</p>
+          <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">GPT 小助理的對話紀錄將在此顯示</p>
         </div>
       </div>
     </div>
@@ -850,11 +842,14 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
           const displayName = getDisplayName(group);
           const venueSchedules = group.schedules ?? null;
 
-          const hardcodedFeatures = group.groupId ? VENUE_FEATURE_MATRIX[group.groupId] : null;
+          const apiFeatures: string[] = group.features ?? [];
+          const matchedLabels = new Set(
+            apiFeatures.map((f: string) => matchApiFeatureToSpec(f)).filter(Boolean)
+          );
 
           const resolvedFeatures = VENUE_FEATURES.map((spec) => {
-            if (hardcodedFeatures) {
-              const enabled = hardcodedFeatures.includes(spec.label);
+            if (apiFeatures.length > 0) {
+              const enabled = matchedLabels.has(spec.label);
               return { spec, enabled };
             }
             const rawKeys = Object.keys(group).filter((k) => !EXCLUDED_KEYS.has(k) && typeof group[k] === "number");
@@ -1095,6 +1090,120 @@ function ErrorBlock({ message, onRetry, isRetrying }: { message: string; onRetry
   );
 }
 
+interface AnomalyReport {
+  id: number;
+  employeeName: string | null;
+  employeeCode: string | null;
+  venueName: string | null;
+  failReason: string | null;
+  clockStatus: string | null;
+  clockType: string | null;
+  clockTime: string | null;
+  resolution: string | null;
+  imageUrls: string[] | null;
+  createdAt: string;
+}
+
+function AnomalySummaryWidget() {
+  const [, navigate] = useLocation();
+  const { data: reports } = useQuery<AnomalyReport[]>({
+    queryKey: ["/api/anomaly-reports"],
+    refetchInterval: 15000,
+  });
+
+  if (!reports || reports.length === 0) return null;
+
+  const pending = reports.filter((r) => r.resolution !== "resolved");
+  const today = reports.filter((r) => {
+    const d = new Date(r.createdAt);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  });
+  const latest = reports.slice(0, 3);
+
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+
+  return (
+    <motion.div variants={fadeIn}>
+      <div
+        className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-5 cursor-pointer hover:shadow-md transition-shadow"
+        onClick={() => navigate("/anomaly-reports")}
+        data-testid="widget-anomaly-summary"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-orange-600">
+              <AlertTriangle className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-gray-800 dark:text-zinc-100">打卡異常監控</h3>
+              <p className="text-[10px] text-gray-400 dark:text-zinc-500">即時異常紀錄摘要</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {pending.length > 0 && (
+              <span className="flex items-center gap-1 text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 rounded-full px-2.5 py-1" data-testid="badge-anomaly-pending">
+                <CircleDot className="h-3 w-3" />
+                {pending.length} 待解決
+              </span>
+            )}
+            {today.length > 0 && (
+              <span className="flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-full px-2.5 py-1" data-testid="badge-anomaly-today">
+                <AlertTriangle className="h-3 w-3" />
+                今日 {today.length}
+              </span>
+            )}
+            <ChevronRight className="h-4 w-4 text-gray-400 dark:text-zinc-500" />
+          </div>
+        </div>
+
+        {latest.length > 0 && (
+          <div className="space-y-2">
+            {latest.map((r) => {
+              const isFail = r.clockStatus === "fail";
+              const isResolved = r.resolution === "resolved";
+              return (
+                <div
+                  key={r.id}
+                  className={`flex items-center gap-3 rounded-xl p-2.5 border transition-colors ${isResolved ? "bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-800/30" : "bg-red-50/30 dark:bg-red-900/10 border-red-100/60 dark:border-red-800/20"}`}
+                  data-testid={`anomaly-summary-${r.id}`}
+                >
+                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${isResolved ? "bg-green-100 dark:bg-green-900/40" : isFail ? "bg-red-100 dark:bg-red-900/40" : "bg-orange-100 dark:bg-orange-900/40"}`}>
+                    {isResolved ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    ) : (
+                      <ShieldAlert className="h-3.5 w-3.5 text-red-500" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-700 dark:text-zinc-200 truncate">{r.employeeName || "未知"}</span>
+                      <span className={`text-[9px] font-bold rounded-full px-1.5 py-0.5 ${isResolved ? "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-300" : "bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-300"}`}>
+                        {isResolved ? "已處理" : "待解決"}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 dark:text-zinc-500 truncate mt-0.5">
+                      {r.venueName || "—"} · {r.failReason || "異常"} · {formatTime(r.createdAt)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-blue-500 dark:text-blue-400 font-medium">
+          <span>查看全部 {reports.length} 筆異常紀錄</span>
+          <ArrowRight className="h-3 w-3" />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function Dashboard() {
   const [featureStats, setFeatureStats] = useState<FeatureStatsResponse | null>(null);
   const [tasksStats, setTasksStats] = useState<TasksStatsResponse | null>(null);
@@ -1246,6 +1355,8 @@ export default function Dashboard() {
             <motion.div className="flex flex-wrap gap-5" variants={containerVariants}>
               {kpi.map((item, i) => <KpiCard key={item.title} item={item} index={i} />)}
             </motion.div>
+
+            <AnomalySummaryWidget />
 
             <section data-testid="section-global">
               <SectionHeader
