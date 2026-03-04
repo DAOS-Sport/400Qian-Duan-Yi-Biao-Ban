@@ -10,6 +10,7 @@ import Analytics from "@/pages/analytics";
 import Operations from "@/pages/operations";
 import HrAudit from "@/pages/hr-audit";
 import SystemHealth from "@/pages/system-health";
+import AnomalyReports from "@/pages/anomaly-reports";
 import NotFound from "@/pages/not-found";
 
 const PAGE_TITLES: Record<string, string> = {
@@ -18,6 +19,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/operations": "🏢 跨館資源監控",
   "/hr-audit": "🛡️ HR 與權限稽核",
   "/system-health": "⚙️ 微服務健康監控",
+  "/anomaly-reports": "🚨 打卡異常管理",
 };
 
 function AppRouter() {
@@ -28,6 +30,7 @@ function AppRouter() {
       <Route path="/operations" component={Operations} />
       <Route path="/hr-audit" component={HrAudit} />
       <Route path="/system-health" component={SystemHealth} />
+      <Route path="/anomaly-reports" component={AnomalyReports} />
       <Route component={NotFound} />
     </Switch>
   );

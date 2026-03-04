@@ -38,3 +38,9 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[userenv]
+
+[userenv.shared]
+GMAIL_USER = "daos.ragic.system@gmail.com"
+GMAIL_APP_PASSWORD = "rygc hcin ogcy qith"

@@ -1,7 +1,7 @@
 # LINE Bot 系統全局藍圖 (System Blueprint)
 
 ## Overview
-Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS application with 5 views: main dashboard with live API data, analytics, cross-venue operations, HR audit, and system health monitoring.
+Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS application with 6 views: main dashboard with live API data, analytics, cross-venue operations, HR audit, system health monitoring, and anomaly report management.
 
 ## Tech Stack
 - **Frontend**: React, Vite, TypeScript
@@ -9,17 +9,24 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - **Animation**: Framer Motion
 - **Charts**: Recharts (used in Analytics page)
 - **Icons**: Lucide React
-- **Routing**: Wouter (5 routes)
-- **Backend**: Express (minimal, serves frontend only)
+- **Routing**: Wouter (6 routes)
+- **Backend**: Express + PostgreSQL (Drizzle ORM)
+- **Email**: Nodemailer (Gmail SMTP with app password)
+- **File Upload**: Multer (for anomaly report images)
 
 ## Project Structure
-- `client/src/App.tsx` - App root with sidebar layout, routing (5 routes), dynamic header title
+- `client/src/App.tsx` - App root with sidebar layout, routing (6 routes), dynamic header title
 - `client/src/components/app-sidebar.tsx` - Enterprise sidebar with active state via `useLocation`
 - `client/src/pages/dashboard.tsx` - Main dashboard with 4 blueprint sections (live API data)
 - `client/src/pages/analytics.tsx` - Analytics with KPIs, Recharts trend chart, venue task ranking (live API)
 - `client/src/pages/operations.tsx` - Cross-venue resource monitoring with alerts and data grid (mock data)
 - `client/src/pages/hr-audit.tsx` - HR audit with search bar, Ragic/lifeguard verification (mock data)
 - `client/src/pages/system-health.tsx` - Microservice health grid and terminal audit logs (mock data)
+- `client/src/pages/anomaly-reports.tsx` - Anomaly report management with expandable cards (live DB data)
+- `server/routes.ts` - API routes for anomaly reports (POST, GET, GET/:id) + Gmail notification
+- `server/storage.ts` - DatabaseStorage using Drizzle ORM with PostgreSQL
+- `server/db.ts` - Drizzle database connection (Neon serverless)
+- `shared/schema.ts` - Drizzle schema (users, anomalyReports tables)
 
 ## External APIs (Base: `https://line-bot-assistant-ronchen2.replit.app`)
 ### Core (required — `strictFetch`, errors shown to user):
@@ -44,7 +51,19 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - Non-feature keys excluded via `EXCLUDED_KEYS`: name, groupId, totalEnabled
 - Emojis are explicitly requested by user — intentional, not a bug
 
-## Routing (5 Pages)
+## Anomaly Report System
+- **POST /api/anomaly-report** — Receives anomaly reports from external clock-in system (JSON or multipart/form-data with images)
+  - Stores report in PostgreSQL
+  - Sends Gmail notification via nodemailer (GMAIL_USER + GMAIL_APP_PASSWORD env vars)
+  - Supports up to 5 image attachments (10MB each), stored in `/uploads/anomaly-reports/`
+  - Returns: { id, reportText, createdAt, imageUrls, lineUrl }
+- **GET /api/anomaly-reports** — Returns all reports sorted by createdAt desc
+- **GET /api/anomaly-reports/:id** — Returns single report or 404
+- **Frontend page** (`/anomaly-reports`): Expandable card list with KPI summary, auto-refresh every 30s
+  - KPIs: 總異常數, 今日異常, 最常見場館, 最常見原因
+  - Each card expands to show: employee info, clock details, distance, fail reason, error msg, user note, images, full report text
+
+## Routing (6 Pages)
 | Route | Page | Data Source |
 |-------|------|-------------|
 | `/` | 營運戰情總覽 (Dashboard) | Live API (7 endpoints) |
@@ -52,6 +71,7 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 | `/operations` | 跨館資源監控 | Mock alerts + data grid |
 | `/hr-audit` | HR 與權限稽核 | Mock search results (Ragic + 體育署) |
 | `/system-health` | 微服務健康監控 | Mock service status + audit logs |
+| `/anomaly-reports` | 打卡異常管理 | Live PostgreSQL data + Gmail notification |
 
 ## Dashboard Layout (4 Sections)
 1. **🌐 全域通用與網頁應用**: 4 cards with live stats, LIFF badges on GPS/教練/客戶調查, usage guide text blocks
@@ -70,3 +90,9 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - 🏢 跨館資源監控 → /operations
 - 🛡️ HR 與權限稽核 → /hr-audit
 - ⚙️ 微服務健康監控 → /system-health
+- 🚨 打卡異常管理 → /anomaly-reports
+
+## Environment Variables
+- `GMAIL_USER` — Gmail address for anomaly notifications (daos.ragic.system@gmail.com)
+- `GMAIL_APP_PASSWORD` — Gmail app password for SMTP auth
+- `DATABASE_URL` — PostgreSQL connection string (Neon serverless)
