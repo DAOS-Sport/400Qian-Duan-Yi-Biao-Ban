@@ -10,6 +10,7 @@ export interface IStorage {
   createAnomalyReport(report: InsertAnomalyReport): Promise<AnomalyReport>;
   getAllAnomalyReports(): Promise<AnomalyReport[]>;
   getAnomalyReportById(id: number): Promise<AnomalyReport | undefined>;
+  updateAnomalyReportResolution(id: number, resolution: string, resolvedNote: string | null): Promise<AnomalyReport | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -40,6 +41,15 @@ export class DatabaseStorage implements IStorage {
   async getAnomalyReportById(id: number): Promise<AnomalyReport | undefined> {
     const [report] = await db.select().from(anomalyReports).where(eq(anomalyReports.id, id));
     return report;
+  }
+
+  async updateAnomalyReportResolution(id: number, resolution: string, resolvedNote: string | null): Promise<AnomalyReport | undefined> {
+    const [updated] = await db
+      .update(anomalyReports)
+      .set({ resolution, resolvedNote })
+      .where(eq(anomalyReports.id, id))
+      .returning();
+    return updated;
   }
 }
 

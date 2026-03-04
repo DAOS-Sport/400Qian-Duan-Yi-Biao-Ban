@@ -189,5 +189,23 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/anomaly-reports/:id/resolution", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "無效的 ID" });
+
+      const { resolution, resolvedNote } = req.body || {};
+      if (!resolution || !["pending", "resolved"].includes(resolution)) {
+        return res.status(400).json({ message: "resolution 必須為 'pending' 或 'resolved'" });
+      }
+
+      const updated = await storage.updateAnomalyReportResolution(id, resolution, resolvedNote ?? null);
+      if (!updated) return res.status(404).json({ message: "找不到此異常報告" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "伺服器內部錯誤" });
+    }
+  });
+
   return httpServer;
 }

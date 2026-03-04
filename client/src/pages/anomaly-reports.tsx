@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
@@ -18,8 +18,12 @@ import {
   Image as ImageIcon,
   MessageSquare,
   Hash,
+  CheckCircle2,
+  CircleDot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface AnomalyReport {
   id: number;
@@ -39,6 +43,8 @@ interface AnomalyReport {
   userNote: string | null;
   imageUrls: string[] | null;
   reportText: string | null;
+  resolution: string | null;
+  resolvedNote: string | null;
   createdAt: string;
 }
 
@@ -112,12 +118,37 @@ function DetailRow({ label, value, icon: Icon }: { label: string; value: string;
 
 function AnomalyCard({ report }: { report: AnomalyReport }) {
   const [expanded, setExpanded] = useState(false);
+  const [noteInput, setNoteInput] = useState(report.resolvedNote || "");
+  const { toast } = useToast();
   const isFail = report.clockStatus === "fail";
+  const isResolved = report.resolution === "resolved";
+
+  const resolutionMutation = useMutation({
+    mutationFn: async ({ resolution, resolvedNote }: { resolution: string; resolvedNote: string | null }) => {
+      const res = await apiRequest("PATCH", `/api/anomaly-reports/${report.id}/resolution`, { resolution, resolvedNote });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/anomaly-reports"] });
+      toast({ title: "狀態已更新", description: isResolved ? "已標記為待解決" : "已標記為已處理" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "更新失敗", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const borderColor = isResolved
+    ? "border-green-200 dark:border-green-800/50"
+    : "border-orange-200 dark:border-orange-800/50";
+
+  const bgTint = isResolved
+    ? "bg-green-50/30 dark:bg-green-950/10"
+    : "bg-white dark:bg-zinc-900";
 
   return (
     <motion.div
       variants={cardVariants}
-      className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 overflow-hidden"
+      className={`${bgTint} rounded-2xl shadow-sm border ${borderColor} overflow-hidden`}
       data-testid={`card-anomaly-${report.id}`}
     >
       <button
@@ -125,8 +156,10 @@ function AnomalyCard({ report }: { report: AnomalyReport }) {
         onClick={() => setExpanded(!expanded)}
         data-testid={`button-expand-${report.id}`}
       >
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isFail ? "bg-red-100 dark:bg-red-900/40" : "bg-orange-100 dark:bg-orange-900/40"}`}>
-          {isFail ? (
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isResolved ? "bg-green-100 dark:bg-green-900/40" : isFail ? "bg-red-100 dark:bg-red-900/40" : "bg-orange-100 dark:bg-orange-900/40"}`}>
+          {isResolved ? (
+            <CheckCircle2 className="h-5 w-5 text-green-500 dark:text-green-400" />
+          ) : isFail ? (
             <ShieldAlert className="h-5 w-5 text-red-500 dark:text-red-400" />
           ) : (
             <FileWarning className="h-5 w-5 text-orange-500 dark:text-orange-400" />
@@ -138,6 +171,13 @@ function AnomalyCard({ report }: { report: AnomalyReport }) {
             <p className="text-sm font-bold text-gray-800 dark:text-zinc-100" data-testid={`text-anomaly-employee-${report.id}`}>
               {report.employeeName || "未知員工"}
             </p>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${isResolved ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"}`} data-testid={`badge-resolution-${report.id}`}>
+              {isResolved ? (
+                <><CheckCircle2 className="h-3 w-3" /> 已處理</>
+              ) : (
+                <><CircleDot className="h-3 w-3" /> 待解決</>
+              )}
+            </span>
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${isFail ? "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"}`} data-testid={`badge-status-${report.id}`}>
               {isFail ? "失敗" : report.clockStatus || report.context}
             </span>
@@ -245,6 +285,54 @@ function AnomalyCard({ report }: { report: AnomalyReport }) {
                 </div>
               )}
 
+              <div className="mt-4 rounded-xl bg-gray-50/80 dark:bg-zinc-800/30 border border-gray-200/60 dark:border-zinc-700/50 p-4">
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-3">處理狀態</p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+                  <div className="flex-1 w-full">
+                    <label className="text-xs text-gray-500 dark:text-zinc-400 mb-1 block">備註說明</label>
+                    <input
+                      type="text"
+                      value={noteInput}
+                      onChange={(e) => setNoteInput(e.target.value)}
+                      placeholder="輸入處理備註..."
+                      className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                      data-testid={`input-note-${report.id}`}
+                    />
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {!isResolved ? (
+                      <Button
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); resolutionMutation.mutate({ resolution: "resolved", resolvedNote: noteInput || null }); }}
+                        disabled={resolutionMutation.isPending}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        data-testid={`button-resolve-${report.id}`}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                        {resolutionMutation.isPending ? "更新中..." : "標記已處理"}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => { e.stopPropagation(); resolutionMutation.mutate({ resolution: "pending", resolvedNote: noteInput || null }); }}
+                        disabled={resolutionMutation.isPending}
+                        className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30"
+                        data-testid={`button-unresolve-${report.id}`}
+                      >
+                        <CircleDot className="h-4 w-4 mr-1.5" />
+                        {resolutionMutation.isPending ? "更新中..." : "改為待解決"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {report.resolvedNote && (
+                  <p className="mt-2 text-xs text-gray-500 dark:text-zinc-400">
+                    <span className="font-medium">目前備註：</span>{report.resolvedNote}
+                  </p>
+                )}
+              </div>
+
               {report.reportText && (
                 <details className="mt-3 group">
                   <summary className="text-[10px] font-medium text-gray-400 dark:text-zinc-500 uppercase tracking-wide cursor-pointer hover:text-gray-600 dark:hover:text-zinc-300 transition-colors" data-testid={`toggle-report-text-${report.id}`}>
@@ -270,6 +358,7 @@ export default function AnomalyReportsPage() {
   });
 
   const totalReports = reports?.length ?? 0;
+  const pendingCount = reports?.filter((r) => r.resolution !== "resolved").length ?? 0;
 
   const todayStr = new Date().toISOString().split("T")[0];
   const todayCount = reports?.filter((r) => r.createdAt.startsWith(todayStr)).length ?? 0;
@@ -319,7 +408,8 @@ export default function AnomalyReportsPage() {
 
         <motion.div variants={fadeIn} className="flex flex-wrap gap-4">
           <KpiCard title="總異常數" value={totalReports} icon={AlertTriangle} color="text-red-600 dark:text-red-400" iconBg="bg-red-500" />
-          <KpiCard title="今日異常" value={todayCount} icon={Clock} color="text-orange-600 dark:text-orange-400" iconBg="bg-orange-500" />
+          <KpiCard title="待解決" value={pendingCount} icon={CircleDot} color="text-orange-600 dark:text-orange-400" iconBg="bg-orange-500" />
+          <KpiCard title="今日異常" value={todayCount} icon={Clock} color="text-amber-600 dark:text-amber-400" iconBg="bg-amber-500" />
           <KpiCard title="最常見場館" value={topVenue} icon={Building2} color="text-blue-600 dark:text-blue-400" iconBg="bg-blue-500" />
           <KpiCard title="最常見原因" value={topReason} icon={FileWarning} color="text-purple-600 dark:text-purple-400" iconBg="bg-purple-500" />
         </motion.div>

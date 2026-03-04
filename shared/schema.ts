@@ -35,6 +35,8 @@ export const anomalyReports = pgTable("anomaly_reports", {
   userNote: text("user_note"),
   imageUrls: text("image_urls").array(),
   reportText: text("report_text"),
+  resolution: text("resolution").default("pending"),
+  resolvedNote: text("resolved_note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
