@@ -112,12 +112,28 @@ export async function registerRoutes(
 ): Promise<Server> {
   app.use("/uploads", (await import("express")).default.static(path.join(process.cwd(), "uploads")));
 
-  app.post("/api/anomaly-report", upload.array("images", 5), async (req, res) => {
+  app.post("/api/anomaly-report", upload.fields([
+    { name: "images", maxCount: 5 },
+    { name: "image", maxCount: 5 },
+    { name: "files", maxCount: 5 },
+    { name: "file", maxCount: 5 },
+    { name: "photo", maxCount: 5 },
+    { name: "photos", maxCount: 5 },
+  ]), async (req, res) => {
     try {
+      console.log("[anomaly-report] Content-Type:", req.headers["content-type"]);
+      console.log("[anomaly-report] Body keys:", Object.keys(req.body || {}));
+      console.log("[anomaly-report] Body:", JSON.stringify(req.body, null, 2));
+      console.log("[anomaly-report] Files:", req.files ? Object.keys(req.files) : "none");
+
       let data: any;
       if (req.is("multipart/form-data")) {
-        const raw = req.body?.data;
-        data = raw ? JSON.parse(raw) : {};
+        const raw = req.body?.data || req.body?.json || req.body?.payload;
+        if (raw && typeof raw === "string") {
+          data = JSON.parse(raw);
+        } else {
+          data = req.body || {};
+        }
       } else {
         data = req.body || {};
       }
@@ -126,8 +142,10 @@ export async function registerRoutes(
         return res.status(400).json({ message: "缺少必填欄位: context" });
       }
 
-      const files = (req.files as Express.Multer.File[]) || [];
-      const imageUrls = files.map((f) => `/uploads/anomaly-reports/${f.filename}`);
+      const filesMap = (req.files as Record<string, Express.Multer.File[]>) || {};
+      const allFiles: Express.Multer.File[] = Object.values(filesMap).flat();
+      console.log("[anomaly-report] Total files received:", allFiles.length, allFiles.map(f => f.fieldname + ":" + f.originalname));
+      const imageUrls = allFiles.map((f) => `/uploads/anomaly-reports/${f.filename}`);
 
       const reportText = formatReportText(data);
 
