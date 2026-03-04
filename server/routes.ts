@@ -84,9 +84,16 @@ function formatReportText(data: any): string {
 
 async function getRecipientEmails(type: "newReport" | "resolution"): Promise<string[]> {
   const recipients = await storage.getAllRecipients();
-  return recipients
+  const filtered = recipients
     .filter((r) => r.enabled && (type === "newReport" ? r.notifyNewReport : r.notifyResolution))
     .map((r) => r.email);
+  if (filtered.length > 0) return filtered;
+  const fallback = process.env.GMAIL_USER;
+  if (fallback) {
+    console.log("[Gmail] 無設定收件者，使用發件信箱作為預設收件者:", fallback);
+    return [fallback];
+  }
+  return [];
 }
 
 async function sendAnomalyEmail(reportText: string, data: any) {
@@ -343,6 +350,40 @@ export async function registerRoutes(
       res.json({ updated: count });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "伺服器內部錯誤" });
+    }
+  });
+
+  app.post("/api/test-email", async (_req, res) => {
+    try {
+      const transporter = createTransporter();
+      if (!transporter) {
+        return res.status(500).json({ success: false, message: "未設定 GMAIL_USER 或 GMAIL_APP_PASSWORD 環境變數" });
+      }
+
+      const toEmails = await getRecipientEmails("newReport");
+      if (toEmails.length === 0) {
+        return res.status(400).json({ success: false, message: "無收件者（也沒有 GMAIL_USER 可做預設）" });
+      }
+
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const timeStr = `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+      const subject = `✅ DAOS 郵件通知測試 — ${timeStr}`;
+      const text = `這是一封測試郵件，用於確認 DAOS 異常監控系統的郵件通知功能正常運作。\n\n發送時間：${timeStr}\n發件信箱：${process.env.GMAIL_USER}\n收件者：${toEmails.join(", ")}\n\n如果你收到這封信，代表郵件通知功能正常！`;
+
+      await transporter.sendMail({
+        from: `"DAOS 異常監控系統" <${process.env.GMAIL_USER}>`,
+        to: toEmails.join(", "),
+        subject,
+        text,
+      });
+
+      console.log("[Gmail] 測試郵件已發送至:", toEmails.join(", "));
+      res.json({ success: true, message: `測試郵件已發送至: ${toEmails.join(", ")}` });
+    } catch (err: any) {
+      console.error("[Gmail] 測試郵件發送失敗:", err.message);
+      res.status(500).json({ success: false, message: `寄信失敗: ${err.message}` });
     }
   });
 

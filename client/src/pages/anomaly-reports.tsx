@@ -116,6 +116,17 @@ function NotificationSettingsPanel() {
     onError: (err: Error) => toast({ title: "刪除失敗", description: err.message, variant: "destructive" }),
   });
 
+  const testEmailMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/test-email");
+      return res.json();
+    },
+    onSuccess: (data: { success: boolean; message: string }) => {
+      toast({ title: "測試郵件已發送", description: data.message });
+    },
+    onError: (err: Error) => toast({ title: "測試發信失敗", description: err.message, variant: "destructive" }),
+  });
+
   return (
     <motion.div variants={fadeIn}>
       <button
@@ -199,7 +210,7 @@ function NotificationSettingsPanel() {
                 <div className="text-center py-6 text-gray-400 dark:text-zinc-500">
                   <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-xs">尚未設定任何收件者</p>
-                  <p className="text-[10px] mt-1">新增收件者後，異常通知才會發送</p>
+                  <p className="text-[10px] mt-1">未設定收件者時，系統會自動寄到發件信箱</p>
                 </div>
               )}
 
@@ -267,6 +278,25 @@ function NotificationSettingsPanel() {
                   ))}
                 </div>
               )}
+
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                <p className="text-[10px] text-gray-400 dark:text-zinc-500">
+                  {recipients && recipients.length === 0
+                    ? "未設定收件者時，測試信會寄到發件信箱本身"
+                    : `測試信會寄送到所有啟用「新異常」通知的收件者`}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => testEmailMutation.mutate()}
+                  disabled={testEmailMutation.isPending}
+                  className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30"
+                  data-testid="button-test-email"
+                >
+                  <Mail className="h-4 w-4 mr-1.5" />
+                  {testEmailMutation.isPending ? "發送中..." : "發送測試信"}
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -502,18 +532,37 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
                     <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">附件圖片 ({report.imageUrls.length})</p>
                   </div>
                   <div className="flex gap-2 overflow-x-auto pb-1">
-                    {report.imageUrls.map((url, i) => (
-                      <a
-                        key={i}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0 h-20 w-20 rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden hover:opacity-80 transition-opacity"
-                        data-testid={`img-anomaly-${report.id}-${i}`}
-                      >
-                        <img src={url} alt={`附件 ${i + 1}`} className="h-full w-full object-cover" />
-                      </a>
-                    ))}
+                    {report.imageUrls.map((url, i) => {
+                      const imgSrc = url.startsWith("http") ? url : url;
+                      return (
+                        <a
+                          key={i}
+                          href={imgSrc}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 h-24 w-24 rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden hover:opacity-80 transition-opacity bg-gray-100 dark:bg-zinc-800 flex items-center justify-center"
+                          data-testid={`img-anomaly-${report.id}-${i}`}
+                        >
+                          <img
+                            src={imgSrc}
+                            alt={`附件 ${i + 1}`}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              const el = e.currentTarget;
+                              el.style.display = "none";
+                              const parent = el.parentElement;
+                              if (parent && !parent.querySelector(".img-fallback")) {
+                                const fallback = document.createElement("div");
+                                fallback.className = "img-fallback flex flex-col items-center justify-center h-full w-full text-gray-400 dark:text-zinc-500";
+                                fallback.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><span style="font-size:9px;margin-top:4px">載入失敗</span>`;
+                                parent.appendChild(fallback);
+                              }
+                            }}
+                          />
+                        </a>
+                      );
+                    })}
                   </div>
                 </div>
               )}

@@ -111,7 +111,11 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
   - Add/remove recipients with email + optional label
   - Toggle per-recipient: enabled, notify on new anomaly, notify on resolution change
   - Gmail sends to all enabled recipients matching event type (newReport or resolution)
-- **Email logic**: `getRecipientEmails(type)` queries DB for enabled recipients with matching notification flag
+- **Email fallback**: When no recipients are configured, system auto-sends to GMAIL_USER as default recipient
+- **Test email**: `POST /api/test-email` — sends a test email to verify Gmail configuration works
+- **Test button**: "發送測試信" button in notification settings panel for manual verification
+- **Email logic**: `getRecipientEmails(type)` queries DB for enabled recipients with matching notification flag; falls back to GMAIL_USER
+- **Image serving**: `/uploads` served via express.static in both dev (routes.ts) and production (static.ts)
 
 ## Environment Variables
 - `GMAIL_USER` — Gmail address for anomaly notifications (daos.ragic.system@gmail.com)
