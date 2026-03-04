@@ -19,9 +19,9 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - `client/src/components/app-sidebar.tsx` - Enterprise sidebar with active state via `useLocation`
 - `client/src/pages/dashboard.tsx` - Main dashboard with 4 blueprint sections (live API data)
 - `client/src/pages/analytics.tsx` - Analytics with KPIs, venue task ranking (live API); interaction chart shows empty state until API connected
-- `client/src/pages/operations.tsx` - Cross-venue resource monitoring with alerts and data grid
+- `client/src/pages/operations.tsx` - Cross-venue resource monitoring (live API from venue-automations), shows venue features & schedules
 - `client/src/pages/hr-audit.tsx` - HR audit with search bar, calls POST /api/hr-audit (returns 503 until API connected)
-- `client/src/pages/system-health.tsx` - Microservice health grid and terminal audit logs
+- `client/src/pages/system-health.tsx` - Real-time API health check (pings 7 endpoints every 60s), shows HTTP status & latency
 - `client/src/pages/anomaly-reports.tsx` - Anomaly report management with expandable cards (live DB data)
 - `server/routes.ts` - API routes for anomaly reports (POST, GET, GET/:id) + Gmail notification
 - `server/storage.ts` - DatabaseStorage using Drizzle ORM with PostgreSQL

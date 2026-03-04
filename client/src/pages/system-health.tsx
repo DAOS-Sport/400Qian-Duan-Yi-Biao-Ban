@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -9,8 +10,12 @@ import {
   Gauge,
   CircleCheck,
   CircleAlert,
-  Terminal,
+  RefreshCw,
+  ShieldAlert,
+  Loader2,
+  Inbox,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -27,124 +32,177 @@ const fadeIn = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.45 } },
 };
 
-interface ServiceInfo {
+const LINE_BOT_BASE = "https://line-bot-assistant-ronchen2.replit.app";
+
+interface HealthEndpoint {
   name: string;
-  status: "healthy" | "degraded" | "down";
-  uptime: string;
-  latency: string;
+  url: string;
   icon: typeof Server;
   iconColor: string;
   iconBg: string;
 }
 
-const services: ServiceInfo[] = [
+const ENDPOINTS: HealthEndpoint[] = [
   {
-    name: "LINE Webhook",
-    status: "healthy",
-    uptime: "99.98%",
-    latency: "45ms",
+    name: "LINE Bot 主服務",
+    url: `${LINE_BOT_BASE}/api/admin/dashboard/feature-stats`,
     icon: Webhook,
     iconColor: "text-emerald-600 dark:text-emerald-400",
     iconBg: "bg-emerald-100 dark:bg-emerald-900/50",
   },
   {
-    name: "Task Engine",
-    status: "healthy",
-    uptime: "99.95%",
-    latency: "62ms",
+    name: "任務引擎 API",
+    url: `${LINE_BOT_BASE}/api/admin/tasks/stats`,
     icon: Cpu,
     iconColor: "text-blue-600 dark:text-blue-400",
     iconBg: "bg-blue-100 dark:bg-blue-900/50",
   },
   {
-    name: "Ragic API",
-    status: "healthy",
-    uptime: "99.87%",
-    latency: "210ms",
-    icon: Server,
-    iconColor: "text-indigo-600 dark:text-indigo-400",
-    iconBg: "bg-indigo-100 dark:bg-indigo-900/50",
-  },
-  {
-    name: "Scheduler",
-    status: "healthy",
-    uptime: "99.99%",
-    latency: "18ms",
+    name: "打卡出勤 API",
+    url: `${LINE_BOT_BASE}/api/admin/attendance/stats`,
     icon: Clock,
     iconColor: "text-amber-600 dark:text-amber-400",
     iconBg: "bg-amber-100 dark:bg-amber-900/50",
   },
   {
-    name: "Database",
-    status: "healthy",
-    uptime: "99.99%",
-    latency: "8ms",
+    name: "場館自動化 API",
+    url: `${LINE_BOT_BASE}/api/admin/dashboard/venue-automations`,
+    icon: Server,
+    iconColor: "text-indigo-600 dark:text-indigo-400",
+    iconBg: "bg-indigo-100 dark:bg-indigo-900/50",
+  },
+  {
+    name: "服務健康狀態 API",
+    url: `${LINE_BOT_BASE}/api/admin/dashboard/services-health`,
+    icon: Activity,
+    iconColor: "text-teal-600 dark:text-teal-400",
+    iconBg: "bg-teal-100 dark:bg-teal-900/50",
+  },
+  {
+    name: "打卡異常報告 API",
+    url: `/api/anomaly-reports`,
+    icon: ShieldAlert,
+    iconColor: "text-red-600 dark:text-red-400",
+    iconBg: "bg-red-100 dark:bg-red-900/50",
+  },
+  {
+    name: "通知收件人 API",
+    url: `/api/notification-recipients`,
     icon: Database,
     iconColor: "text-purple-600 dark:text-purple-400",
     iconBg: "bg-purple-100 dark:bg-purple-900/50",
   },
 ];
 
+interface HealthResult {
+  name: string;
+  status: "healthy" | "degraded" | "down" | "checking";
+  latency: number | null;
+  httpStatus: number | null;
+  error: string | null;
+  endpoint: HealthEndpoint;
+}
+
 function getStatusColor(status: string) {
   switch (status) {
-    case "healthy":
-      return "bg-emerald-500";
-    case "degraded":
-      return "bg-amber-500";
-    case "down":
-      return "bg-red-500";
-    default:
-      return "bg-gray-400";
+    case "healthy": return "bg-emerald-500";
+    case "degraded": return "bg-amber-500";
+    case "down": return "bg-red-500";
+    case "checking": return "bg-gray-400 animate-pulse";
+    default: return "bg-gray-400";
   }
 }
 
 function getStatusLabel(status: string) {
   switch (status) {
-    case "healthy":
-      return "Healthy";
-    case "degraded":
-      return "Degraded";
-    case "down":
-      return "Down";
-    default:
-      return "Unknown";
+    case "healthy": return "正常";
+    case "degraded": return "延遲";
+    case "down": return "離線";
+    case "checking": return "檢測中...";
+    default: return "未知";
   }
 }
 
-function getStatusIcon(status: string) {
-  if (status === "healthy") return CircleCheck;
-  return CircleAlert;
-}
-
-const auditLogs = [
-  { time: "2025-01-22 08:00:01", level: "INFO", msg: "[Scheduler] 每日排程啟動 — 開始推送天氣預報至 8 個群組" },
-  { time: "2025-01-22 08:00:03", level: "OK", msg: "[Scheduler] 天氣預報推送完成 — 成功 8/8 群組" },
-  { time: "2025-01-22 08:15:00", level: "INFO", msg: "[Scheduler] 水質監控排程啟動 — 檢查竹科泳池水質數據" },
-  { time: "2025-01-22 08:15:02", level: "OK", msg: "[Scheduler] 水質監控完成 — pH 7.4, 餘氯 1.2ppm, 水溫 27°C" },
-  { time: "2025-01-22 09:00:00", level: "INFO", msg: "[TaskEngine] 待處理任務掃描 — 發現 12 項待辦任務" },
-  { time: "2025-01-22 09:00:01", level: "OK", msg: "[TaskEngine] 逾期提醒推送完成 — 通知 3 位負責人" },
-  { time: "2025-01-22 10:30:15", level: "INFO", msg: "[Webhook] LINE 訊息接收 — 處理交辦任務指令" },
-  { time: "2025-01-22 10:30:16", level: "OK", msg: "[Webhook] 任務建立成功 — 任務 #260 已指派至三重商工館" },
-  { time: "2025-01-22 12:00:00", level: "INFO", msg: "[Scheduler] 合併報告排程啟動 — 彙整上午營運數據" },
-  { time: "2025-01-22 12:00:04", level: "OK", msg: "[Scheduler] 合併報告推送完成 — 成功推送至 5 個管理群組" },
-  { time: "2025-01-22 14:00:00", level: "INFO", msg: "[Database] 自動備份啟動 — 增量備份進行中" },
-  { time: "2025-01-22 14:00:08", level: "OK", msg: "[Database] 備份完成 — 大小 42MB, 耗時 8s" },
-];
-
-function LogLevelBadge({ level }: { level: string }) {
-  const color = level === "OK"
-    ? "text-emerald-400"
-    : level === "WARN"
-      ? "text-amber-400"
-      : level === "ERROR"
-        ? "text-red-400"
-        : "text-sky-400";
-  return <span className={`font-bold ${color}`}>[{level}]</span>;
-}
-
 export default function SystemHealthPage() {
-  const healthyCount = services.filter((s) => s.status === "healthy").length;
-  const totalCount = services.length;
+  const [results, setResults] = useState<HealthResult[]>(
+    ENDPOINTS.map((ep) => ({
+      name: ep.name,
+      status: "checking",
+      latency: null,
+      httpStatus: null,
+      error: null,
+      endpoint: ep,
+    }))
+  );
+  const [isChecking, setIsChecking] = useState(false);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+
+  const checkHealth = useCallback(async () => {
+    setIsChecking(true);
+    setResults((prev) =>
+      prev.map((r) => ({ ...r, status: "checking" as const, latency: null, httpStatus: null, error: null }))
+    );
+
+    const promises = ENDPOINTS.map(async (ep, idx) => {
+      const start = performance.now();
+      try {
+        const res = await fetch(ep.url, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(10000),
+        });
+        const latency = Math.round(performance.now() - start);
+        const status: HealthResult["status"] = res.ok
+          ? latency > 3000 ? "degraded" : "healthy"
+          : "down";
+        return {
+          name: ep.name,
+          status,
+          latency,
+          httpStatus: res.status,
+          error: res.ok ? null : `HTTP ${res.status}`,
+          endpoint: ep,
+        } as HealthResult;
+      } catch (err: any) {
+        const latency = Math.round(performance.now() - start);
+        return {
+          name: ep.name,
+          status: "down" as const,
+          latency,
+          httpStatus: null,
+          error: err.name === "TimeoutError" ? "逾時 (>10s)" : (err.message || "連線失敗"),
+          endpoint: ep,
+        } as HealthResult;
+      }
+    });
+
+    const settled = await Promise.allSettled(promises);
+    const newResults = settled.map((s, i) =>
+      s.status === "fulfilled"
+        ? s.value
+        : {
+            name: ENDPOINTS[i].name,
+            status: "down" as const,
+            latency: null,
+            httpStatus: null,
+            error: "檢測失敗",
+            endpoint: ENDPOINTS[i],
+          }
+    );
+    setResults(newResults);
+    setIsChecking(false);
+    setLastChecked(new Date());
+  }, []);
+
+  useEffect(() => {
+    checkHealth();
+    const interval = setInterval(checkHealth, 60000);
+    return () => clearInterval(interval);
+  }, [checkHealth]);
+
+  const healthyCount = results.filter((r) => r.status === "healthy").length;
+  const totalCount = results.length;
+  const allChecking = results.every((r) => r.status === "checking");
 
   return (
     <motion.div
@@ -163,29 +221,42 @@ export default function SystemHealthPage() {
             </h1>
           </div>
           <p className="text-sm text-gray-400 dark:text-zinc-500 ml-7" data-testid="text-page-subtitle">
-            System Health & Microservice Status
+            即時 API 端點健康檢測 · 每 60 秒自動刷新
           </p>
         </div>
-        <div className="flex items-center gap-2" data-testid="text-overall-status">
-          <span className={`inline-block h-2.5 w-2.5 rounded-full ${healthyCount === totalCount ? "bg-emerald-500" : "bg-amber-500"} animate-pulse`} />
-          <span className="text-sm font-medium text-gray-600 dark:text-zinc-300">
-            {healthyCount}/{totalCount} Services Online
-          </span>
+        <div className="flex items-center gap-4">
+          {lastChecked && (
+            <span className="text-[11px] text-gray-400 dark:text-zinc-500">
+              最後檢測：{lastChecked.toLocaleTimeString("zh-TW")}
+            </span>
+          )}
+          {!allChecking && (
+            <div className="flex items-center gap-2" data-testid="text-overall-status">
+              <span className={`inline-block h-2.5 w-2.5 rounded-full ${healthyCount === totalCount ? "bg-emerald-500" : healthyCount > 0 ? "bg-amber-500" : "bg-red-500"} animate-pulse`} />
+              <span className="text-sm font-medium text-gray-600 dark:text-zinc-300">
+                {healthyCount}/{totalCount} 服務正常
+              </span>
+            </div>
+          )}
+          <Button variant="outline" size="sm" onClick={checkHealth} disabled={isChecking} data-testid="button-refresh">
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isChecking ? "animate-spin" : ""}`} />
+            重新檢測
+          </Button>
         </div>
       </motion.div>
 
       <motion.div variants={fadeIn}>
         <h2 className="text-sm font-bold text-gray-700 dark:text-zinc-200 mb-4 flex items-center gap-2" data-testid="text-section-server-status">
           <Gauge className="h-4 w-4 text-gray-500 dark:text-zinc-400" />
-          Server Status Grid
+          API 端點即時狀態
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {services.map((service, index) => {
-            const Icon = service.icon;
-            const StatusIcon = getStatusIcon(service.status);
+          {results.map((result, index) => {
+            const Icon = result.endpoint.icon;
+            const StatusIcon = result.status === "healthy" ? CircleCheck : result.status === "checking" ? Loader2 : CircleAlert;
             return (
               <motion.div
-                key={service.name}
+                key={result.name}
                 variants={cardVariants}
                 whileHover={{ y: -3, transition: { duration: 0.2 } }}
                 data-testid={`card-service-${index}`}
@@ -193,44 +264,49 @@ export default function SystemHealthPage() {
                 <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-5">
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${service.iconBg}`}>
-                        <Icon className={`h-5 w-5 ${service.iconColor}`} />
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${result.endpoint.iconBg}`}>
+                        <Icon className={`h-5 w-5 ${result.endpoint.iconColor}`} />
                       </div>
                       <div>
                         <p className="text-sm font-bold text-gray-800 dark:text-zinc-100" data-testid={`text-service-name-${index}`}>
-                          {service.name}
+                          {result.name}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={`inline-block h-2 w-2 rounded-full ${getStatusColor(service.status)}`} />
+                          <span className={`inline-block h-2 w-2 rounded-full ${getStatusColor(result.status)}`} />
                           <span className="text-xs text-gray-500 dark:text-zinc-400" data-testid={`text-service-status-${index}`}>
-                            {getStatusLabel(service.status)}
+                            {getStatusLabel(result.status)}
                           </span>
                         </div>
                       </div>
                     </div>
                     <StatusIcon
-                      className={`h-5 w-5 shrink-0 ${service.status === "healthy" ? "text-emerald-500" : "text-amber-500"}`}
+                      className={`h-5 w-5 shrink-0 ${result.status === "healthy" ? "text-emerald-500" : result.status === "checking" ? "text-gray-400 animate-spin" : result.status === "degraded" ? "text-amber-500" : "text-red-500"}`}
                       data-testid={`icon-service-status-${index}`}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-gray-50 dark:bg-zinc-800/60 rounded-lg p-3 border border-gray-100 dark:border-zinc-700/50">
                       <p className="text-[10px] uppercase tracking-wide font-medium text-gray-400 dark:text-zinc-500 mb-0.5">
-                        Uptime
+                        HTTP 狀態
                       </p>
-                      <p className="text-sm font-bold text-gray-800 dark:text-zinc-100" data-testid={`text-service-uptime-${index}`}>
-                        {service.uptime}
+                      <p className={`text-sm font-bold ${result.httpStatus && result.httpStatus < 400 ? "text-emerald-600 dark:text-emerald-400" : result.httpStatus ? "text-red-600 dark:text-red-400" : "text-gray-400 dark:text-zinc-500"}`} data-testid={`text-service-http-${index}`}>
+                        {result.status === "checking" ? "..." : result.httpStatus ? `${result.httpStatus}` : "N/A"}
                       </p>
                     </div>
                     <div className="bg-gray-50 dark:bg-zinc-800/60 rounded-lg p-3 border border-gray-100 dark:border-zinc-700/50">
                       <p className="text-[10px] uppercase tracking-wide font-medium text-gray-400 dark:text-zinc-500 mb-0.5">
-                        Avg Latency
+                        回應延遲
                       </p>
-                      <p className="text-sm font-bold text-gray-800 dark:text-zinc-100" data-testid={`text-service-latency-${index}`}>
-                        {service.latency}
+                      <p className={`text-sm font-bold ${result.latency !== null && result.latency < 1000 ? "text-gray-800 dark:text-zinc-100" : result.latency !== null ? "text-amber-600 dark:text-amber-400" : "text-gray-400 dark:text-zinc-500"}`} data-testid={`text-service-latency-${index}`}>
+                        {result.status === "checking" ? "..." : result.latency !== null ? `${result.latency}ms` : "N/A"}
                       </p>
                     </div>
                   </div>
+                  {result.error && (
+                    <p className="mt-3 text-[11px] text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-1.5 border border-red-100 dark:border-red-800/30">
+                      {result.error}
+                    </p>
+                  )}
                 </div>
               </motion.div>
             );
@@ -239,33 +315,49 @@ export default function SystemHealthPage() {
       </motion.div>
 
       <motion.div variants={fadeIn}>
-        <h2 className="text-sm font-bold text-gray-700 dark:text-zinc-200 mb-4 flex items-center gap-2" data-testid="text-section-audit-logs">
-          <Terminal className="h-4 w-4 text-gray-500 dark:text-zinc-400" />
-          System Audit Logs
+        <h2 className="text-sm font-bold text-gray-700 dark:text-zinc-200 mb-4 flex items-center gap-2" data-testid="text-section-summary">
+          <Inbox className="h-4 w-4 text-gray-500 dark:text-zinc-400" />
+          檢測摘要
         </h2>
-        <div
-          className="bg-zinc-900 dark:bg-black rounded-2xl border border-zinc-700 dark:border-zinc-800 p-5 font-mono text-xs leading-relaxed overflow-x-auto"
-          data-testid="block-audit-logs"
-        >
-          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-700 dark:border-zinc-700">
-            <span className="inline-block h-3 w-3 rounded-full bg-red-500" />
-            <span className="inline-block h-3 w-3 rounded-full bg-amber-500" />
-            <span className="inline-block h-3 w-3 rounded-full bg-emerald-500" />
-            <span className="text-zinc-500 ml-2 text-[11px]">system-logs — scheduler.service</span>
-          </div>
-          <div className="space-y-1.5">
-            {auditLogs.map((log, i) => (
-              <div key={i} className="flex gap-2 flex-wrap" data-testid={`log-entry-${i}`}>
-                <span className="text-zinc-500 shrink-0">{log.time}</span>
-                <LogLevelBadge level={log.level} />
-                <span className="text-zinc-300">{log.msg}</span>
-              </div>
-            ))}
-            <div className="mt-3 pt-2 border-t border-zinc-700/60">
-              <span className="text-emerald-400 animate-pulse">_</span>
-              <span className="text-zinc-500 ml-1">awaiting next event...</span>
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6">
+          {allChecking ? (
+            <div className="flex items-center justify-center gap-2 py-4">
+              <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+              <span className="text-sm text-gray-500 dark:text-zinc-400">正在檢測所有端點...</span>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400" data-testid="text-summary-healthy">
+                  {results.filter((r) => r.status === "healthy").length}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">正常</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400" data-testid="text-summary-degraded">
+                  {results.filter((r) => r.status === "degraded").length}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">延遲</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400" data-testid="text-summary-down">
+                  {results.filter((r) => r.status === "down").length}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">離線</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-700 dark:text-zinc-200" data-testid="text-summary-avg-latency">
+                  {(() => {
+                    const valid = results.filter((r) => r.latency !== null);
+                    if (valid.length === 0) return "—";
+                    const avg = Math.round(valid.reduce((sum, r) => sum + (r.latency || 0), 0) / valid.length);
+                    return `${avg}ms`;
+                  })()}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">平均延遲</p>
+              </div>
+            </div>
+          )}
         </div>
       </motion.div>
     </motion.div>

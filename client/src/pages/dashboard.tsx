@@ -1111,15 +1111,14 @@ function AnomalySummaryWidget() {
     refetchInterval: 15000,
   });
 
-  if (!reports || reports.length === 0) return null;
-
-  const pending = reports.filter((r) => r.resolution !== "resolved");
-  const today = reports.filter((r) => {
+  const hasReports = reports && reports.length > 0;
+  const pending = hasReports ? reports.filter((r) => r.resolution !== "resolved") : [];
+  const today = hasReports ? reports.filter((r) => {
     const d = new Date(r.createdAt);
     const now = new Date();
     return d.toDateString() === now.toDateString();
-  });
-  const latest = reports.slice(0, 3);
+  }) : [];
+  const latest = hasReports ? reports.slice(0, 3) : [];
 
   const formatTime = (iso: string) => {
     const d = new Date(iso);
@@ -1160,6 +1159,16 @@ function AnomalySummaryWidget() {
           </div>
         </div>
 
+        {!hasReports && (
+          <div className="flex flex-col items-center justify-center py-4 text-center">
+            <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-2">
+              <Inbox className="h-4 w-4 text-gray-400 dark:text-zinc-500" />
+            </div>
+            <p className="text-xs font-medium text-gray-500 dark:text-zinc-400">目前沒有異常紀錄</p>
+            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5">當打卡系統偵測到異常時將自動顯示</p>
+          </div>
+        )}
+
         {latest.length > 0 && (
           <div className="space-y-2">
             {latest.map((r) => {
@@ -1195,10 +1204,12 @@ function AnomalySummaryWidget() {
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-blue-500 dark:text-blue-400 font-medium">
-          <span>查看全部 {reports.length} 筆異常紀錄</span>
-          <ArrowRight className="h-3 w-3" />
-        </div>
+        {hasReports && (
+          <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-blue-500 dark:text-blue-400 font-medium">
+            <span>查看全部 {reports.length} 筆異常紀錄</span>
+            <ArrowRight className="h-3 w-3" />
+          </div>
+        )}
       </div>
     </motion.div>
   );
