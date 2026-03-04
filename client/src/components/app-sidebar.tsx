@@ -22,11 +22,11 @@ import {
 
 const navItems = [
   { title: "📊 營運戰情總覽", url: "/", icon: LayoutDashboard },
+  { title: "🚨 打卡異常管理", url: "/anomaly-reports", icon: AlertTriangle },
   { title: "📈 決策與數據洞察", url: "/analytics", icon: TrendingUp },
   { title: "🏢 跨館資源監控", url: "/operations", icon: Building2 },
   { title: "🛡️ HR 與權限稽核", url: "/hr-audit", icon: ShieldCheck },
   { title: "⚙️ 微服務健康監控", url: "/system-health", icon: Activity },
-  { title: "🚨 打卡異常管理", url: "/anomaly-reports", icon: AlertTriangle },
 ];
 
 export function AppSidebar() {
