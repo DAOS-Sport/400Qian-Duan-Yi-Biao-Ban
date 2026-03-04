@@ -306,10 +306,38 @@ export async function registerRoutes(
     }
   });
 
+  const EXTERNAL_API = "https://smart-schedule-manager.replit.app";
+
+  async function fetchExternalReports(): Promise<any[]> {
+    try {
+      const resp = await fetch(`${EXTERNAL_API}/api/anomaly-reports`);
+      if (!resp.ok) return [];
+      const data = await resp.json() as any[];
+      return data.map((r: any) => ({
+        ...r,
+        id: `ext-${r.id}`,
+        source: "external",
+        imageUrls: r.imageUrls?.map((url: string) =>
+          url.startsWith("http") ? url : `${EXTERNAL_API}${url}`
+        ) || null,
+      }));
+    } catch (err) {
+      console.error("[external-api] Failed to fetch:", (err as Error).message);
+      return [];
+    }
+  }
+
   app.get("/api/anomaly-reports", async (_req, res) => {
     try {
-      const reports = await storage.getAllAnomalyReports();
-      res.json(reports);
+      const [localReports, externalReports] = await Promise.all([
+        storage.getAllAnomalyReports(),
+        fetchExternalReports(),
+      ]);
+      const local = localReports.map((r) => ({ ...r, source: "local" }));
+      const merged = [...local, ...externalReports].sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      res.json(merged);
     } catch (err: any) {
       res.status(500).json({ message: err.message || "伺服器內部錯誤" });
     }
@@ -317,11 +345,26 @@ export async function registerRoutes(
 
   app.get("/api/anomaly-reports/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id, 10);
+      const rawId = req.params.id;
+      if (rawId.startsWith("ext-")) {
+        const extId = rawId.replace("ext-", "");
+        const resp = await fetch(`${EXTERNAL_API}/api/anomaly-reports/${extId}`);
+        if (!resp.ok) return res.status(404).json({ message: "找不到此異常報告" });
+        const data = await resp.json() as any;
+        data.id = `ext-${data.id}`;
+        data.source = "external";
+        if (data.imageUrls) {
+          data.imageUrls = data.imageUrls.map((url: string) =>
+            url.startsWith("http") ? url : `${EXTERNAL_API}${url}`
+          );
+        }
+        return res.json(data);
+      }
+      const id = parseInt(rawId, 10);
       if (isNaN(id)) return res.status(400).json({ message: "無效的 ID" });
       const report = await storage.getAnomalyReportById(id);
       if (!report) return res.status(404).json({ message: "找不到此異常報告" });
-      res.json(report);
+      res.json({ ...report, source: "local" });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "伺服器內部錯誤" });
     }

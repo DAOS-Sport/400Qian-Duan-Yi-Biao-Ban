@@ -37,8 +37,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface AnomalyReport {
-  id: number;
+  id: string | number;
   employeeId: number | null;
+  source?: string;
   employeeName: string | null;
   employeeCode: string | null;
   role: string | null;
@@ -373,7 +374,7 @@ function DetailRow({ label, value, icon: Icon }: { label: string; value: string;
   );
 }
 
-function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyReport; selected: boolean; onToggleSelect: (id: number) => void }) {
+function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyReport; selected: boolean; onToggleSelect: (id: string | number) => void }) {
   const [expanded, setExpanded] = useState(false);
   const [noteInput, setNoteInput] = useState(report.resolvedNote || "");
   const { toast } = useToast();
@@ -643,7 +644,7 @@ export default function AnomalyReportsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [venueFilter, setVenueFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [batchNote, setBatchNote] = useState("");
   const { toast } = useToast();
 
@@ -691,7 +692,7 @@ export default function AnomalyReportsPage() {
   const topVenue = Object.entries(venueCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
   const topReason = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
 
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: string | number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
