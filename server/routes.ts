@@ -106,6 +106,88 @@ async function sendAnomalyEmail(reportText: string, data: any) {
   }
 }
 
+async function sendResolutionEmail(report: any, resolution: string, resolvedNote: string | null) {
+  const transporter = createTransporter();
+  if (!transporter) {
+    console.log("[Gmail] 未設定 GMAIL 帳號密碼，跳過寄信");
+    return;
+  }
+
+  const employeeName = report.employeeName || "未知員工";
+  const venueName = report.venueName || "未知場館";
+  const statusText = resolution === "resolved" ? "✅ 已處理" : "🔄 改為待解決";
+  const subject = `${statusText} — ${employeeName}（${venueName}）打卡異常 #${report.id}`;
+
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const timeStr = `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+  let text = `打卡異常處理通知\n`;
+  text += `處理時間：${timeStr}\n`;
+  text += `狀態變更：${statusText}\n\n`;
+  text += `【異常報告 #${report.id}】\n`;
+  text += `員工姓名：${employeeName}\n`;
+  text += `員工編號：${report.employeeCode || "—"}\n`;
+  text += `場館：${venueName}\n`;
+  text += `異常類型：${report.context || "—"}\n`;
+  text += `打卡時間：${report.clockTime || "—"}\n`;
+  text += `失敗原因：${report.failReason || "—"}\n`;
+  if (resolvedNote) text += `\n處理備註：${resolvedNote}\n`;
+
+  try {
+    await transporter.sendMail({
+      from: `"DAOS 異常監控系統" <${process.env.GMAIL_USER}>`,
+      to: process.env.GMAIL_USER!,
+      subject,
+      text,
+    });
+    console.log("[Gmail] 處理狀態通知已發送:", subject);
+  } catch (err: any) {
+    console.error("[Gmail] 寄信失敗:", err.message);
+  }
+}
+
+async function sendBatchResolutionEmail(reports: any[], resolution: string, resolvedNote: string | null) {
+  const transporter = createTransporter();
+  if (!transporter) {
+    console.log("[Gmail] 未設定 GMAIL 帳號密碼，跳過寄信");
+    return;
+  }
+
+  const statusText = resolution === "resolved" ? "✅ 批量已處理" : "🔄 批量改為待解決";
+  const subject = `${statusText} — 共 ${reports.length} 筆打卡異常`;
+
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const timeStr = `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+  let text = `打卡異常批量處理通知\n`;
+  text += `處理時間：${timeStr}\n`;
+  text += `狀態變更：${statusText}\n`;
+  text += `處理數量：${reports.length} 筆\n`;
+  if (resolvedNote) text += `處理備註：${resolvedNote}\n`;
+  text += `\n${"─".repeat(40)}\n`;
+
+  reports.forEach((r, i) => {
+    text += `\n【#${r.id}】${r.employeeName || "未知員工"} — ${r.venueName || "未知場館"}\n`;
+    text += `  異常類型：${r.context || "—"}\n`;
+    text += `  打卡時間：${r.clockTime || "—"}\n`;
+    text += `  失敗原因：${r.failReason || "—"}\n`;
+  });
+
+  try {
+    await transporter.sendMail({
+      from: `"DAOS 異常監控系統" <${process.env.GMAIL_USER}>`,
+      to: process.env.GMAIL_USER!,
+      subject,
+      text,
+    });
+    console.log("[Gmail] 批量處理通知已發送:", subject);
+  } catch (err: any) {
+    console.error("[Gmail] 寄信失敗:", err.message);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -219,6 +301,9 @@ export async function registerRoutes(
 
       const updated = await storage.updateAnomalyReportResolution(id, resolution, resolvedNote ?? null);
       if (!updated) return res.status(404).json({ message: "找不到此異常報告" });
+
+      sendResolutionEmail(updated, resolution, resolvedNote ?? null).catch(() => {});
+
       res.json(updated);
     } catch (err: any) {
       res.status(500).json({ message: err.message || "伺服器內部錯誤" });
@@ -235,6 +320,13 @@ export async function registerRoutes(
         return res.status(400).json({ message: "resolution 必須為 'pending' 或 'resolved'" });
       }
       const count = await storage.batchUpdateResolution(ids, resolution, resolvedNote ?? null);
+
+      const reports = await Promise.all(ids.map((id: number) => storage.getAnomalyReportById(id)));
+      const validReports = reports.filter(Boolean);
+      if (validReports.length > 0) {
+        sendBatchResolutionEmail(validReports, resolution, resolvedNote ?? null).catch(() => {});
+      }
+
       res.json({ updated: count });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "伺服器內部錯誤" });
