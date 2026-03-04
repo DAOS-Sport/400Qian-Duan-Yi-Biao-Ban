@@ -285,8 +285,8 @@ export async function registerRoutes(
         venueName: clockResult.venueName ?? null,
         distance: clockResult.distance != null ? `${clockResult.distance}m` : null,
         failReason: clockResult.failReason ?? null,
-        errorMsg: data.errorMsg ?? null,
-        userNote: data.userNote ?? null,
+        errorMsg: data.errorMsg ?? data.error_msg ?? null,
+        userNote: data.userNote ?? data.user_note ?? data.note ?? data.remark ?? data.message ?? data.description ?? null,
         imageUrls: imageUrls.length > 0 ? imageUrls : null,
         reportText,
       });
