@@ -110,15 +110,23 @@ async function sendAnomalyEmail(reportText: string, data: any) {
   }
 
   const employeeName = data.employee?.name || "未知員工";
+  const employeeCode = data.employee?.employeeCode || "—";
+  const role = data.employee?.role || "—";
   const venueName = data.clockResult?.venueName || "未知場館";
-  const subject = `🚨 打卡異常報告 — ${employeeName}（${venueName}）`;
+  const clockTime = data.clockResult?.time || "—";
+  const clockDate = data.clockResult?.date || "—";
+  const failReason = data.clockResult?.failReason || data.errorMsg || "未知原因";
+
+  const subject = `🚨 員工打卡異常 — ${employeeName}（${venueName}）`;
+
+  const text = `員工打卡異常\n\n姓名：${employeeName}\n員工編號：${employeeCode}\n職位：${role}\n場館：${venueName}\n時間：${clockDate} ${clockTime}\n原因：${failReason}\n\n詳細請至 https://group-dashboard.replit.app 查看`;
 
   try {
     await transporter.sendMail({
       from: `"DAOS 異常監控系統" <${process.env.GMAIL_USER}>`,
       to: toEmails.join(", "),
       subject,
-      text: reportText,
+      text,
     });
     console.log("[Gmail] 異常報告郵件已發送至:", toEmails.join(", "));
   } catch (err: any) {
