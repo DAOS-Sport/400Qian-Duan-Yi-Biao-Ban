@@ -371,6 +371,18 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/anomaly-reports/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "無效 ID" });
+      const deleted = await storage.deleteAnomalyReport(id);
+      if (!deleted) return res.status(404).json({ message: "找不到此異常報告" });
+      res.json({ success: true, deletedId: id });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "伺服器內部錯誤" });
+    }
+  });
+
   app.post("/api/test-email", async (_req, res) => {
     try {
       const transporter = createTransporter();

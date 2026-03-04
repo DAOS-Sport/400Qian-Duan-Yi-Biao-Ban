@@ -12,6 +12,7 @@ export interface IStorage {
   getAnomalyReportById(id: number): Promise<AnomalyReport | undefined>;
   updateAnomalyReportResolution(id: number, resolution: string, resolvedNote: string | null): Promise<AnomalyReport | undefined>;
   batchUpdateResolution(ids: number[], resolution: string, resolvedNote: string | null): Promise<number>;
+  deleteAnomalyReport(id: number): Promise<boolean>;
   getAllRecipients(): Promise<NotificationRecipient[]>;
   createRecipient(recipient: InsertNotificationRecipient): Promise<NotificationRecipient>;
   updateRecipient(id: number, data: Partial<InsertNotificationRecipient>): Promise<NotificationRecipient | undefined>;
@@ -64,6 +65,11 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(anomalyReports.id, ids))
       .returning();
     return result.length;
+  }
+
+  async deleteAnomalyReport(id: number): Promise<boolean> {
+    const result = await db.delete(anomalyReports).where(eq(anomalyReports.id, id)).returning();
+    return result.length > 0;
   }
 
   async getAllRecipients(): Promise<NotificationRecipient[]> {
