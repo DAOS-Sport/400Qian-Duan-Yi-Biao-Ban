@@ -24,6 +24,13 @@ import {
   CheckSquare,
   Square,
   X,
+  Mail,
+  Plus,
+  Trash2,
+  Bell,
+  Settings,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -50,6 +57,222 @@ interface AnomalyReport {
   resolution: string | null;
   resolvedNote: string | null;
   createdAt: string;
+}
+
+interface NotificationRecipient {
+  id: number;
+  email: string;
+  label: string | null;
+  enabled: boolean;
+  notifyNewReport: boolean;
+  notifyResolution: boolean;
+  createdAt: string;
+}
+
+function NotificationSettingsPanel() {
+  const [showPanel, setShowPanel] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+  const { toast } = useToast();
+
+  const { data: recipients, isLoading } = useQuery<NotificationRecipient[]>({
+    queryKey: ["/api/notification-recipients"],
+  });
+
+  const addMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/notification-recipients", { email: newEmail, label: newLabel || null });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notification-recipients"] });
+      toast({ title: "已新增收件者", description: newEmail });
+      setNewEmail("");
+      setNewLabel("");
+    },
+    onError: (err: Error) => toast({ title: "新增失敗", description: err.message, variant: "destructive" }),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, field, value }: { id: number; field: string; value: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/notification-recipients/${id}`, { [field]: value });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notification-recipients"] });
+    },
+    onError: (err: Error) => toast({ title: "更新失敗", description: err.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/notification-recipients/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notification-recipients"] });
+      toast({ title: "已刪除收件者" });
+    },
+    onError: (err: Error) => toast({ title: "刪除失敗", description: err.message, variant: "destructive" }),
+  });
+
+  return (
+    <motion.div variants={fadeIn}>
+      <button
+        onClick={() => setShowPanel(!showPanel)}
+        className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
+        data-testid="button-toggle-notifications"
+      >
+        <Settings className="h-4 w-4" />
+        郵件通知設定
+        <motion.div animate={{ rotate: showPanel ? 90 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronRight className="h-4 w-4" />
+        </motion.div>
+        {recipients && recipients.length > 0 && (
+          <span className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded-full px-2 py-0.5 font-bold">
+            {recipients.filter(r => r.enabled).length} 位收件者
+          </span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {showPanel && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Mail className="h-4 w-4 text-blue-500" />
+                <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200">通知收件者管理</h3>
+              </div>
+              <p className="text-xs text-gray-400 dark:text-zinc-500 mb-4">
+                發件信箱：daos.ragic.system@gmail.com — 以下收件者會在新異常或處理狀態變更時收到通知
+              </p>
+
+              <div className="flex flex-wrap items-end gap-2 mb-4">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-xs text-gray-500 dark:text-zinc-400 mb-1 block">Email</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="example@gmail.com"
+                    className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    data-testid="input-new-email"
+                  />
+                </div>
+                <div className="min-w-[140px]">
+                  <label className="text-xs text-gray-500 dark:text-zinc-400 mb-1 block">名稱標籤（選填）</label>
+                  <input
+                    type="text"
+                    value={newLabel}
+                    onChange={(e) => setNewLabel(e.target.value)}
+                    placeholder="例：主管"
+                    className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    data-testid="input-new-label"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => addMutation.mutate()}
+                  disabled={!newEmail.includes("@") || addMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  data-testid="button-add-recipient"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {addMutation.isPending ? "新增中..." : "新增"}
+                </Button>
+              </div>
+
+              {isLoading && (
+                <div className="flex items-center gap-2 py-4 justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  <span className="text-xs text-gray-400">載入中...</span>
+                </div>
+              )}
+
+              {recipients && recipients.length === 0 && (
+                <div className="text-center py-6 text-gray-400 dark:text-zinc-500">
+                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-xs">尚未設定任何收件者</p>
+                  <p className="text-[10px] mt-1">新增收件者後，異常通知才會發送</p>
+                </div>
+              )}
+
+              {recipients && recipients.length > 0 && (
+                <div className="space-y-2">
+                  {recipients.map((r) => (
+                    <div
+                      key={r.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${r.enabled ? "bg-gray-50/50 dark:bg-zinc-800/30 border-gray-100 dark:border-zinc-700" : "bg-gray-100/50 dark:bg-zinc-800/10 border-gray-200/50 dark:border-zinc-800 opacity-60"}`}
+                      data-testid={`recipient-${r.id}`}
+                    >
+                      <button
+                        onClick={() => toggleMutation.mutate({ id: r.id, field: "enabled", value: !r.enabled })}
+                        className="shrink-0 disabled:opacity-50"
+                        disabled={toggleMutation.isPending || deleteMutation.isPending}
+                        data-testid={`toggle-enabled-${r.id}`}
+                      >
+                        {r.enabled ? (
+                          <ToggleRight className="h-6 w-6 text-green-500" />
+                        ) : (
+                          <ToggleLeft className="h-6 w-6 text-gray-300 dark:text-zinc-600" />
+                        )}
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-gray-700 dark:text-zinc-200 truncate">{r.email}</p>
+                          {r.label && (
+                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 rounded-full px-2 py-0.5">{r.label}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                          <button
+                            onClick={() => toggleMutation.mutate({ id: r.id, field: "notifyNewReport", value: !r.notifyNewReport })}
+                            disabled={toggleMutation.isPending}
+                            className={`flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 transition-colors disabled:opacity-50 ${r.notifyNewReport ? "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300" : "bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-zinc-500"}`}
+                            data-testid={`toggle-new-report-${r.id}`}
+                          >
+                            <AlertTriangle className="h-3 w-3" />
+                            新異常
+                          </button>
+                          <button
+                            onClick={() => toggleMutation.mutate({ id: r.id, field: "notifyResolution", value: !r.notifyResolution })}
+                            disabled={toggleMutation.isPending}
+                            className={`flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 transition-colors disabled:opacity-50 ${r.notifyResolution ? "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-300" : "bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-zinc-500"}`}
+                            data-testid={`toggle-resolution-${r.id}`}
+                          >
+                            <CheckCircle2 className="h-3 w-3" />
+                            處理變更
+                          </button>
+                        </div>
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteMutation.mutate(r.id)}
+                        disabled={deleteMutation.isPending}
+                        className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 shrink-0 h-8 w-8 p-0"
+                        data-testid={`button-delete-${r.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 }
 
 const containerVariants = {
@@ -491,6 +714,8 @@ export default function AnomalyReportsPage() {
           <KpiCard title="最常見場館" value={topVenue} icon={Building2} color="text-blue-600 dark:text-blue-400" iconBg="bg-blue-500" />
           <KpiCard title="最常見原因" value={topReason} icon={FileWarning} color="text-purple-600 dark:text-purple-400" iconBg="bg-purple-500" />
         </motion.div>
+
+        <NotificationSettingsPanel />
 
         <motion.div variants={fadeIn} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-4">
           <div className="flex flex-wrap items-center gap-3">

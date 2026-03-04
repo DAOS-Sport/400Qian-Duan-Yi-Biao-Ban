@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -47,3 +47,21 @@ export const insertAnomalyReportSchema = createInsertSchema(anomalyReports).omit
 
 export type InsertAnomalyReport = z.infer<typeof insertAnomalyReportSchema>;
 export type AnomalyReport = typeof anomalyReports.$inferSelect;
+
+export const notificationRecipients = pgTable("notification_recipients", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  label: text("label"),
+  enabled: boolean("enabled").default(true).notNull(),
+  notifyNewReport: boolean("notify_new_report").default(true).notNull(),
+  notifyResolution: boolean("notify_resolution").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertNotificationRecipientSchema = createInsertSchema(notificationRecipients).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertNotificationRecipient = z.infer<typeof insertNotificationRecipientSchema>;
+export type NotificationRecipient = typeof notificationRecipients.$inferSelect;

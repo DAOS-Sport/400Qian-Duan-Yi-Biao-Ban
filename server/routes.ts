@@ -82,10 +82,23 @@ function formatReportText(data: any): string {
   return text;
 }
 
+async function getRecipientEmails(type: "newReport" | "resolution"): Promise<string[]> {
+  const recipients = await storage.getAllRecipients();
+  return recipients
+    .filter((r) => r.enabled && (type === "newReport" ? r.notifyNewReport : r.notifyResolution))
+    .map((r) => r.email);
+}
+
 async function sendAnomalyEmail(reportText: string, data: any) {
   const transporter = createTransporter();
   if (!transporter) {
     console.log("[Gmail] 未設定 GMAIL 帳號密碼，跳過寄信");
+    return;
+  }
+
+  const toEmails = await getRecipientEmails("newReport");
+  if (toEmails.length === 0) {
+    console.log("[Gmail] 無啟用的新異常通知收件者，跳過寄信");
     return;
   }
 
@@ -96,11 +109,11 @@ async function sendAnomalyEmail(reportText: string, data: any) {
   try {
     await transporter.sendMail({
       from: `"DAOS 異常監控系統" <${process.env.GMAIL_USER}>`,
-      to: process.env.GMAIL_USER!,
+      to: toEmails.join(", "),
       subject,
       text: reportText,
     });
-    console.log("[Gmail] 異常報告郵件已發送");
+    console.log("[Gmail] 異常報告郵件已發送至:", toEmails.join(", "));
   } catch (err: any) {
     console.error("[Gmail] 寄信失敗:", err.message);
   }
@@ -108,10 +121,10 @@ async function sendAnomalyEmail(reportText: string, data: any) {
 
 async function sendResolutionEmail(report: any, resolution: string, resolvedNote: string | null) {
   const transporter = createTransporter();
-  if (!transporter) {
-    console.log("[Gmail] 未設定 GMAIL 帳號密碼，跳過寄信");
-    return;
-  }
+  if (!transporter) return;
+
+  const toEmails = await getRecipientEmails("resolution");
+  if (toEmails.length === 0) return;
 
   const employeeName = report.employeeName || "未知員工";
   const venueName = report.venueName || "未知場館";
@@ -137,11 +150,11 @@ async function sendResolutionEmail(report: any, resolution: string, resolvedNote
   try {
     await transporter.sendMail({
       from: `"DAOS 異常監控系統" <${process.env.GMAIL_USER}>`,
-      to: process.env.GMAIL_USER!,
+      to: toEmails.join(", "),
       subject,
       text,
     });
-    console.log("[Gmail] 處理狀態通知已發送:", subject);
+    console.log("[Gmail] 處理狀態通知已發送至:", toEmails.join(", "));
   } catch (err: any) {
     console.error("[Gmail] 寄信失敗:", err.message);
   }
@@ -149,10 +162,10 @@ async function sendResolutionEmail(report: any, resolution: string, resolvedNote
 
 async function sendBatchResolutionEmail(reports: any[], resolution: string, resolvedNote: string | null) {
   const transporter = createTransporter();
-  if (!transporter) {
-    console.log("[Gmail] 未設定 GMAIL 帳號密碼，跳過寄信");
-    return;
-  }
+  if (!transporter) return;
+
+  const toEmails = await getRecipientEmails("resolution");
+  if (toEmails.length === 0) return;
 
   const statusText = resolution === "resolved" ? "✅ 批量已處理" : "🔄 批量改為待解決";
   const subject = `${statusText} — 共 ${reports.length} 筆打卡異常`;
@@ -168,7 +181,7 @@ async function sendBatchResolutionEmail(reports: any[], resolution: string, reso
   if (resolvedNote) text += `處理備註：${resolvedNote}\n`;
   text += `\n${"─".repeat(40)}\n`;
 
-  reports.forEach((r, i) => {
+  reports.forEach((r) => {
     text += `\n【#${r.id}】${r.employeeName || "未知員工"} — ${r.venueName || "未知場館"}\n`;
     text += `  異常類型：${r.context || "—"}\n`;
     text += `  打卡時間：${r.clockTime || "—"}\n`;
@@ -178,11 +191,11 @@ async function sendBatchResolutionEmail(reports: any[], resolution: string, reso
   try {
     await transporter.sendMail({
       from: `"DAOS 異常監控系統" <${process.env.GMAIL_USER}>`,
-      to: process.env.GMAIL_USER!,
+      to: toEmails.join(", "),
       subject,
       text,
     });
-    console.log("[Gmail] 批量處理通知已發送:", subject);
+    console.log("[Gmail] 批量處理通知已發送至:", toEmails.join(", "));
   } catch (err: any) {
     console.error("[Gmail] 寄信失敗:", err.message);
   }
@@ -328,6 +341,66 @@ export async function registerRoutes(
       }
 
       res.json({ updated: count });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "伺服器內部錯誤" });
+    }
+  });
+
+  app.get("/api/notification-recipients", async (_req, res) => {
+    try {
+      const recipients = await storage.getAllRecipients();
+      res.json(recipients);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "伺服器內部錯誤" });
+    }
+  });
+
+  app.post("/api/notification-recipients", async (req, res) => {
+    try {
+      const { email, label, enabled, notifyNewReport, notifyResolution } = req.body || {};
+      if (!email || typeof email !== "string" || !email.includes("@")) {
+        return res.status(400).json({ message: "請提供有效的 email" });
+      }
+      const recipient = await storage.createRecipient({
+        email,
+        label: label || null,
+        enabled: enabled !== false,
+        notifyNewReport: notifyNewReport !== false,
+        notifyResolution: notifyResolution !== false,
+      });
+      res.status(201).json(recipient);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "伺服器內部錯誤" });
+    }
+  });
+
+  app.patch("/api/notification-recipients/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "無效的 ID" });
+      const allowedFields = ["email", "label", "enabled", "notifyNewReport", "notifyResolution"];
+      const sanitized: Record<string, any> = {};
+      for (const key of allowedFields) {
+        if (key in req.body) sanitized[key] = req.body[key];
+      }
+      if (sanitized.email !== undefined && (typeof sanitized.email !== "string" || !sanitized.email.includes("@"))) {
+        return res.status(400).json({ message: "請提供有效的 email" });
+      }
+      const updated = await storage.updateRecipient(id, sanitized);
+      if (!updated) return res.status(404).json({ message: "找不到此收件者" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "伺服器內部錯誤" });
+    }
+  });
+
+  app.delete("/api/notification-recipients/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "無效的 ID" });
+      const deleted = await storage.deleteRecipient(id);
+      if (!deleted) return res.status(404).json({ message: "找不到此收件者" });
+      res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "伺服器內部錯誤" });
     }

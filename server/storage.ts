@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type AnomalyReport, type InsertAnomalyReport, users, anomalyReports } from "@shared/schema";
+import { type User, type InsertUser, type AnomalyReport, type InsertAnomalyReport, type NotificationRecipient, type InsertNotificationRecipient, users, anomalyReports, notificationRecipients } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -12,6 +12,10 @@ export interface IStorage {
   getAnomalyReportById(id: number): Promise<AnomalyReport | undefined>;
   updateAnomalyReportResolution(id: number, resolution: string, resolvedNote: string | null): Promise<AnomalyReport | undefined>;
   batchUpdateResolution(ids: number[], resolution: string, resolvedNote: string | null): Promise<number>;
+  getAllRecipients(): Promise<NotificationRecipient[]>;
+  createRecipient(recipient: InsertNotificationRecipient): Promise<NotificationRecipient>;
+  updateRecipient(id: number, data: Partial<InsertNotificationRecipient>): Promise<NotificationRecipient | undefined>;
+  deleteRecipient(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -60,6 +64,25 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(anomalyReports.id, ids))
       .returning();
     return result.length;
+  }
+
+  async getAllRecipients(): Promise<NotificationRecipient[]> {
+    return db.select().from(notificationRecipients).orderBy(desc(notificationRecipients.createdAt));
+  }
+
+  async createRecipient(recipient: InsertNotificationRecipient): Promise<NotificationRecipient> {
+    const [created] = await db.insert(notificationRecipients).values(recipient).returning();
+    return created;
+  }
+
+  async updateRecipient(id: number, data: Partial<InsertNotificationRecipient>): Promise<NotificationRecipient | undefined> {
+    const [updated] = await db.update(notificationRecipients).set(data).where(eq(notificationRecipients.id, id)).returning();
+    return updated;
+  }
+
+  async deleteRecipient(id: number): Promise<boolean> {
+    const result = await db.delete(notificationRecipients).where(eq(notificationRecipients.id, id)).returning();
+    return result.length > 0;
   }
 }
 

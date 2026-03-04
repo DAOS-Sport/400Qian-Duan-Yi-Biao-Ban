@@ -100,6 +100,19 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - `PATCH /api/anomaly-reports/batch/resolution` — batch update resolution (ids[], resolution, resolvedNote)
 - Frontend: search by name/code/venue, filter by venue dropdown, filter by status (pending/resolved), batch select + batch resolve/unresolve
 
+## Notification Recipients System
+- **Table**: `notification_recipients` (id, email, label, enabled, notifyNewReport, notifyResolution, createdAt)
+- **API Routes**:
+  - `GET /api/notification-recipients` — list all recipients
+  - `POST /api/notification-recipients` — add recipient (email required)
+  - `PATCH /api/notification-recipients/:id` — toggle fields (enabled, notifyNewReport, notifyResolution)
+  - `DELETE /api/notification-recipients/:id` — remove recipient
+- **Frontend**: Collapsible "郵件通知設定" panel in anomaly reports page
+  - Add/remove recipients with email + optional label
+  - Toggle per-recipient: enabled, notify on new anomaly, notify on resolution change
+  - Gmail sends to all enabled recipients matching event type (newReport or resolution)
+- **Email logic**: `getRecipientEmails(type)` queries DB for enabled recipients with matching notification flag
+
 ## Environment Variables
 - `GMAIL_USER` — Gmail address for anomaly notifications (daos.ragic.system@gmail.com)
 - `GMAIL_APP_PASSWORD` — Gmail app password for SMTP auth
