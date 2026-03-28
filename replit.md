@@ -25,7 +25,7 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - `client/src/pages/hr-audit.tsx` - HR audit with search bar, calls POST /api/hr-audit (returns 503 until API connected)
 - `client/src/pages/system-health.tsx` - Real-time API health check (pings 11 endpoints every 60s), shows HTTP status & latency
 - `client/src/pages/anomaly-reports.tsx` - Anomaly report management with expandable cards (live DB data)
-- `client/src/pages/announcements.tsx` - Announcement candidate list with filters, detail drawer, approve/reject workflow
+- `client/src/pages/announcements.tsx` - Announcement candidate list with filters, detail drawer, approve/reject workflow. Normalizes API response (`items` → `candidates`, string confidence → number, `ignored` status support)
 - `client/src/pages/announcement-summary.tsx` - Announcement analytics dashboard (KPIs, 7-day trends, type/facility distribution)
 - `client/src/types/announcement.ts` - TypeScript types for announcement module
 - `server/routes.ts` - API routes for anomaly reports, proxy endpoints for admin, and 6 announcement proxy endpoints

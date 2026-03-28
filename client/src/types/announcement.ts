@@ -16,7 +16,7 @@ export interface AnnouncementCandidate {
   facilityName: string;
   groupName?: string;
   groupId?: string;
-  confidence: number;
+  confidence: number | string;
   summary?: string;
   detectedAt: string;
   scopeType?: string;
@@ -24,6 +24,14 @@ export interface AnnouncementCandidate {
   badExample?: string;
   recommendedReply?: string;
   extractedJson?: unknown;
+  originalText?: string;
+  displayName?: string;
+  userId?: string;
+  isFromSupervisor?: string | boolean;
+  appliesToRoles?: string[];
+  reasoningTags?: string[];
+  startAt?: string | null;
+  endAt?: string | null;
   sourceMessage?: {
     text: string;
     sentAt: string;
@@ -68,10 +76,11 @@ export interface AnnouncementWeeklyReportResponse {
 
 export interface AnnouncementCandidatesResponse {
   candidates: AnnouncementCandidate[];
+  items?: AnnouncementCandidate[];
   total: number;
   page: number;
   pageSize: number;
-  totalPages: number;
+  totalPages?: number;
 }
 
 export interface AnnouncementFilters {
@@ -89,7 +98,7 @@ export interface AnnouncementFilters {
 export const CANDIDATE_TYPES = ["rule", "notice", "campaign", "discount", "script", "ignore"] as const;
 export type CandidateType = (typeof CANDIDATE_TYPES)[number];
 
-export const CANDIDATE_STATUSES = ["pending_review", "approved", "rejected"] as const;
+export const CANDIDATE_STATUSES = ["pending_review", "approved", "rejected", "ignored"] as const;
 export type CandidateStatus = (typeof CANDIDATE_STATUSES)[number];
 
 export const TYPE_LABELS: Record<string, string> = {
@@ -105,4 +114,5 @@ export const STATUS_LABELS: Record<string, string> = {
   pending_review: "待審核",
   approved: "已核准",
   rejected: "已退回",
+  ignored: "已忽略",
 };

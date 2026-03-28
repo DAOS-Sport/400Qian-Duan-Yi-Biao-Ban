@@ -58,6 +58,7 @@ const STATUS_BADGE_COLORS: Record<string, string> = {
   pending_review: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
   approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
   rejected: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300",
+  ignored: "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400",
 };
 
 function TypeBadge({ type }: { type: string }) {
@@ -69,7 +70,7 @@ function TypeBadge({ type }: { type: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const Icon = status === "approved" ? CheckCircle2 : status === "rejected" ? XCircle : Clock;
+  const Icon = status === "approved" ? CheckCircle2 : status === "rejected" ? XCircle : status === "ignored" ? XCircle : Clock;
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_BADGE_COLORS[status] || STATUS_BADGE_COLORS.pending_review}`} data-testid={`badge-status-${status}`}>
       <Icon className="h-3 w-3" />
@@ -78,8 +79,15 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function ConfidenceBadge({ confidence }: { confidence: number }) {
-  const level = confidence >= 0.8 ? "high" : confidence >= 0.6 ? "mid" : "low";
+function parseConfidence(c: number | string | undefined | null): number {
+  if (c == null) return 0;
+  const n = typeof c === "string" ? parseFloat(c) : c;
+  return isNaN(n) ? 0 : n;
+}
+
+function ConfidenceBadge({ confidence }: { confidence: number | string }) {
+  const val = parseConfidence(confidence);
+  const level = val >= 0.8 ? "high" : val >= 0.6 ? "mid" : "low";
   const cls = level === "high"
     ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
     : level === "mid"
@@ -89,7 +97,7 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`} data-testid="badge-confidence">
       <Sparkles className="h-3 w-3" />
-      {(confidence * 100).toFixed(0)}% {label}
+      {(val * 100).toFixed(0)}% {label}
     </span>
   );
 }
@@ -160,7 +168,7 @@ function FilterBar({ filters, onChange }: { filters: AnnouncementFilters; onChan
             data-testid="select-type"
           >
             <option value="">全部</option>
-            {CANDIDATE_TYPES.filter((t) => t !== "ignore").map((t) => (
+            {CANDIDATE_TYPES.map((t) => (
               <option key={t} value={t}>{TYPE_LABELS[t]}</option>
             ))}
           </select>
@@ -252,9 +260,9 @@ function CandidateRow({ candidate, onClick }: { candidate: AnnouncementCandidate
                 <Building2 className="h-3 w-3" />{candidate.facilityName}
               </span>
             )}
-            {candidate.groupName && (
+            {(candidate.groupName || candidate.groupId) && (
               <span className="flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" />{candidate.groupName}
+                <MessageSquare className="h-3 w-3" />{candidate.groupName || candidate.groupId}
               </span>
             )}
             <span className="flex items-center gap-1">
@@ -273,6 +281,13 @@ function DetailDrawer({ candidateId, onClose }: { candidateId: number; onClose: 
 
   const detailQ = useQuery<AnnouncementCandidateDetail>({
     queryKey: ["/api/announcement-candidates", candidateId],
+    queryFn: async () => {
+      const res = await fetch(`/api/announcement-candidates/${candidateId}`);
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      const raw = await res.json();
+      const c = raw.candidate || raw;
+      return { ...c, reviews: raw.reviews || c.reviews || [] } as AnnouncementCandidateDetail;
+    },
   });
 
   const [comment, setComment] = useState("");
@@ -408,23 +423,52 @@ function DetailDrawer({ candidateId, onClose }: { candidateId: number; onClose: 
                 </div>
               )}
 
-              {d.sourceMessage && (
+              {(d.originalText || d.sourceMessage) && (
                 <div className="bg-muted/50 rounded-xl p-4 border space-y-2">
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">原始訊息</p>
-                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{d.sourceMessage.text}</p>
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{d.originalText || d.sourceMessage?.text}</p>
                   <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground pt-1">
-                    {d.sourceMessage.groupName && (
-                      <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{d.sourceMessage.groupName}</span>
+                    {d.displayName && (
+                      <span className="flex items-center gap-1"><User className="h-3 w-3" />{d.displayName}</span>
                     )}
-                    {d.sourceMessage.facilityName && (
-                      <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{d.sourceMessage.facilityName}</span>
+                    {(d.sourceMessage?.groupName || d.groupId) && (
+                      <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{d.sourceMessage?.groupName || d.groupId}</span>
                     )}
-                    {d.sourceMessage.sentAt && (
+                    {(d.sourceMessage?.facilityName || d.facilityName) && (
+                      <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{d.sourceMessage?.facilityName || d.facilityName}</span>
+                    )}
+                    {d.sourceMessage?.sentAt && (
                       <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{formatTaipeiDate(d.sourceMessage.sentAt)}</span>
                     )}
-                    {d.sourceMessage.isFromSupervisor && (
+                    {(d.isFromSupervisor === true || d.isFromSupervisor === "true" || d.sourceMessage?.isFromSupervisor) && (
                       <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><User className="h-3 w-3" />主管發送</span>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {d.reasoningTags && d.reasoningTags.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">AI 推論標籤</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {d.reasoningTags.map((tag, i) => (
+                      <span key={i} className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {d.appliesToRoles && d.appliesToRoles.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">適用對象</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {d.appliesToRoles.map((role, i) => (
+                      <span key={i} className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                        {role}
+                      </span>
+                    ))}
                   </div>
                 </div>
               )}
@@ -452,7 +496,7 @@ function DetailDrawer({ candidateId, onClose }: { candidateId: number; onClose: 
                 </div>
               )}
 
-              {d.status === "pending_review" && (
+              {(d.status === "pending_review" || d.status === "ignored") && (
                 <div className="border-t pt-5 space-y-3">
                   <div>
                     <label className="text-[10px] text-muted-foreground mb-1 block">備註（選填）</label>
@@ -506,7 +550,14 @@ export default function Announcements() {
     queryFn: async () => {
       const res = await fetch(`/api/announcement-candidates${qs}`);
       if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
-      return res.json();
+      const raw = await res.json();
+      return {
+        candidates: raw.items || raw.candidates || [],
+        total: raw.total ?? 0,
+        page: raw.page ?? 1,
+        pageSize: raw.pageSize ?? 20,
+        totalPages: raw.totalPages ?? (Math.ceil((raw.total ?? 0) / (raw.pageSize ?? 20)) || 1),
+      } as AnnouncementCandidatesResponse;
     },
     refetchInterval: 15000,
   });
