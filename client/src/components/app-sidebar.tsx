@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
@@ -6,6 +7,8 @@ import {
   ShieldCheck,
   Activity,
   AlertTriangle,
+  Sun,
+  Moon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -21,13 +24,54 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { title: "📊 營運戰情總覽", url: "/", icon: LayoutDashboard },
-  { title: "🚨 打卡異常管理", url: "/anomaly-reports", icon: AlertTriangle },
-  { title: "📈 決策與數據洞察", url: "/analytics", icon: TrendingUp },
-  { title: "🏢 跨館資源監控", url: "/operations", icon: Building2 },
-  { title: "🛡️ HR 與權限稽核", url: "/hr-audit", icon: ShieldCheck },
-  { title: "⚙️ 微服務健康監控", url: "/system-health", icon: Activity },
+  { title: "營運戰情總覽", url: "/", icon: LayoutDashboard },
+  { title: "打卡異常管理", url: "/anomaly-reports", icon: AlertTriangle },
+  { title: "決策與數據洞察", url: "/analytics", icon: TrendingUp },
+  { title: "跨館資源監控", url: "/operations", icon: Building2 },
+  { title: "HR 與權限稽核", url: "/hr-audit", icon: ShieldCheck },
+  { title: "微服務健康監控", url: "/system-health", icon: Activity },
 ];
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      return document.documentElement.classList.contains("dark");
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (dark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [dark]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark") {
+      setDark(true);
+    } else if (saved === "light") {
+      setDark(false);
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setDark(true);
+    }
+  }, []);
+
+  return (
+    <button
+      onClick={() => setDark(!dark)}
+      className="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-xs font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+      data-testid="button-theme-toggle"
+    >
+      {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      <span>{dark ? "淺色模式" : "深色模式"}</span>
+    </button>
+  );
+}
 
 export function AppSidebar() {
   const [location] = useLocation();
@@ -36,14 +80,14 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
             <LayoutDashboard className="h-5 w-5" />
           </div>
           <div>
             <p className="text-sm font-semibold text-sidebar-foreground" data-testid="text-app-title">
-              400後端監控儀表板
+              DAOS 管理後台
             </p>
-            <p className="text-xs text-muted-foreground">Enterprise v2.0</p>
+            <p className="text-xs text-muted-foreground">LINE Bot 監控系統 v2.1</p>
           </div>
         </div>
       </SidebarHeader>
@@ -73,8 +117,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        <div className="rounded-md bg-sidebar-accent/50 p-3">
+      <SidebarFooter className="p-4 space-y-2">
+        <ThemeToggle />
+        <div className="rounded-lg bg-sidebar-accent/50 p-3">
           <p className="text-xs text-muted-foreground">
             駿斯運動事業 LINE Bot 管理平台
           </p>

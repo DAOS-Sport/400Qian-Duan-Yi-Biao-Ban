@@ -526,5 +526,47 @@ export async function registerRoutes(
     });
   });
 
+  const SMART_SCHEDULE_BASE = "https://smart-schedule-manager.replit.app";
+
+  app.get("/api/admin/overview", async (_req, res) => {
+    try {
+      const upstream = await fetch(`${SMART_SCHEDULE_BASE}/api/admin/overview`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!upstream.ok) {
+        return res.status(upstream.status).json({ message: `上游回傳 HTTP ${upstream.status}` });
+      }
+      const ct = upstream.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        return res.status(502).json({ message: "上游未回傳 JSON，端點可能尚未部署" });
+      }
+      const data = await upstream.json();
+      res.json(data);
+    } catch (err: any) {
+      res.status(502).json({ message: err.message || "無法連線至排班管理系統" });
+    }
+  });
+
+  app.get("/api/admin/interview-users", async (_req, res) => {
+    try {
+      const upstream = await fetch(`${SMART_SCHEDULE_BASE}/api/admin/interview-users`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!upstream.ok) {
+        return res.status(upstream.status).json({ message: `上游回傳 HTTP ${upstream.status}` });
+      }
+      const ct = upstream.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        return res.status(502).json({ message: "上游未回傳 JSON，端點可能尚未部署" });
+      }
+      const data = await upstream.json();
+      res.json(data);
+    } catch (err: any) {
+      res.status(502).json({ message: err.message || "無法連線至排班管理系統" });
+    }
+  });
+
   return httpServer;
 }

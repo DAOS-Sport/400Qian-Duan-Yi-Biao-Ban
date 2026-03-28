@@ -5,52 +5,58 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 
 ## Tech Stack
 - **Frontend**: React, Vite, TypeScript
-- **Styling**: Tailwind CSS, Shadcn UI
+- **Styling**: Tailwind CSS, Shadcn UI (semantic color tokens: bg-card, text-foreground, text-muted-foreground, border)
 - **Animation**: Framer Motion
 - **Charts**: Recharts (used in Analytics page)
-- **Icons**: Lucide React
+- **Icons**: Lucide React (no emoji in UI — SVG icons only)
+- **Font**: Inter (body) + JetBrains Mono (monospace)
 - **Routing**: Wouter (6 routes)
 - **Backend**: Express + PostgreSQL (Drizzle ORM)
 - **Email**: Nodemailer (Gmail SMTP with app password)
 - **File Upload**: Multer (for anomaly report images)
+- **Dark Mode**: Class-based toggle via sidebar footer, persisted to localStorage
 
 ## Project Structure
-- `client/src/App.tsx` - App root with sidebar layout, routing (6 routes), dynamic header title
-- `client/src/components/app-sidebar.tsx` - Enterprise sidebar with active state via `useLocation`
+- `client/src/App.tsx` - App root with sidebar layout, routing (6 routes), dynamic header title (no emoji)
+- `client/src/components/app-sidebar.tsx` - Sidebar with SVG icons, dark mode toggle (ThemeToggle), active state via `useLocation`
 - `client/src/pages/dashboard.tsx` - Main dashboard with 4 blueprint sections (live API data)
 - `client/src/pages/analytics.tsx` - Analytics with KPIs, venue task ranking (live API); interaction chart shows empty state until API connected
 - `client/src/pages/operations.tsx` - Cross-venue resource monitoring (live API from venue-automations), shows venue features & schedules
 - `client/src/pages/hr-audit.tsx` - HR audit with search bar, calls POST /api/hr-audit (returns 503 until API connected)
-- `client/src/pages/system-health.tsx` - Real-time API health check (pings 7 endpoints every 60s), shows HTTP status & latency
+- `client/src/pages/system-health.tsx` - Real-time API health check (pings 9 endpoints every 60s), shows HTTP status & latency
 - `client/src/pages/anomaly-reports.tsx` - Anomaly report management with expandable cards (live DB data)
-- `server/routes.ts` - API routes for anomaly reports (POST, GET, GET/:id) + Gmail notification
+- `server/routes.ts` - API routes for anomaly reports, proxy endpoints for admin/overview and admin/interview-users
 - `server/storage.ts` - DatabaseStorage using Drizzle ORM with PostgreSQL
 - `server/db.ts` - Drizzle database connection (Neon serverless)
 - `shared/schema.ts` - Drizzle schema (users, anomalyReports tables)
 
-## External APIs (Base: `https://line-bot-assistant-ronchen2.replit.app`)
-### Core (required — `strictFetch`, errors shown to user):
+## External APIs
+### Primary (Base: `https://line-bot-assistant-ronchen2.replit.app`)
+#### Core (required — `strictFetch`, errors shown to user):
 1. `GET /api/admin/dashboard/feature-stats` → groups[], featurePenetration[], totalGroups
 2. `GET /api/admin/tasks/stats` → total, completed, pending, completionRate (string "64.9%"), byGroup
 3. `GET /api/admin/attendance/stats` → todayCheckins, successful, failed, uniqueCheckers
 
-### Extended (optional — `safeFetch`, graceful null fallback):
+#### Extended (optional — `safeFetch`, graceful null fallback):
 4. `GET /api/admin/dashboard/global-apps` → tasks, gps, coach, survey status/stats
 5. `GET /api/admin/dashboard/private-services` → general, management data
 6. `GET /api/admin/dashboard/venue-automations` → venues[] with features/schedules
 7. `GET /api/admin/dashboard/services-health` → service health statuses
-8. `GET /api/admin/tasks/history/${groupId}` → HistoryTask[] (taskId, description, status, createdAt, completedAt, reporter) — falls back to filtering recentTasks from tasks/stats API if not deployed
+8. `GET /api/admin/tasks/history/${groupId}` → HistoryTask[]
+
+### Proxied (Base: `https://smart-schedule-manager.replit.app`, via server/routes.ts):
+9. `GET /api/admin/overview` → Proxied schedule manager overview
+10. `GET /api/admin/interview-users` → Proxied interview/authorized users
 
 ## Data Model
 - **STRICT RULE**: No mock/fake/hardcoded data anywhere. All data must come from real APIs or show empty state.
-- Feature keys from API are **Chinese**: "📋 任務管理", "🌤️ 竹科天氣預報" etc.
-- `VENUE_FEATURES` array: 10 feature specs with label, instruction, apiKeys mapping, icon, colors
-  - `API_FEATURE_KEYWORDS` maps API feature names (with emoji) to frontend spec labels via keyword matching
+- Feature keys from API are Chinese with emoji prefixes (e.g., "任務管理", "竹科天氣預報")
+- `VENUE_FEATURES` array: 10 feature specs with label, instruction, apiKeys mapping, icon, colors (no emoji field)
+  - `API_FEATURE_KEYWORDS` maps API feature names to frontend spec labels via keyword matching
   - 10 features: 交辦任務, 處理事項查詢, 任務完成, 排程提醒, 水質監控, 天氣預報, 風力預報, 合併報告推送, 滿意度調查, GPT小助理
 - Venue names: prefer `group.venue` from API, fallback to `VENUE_NAME_MAP` for groupId→display name
 - `completionRate` from tasks API is a string like "64.9%" — parsed via `parseRate()`
 - Non-feature keys excluded via `EXCLUDED_KEYS`: name, groupId, totalEnabled
-- Emojis are explicitly requested by user — intentional, not a bug
 
 ## Anomaly Report System
 - **POST /api/anomaly-report** — Receives anomaly reports from external clock-in system (JSON or multipart/form-data with images)
@@ -67,31 +73,31 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 ## Routing (6 Pages)
 | Route | Page | Data Source |
 |-------|------|-------------|
-| `/` | 營運戰情總覽 (Dashboard) | Live API (7 endpoints) |
-| `/analytics` | 決策與數據洞察 | Live API (tasks/stats) + mock chart data |
-| `/operations` | 跨館資源監控 | Mock alerts + data grid |
-| `/hr-audit` | HR 與權限稽核 | Mock search results (Ragic + 體育署) |
-| `/system-health` | 微服務健康監控 | Mock service status + audit logs |
+| `/` | 營運戰情總覽 (Dashboard) | Live API (7+ endpoints) |
+| `/analytics` | 決策與數據洞察 | Live API (tasks/stats) |
+| `/operations` | 跨館資源監控 | Live API (venue-automations) |
+| `/hr-audit` | HR 與權限稽核 | POST /api/hr-audit (503 until connected) |
+| `/system-health` | 微服務健康監控 | Real-time health pings (9 endpoints) |
 | `/anomaly-reports` | 打卡異常管理 | Live PostgreSQL data + Gmail notification |
 
 ## Dashboard Layout (4 Sections)
-1. **🌐 全域通用與網頁應用**: 4 cards with live stats, LIFF badges on GPS/教練/客戶調查, usage guide text blocks
-2. **👤 私人專屬與權限對話**: Split panels (general/admin) with trigger command guides
-3. **🏢 實體場館自動化矩陣**: Only enabled features shown (filtered), 10-feature CSS Grid, instruction line per badge. Each feature badge is clickable and opens a **FeatureDetailDrawer** with content based on the feature type:
+1. **全域通用與網頁應用**: 4 cards with live stats, LIFF badges on GPS/教練/客戶調查, usage guide text blocks
+2. **私人專屬與權限對話**: Split panels (general/admin) with trigger command guides
+3. **實體場館自動化矩陣**: Only enabled features shown (filtered), 10-feature CSS Grid, instruction line per badge. Each feature badge is clickable and opens a **FeatureDetailDrawer** with content based on the feature type:
    - 交辦任務/處理事項查詢/任務完成 → TaskSwimlaneContent (dual-column Kanban with real API data)
-   - 天氣預報/風力預報 → WeatherPanel (Apple-style weather dashboard with hourly forecast)
-   - 水質監控 → WaterQualityPanel (4-metric dashboard: PH, chlorine, temp, turbidity + AI suggestions)
-   - GPT小助理 → GptChatPanel (ChatGPT-style conversation mockup)
+   - 天氣預報/風力預報 → WeatherPanel (empty state — awaiting weather API)
+   - 水質監控 → WaterQualityPanel (empty state — awaiting water quality API)
+   - GPT小助理 → GptChatPanel (ChatGPT-style conversation preview)
    - Others → GenericFeaturePanel ("建置中" placeholder)
-4. **⚙️ 架構與依賴關係**: Microservices with health status from API or defaults
+4. **架構與依賴關係**: Microservices with health status from API or empty state
 
 ## Sidebar Navigation
-- 📊 營運戰情總覽 → /
-- 📈 決策與數據洞察 → /analytics
-- 🏢 跨館資源監控 → /operations
-- 🛡️ HR 與權限稽核 → /hr-audit
-- ⚙️ 微服務健康監控 → /system-health
-- 🚨 打卡異常管理 → /anomaly-reports
+- 營運戰情總覽 → / (LayoutDashboard icon)
+- 打卡異常管理 → /anomaly-reports (AlertTriangle icon)
+- 決策與數據洞察 → /analytics (TrendingUp icon)
+- 跨館資源監控 → /operations (Building2 icon)
+- HR 與權限稽核 → /hr-audit (ShieldCheck icon)
+- 微服務健康監控 → /system-health (Activity icon)
 
 ## Anomaly Reports API
 - `POST /api/anomaly-report` — JSON or multipart/form-data (data + images fields)
@@ -108,15 +114,12 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
   - `POST /api/notification-recipients` — add recipient (email required)
   - `PATCH /api/notification-recipients/:id` — toggle fields (enabled, notifyNewReport, notifyResolution)
   - `DELETE /api/notification-recipients/:id` — remove recipient
-- **Frontend**: Collapsible "郵件通知設定" panel in anomaly reports page
+- **Frontend**: Collapsible notification settings panel in anomaly reports page
   - Add/remove recipients with email + optional label
   - Toggle per-recipient: enabled, notify on new anomaly, notify on resolution change
   - Gmail sends to all enabled recipients matching event type (newReport or resolution)
 - **Email fallback**: When no recipients are configured, system auto-sends to GMAIL_USER as default recipient
 - **Test email**: `POST /api/test-email` — sends a test email to verify Gmail configuration works
-- **Test button**: "發送測試信" button in notification settings panel for manual verification
-- **Email logic**: `getRecipientEmails(type)` queries DB for enabled recipients with matching notification flag; falls back to GMAIL_USER
-- **Image serving**: `/uploads` served via express.static in both dev (routes.ts) and production (static.ts)
 
 ## Environment Variables
 - `GMAIL_USER` — Gmail address for anomaly notifications (daos.ragic.system@gmail.com)

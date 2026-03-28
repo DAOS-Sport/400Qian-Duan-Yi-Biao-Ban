@@ -92,6 +92,20 @@ const ENDPOINTS: HealthEndpoint[] = [
     iconColor: "text-purple-600 dark:text-purple-400",
     iconBg: "bg-purple-100 dark:bg-purple-900/50",
   },
+  {
+    name: "排班系統總覽 API",
+    url: `/api/admin/overview`,
+    icon: Gauge,
+    iconColor: "text-cyan-600 dark:text-cyan-400",
+    iconBg: "bg-cyan-100 dark:bg-cyan-900/50",
+  },
+  {
+    name: "面試授權用戶 API",
+    url: `/api/admin/interview-users`,
+    icon: Cpu,
+    iconColor: "text-rose-600 dark:text-rose-400",
+    iconBg: "bg-rose-100 dark:bg-rose-900/50",
+  },
 ];
 
 interface HealthResult {

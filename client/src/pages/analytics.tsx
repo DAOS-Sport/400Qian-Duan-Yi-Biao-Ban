@@ -210,7 +210,7 @@ function AnalyticsTaskHistoryDrawer({
         <div className="sticky top-0 z-10 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between">
           <div className="min-w-0">
             <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100 truncate" data-testid="text-drawer-title">
-              📋 {venueName}
+              {venueName}
             </h2>
             <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">任務歷史紀錄 · 雙欄泳道圖</p>
           </div>
@@ -241,11 +241,11 @@ function AnalyticsTaskHistoryDrawer({
                   <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900/40">
                     <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                   </span>
-                  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200">🟡 待處理 ({openTasks.length})</h3>
+                  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200">待處理 ({openTasks.length})</h3>
                 </div>
                 {openTasks.length === 0 ? (
                   <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
-                    <p className="text-xs text-gray-400 dark:text-zinc-500">目前無待處理任務 🎉</p>
+                    <p className="text-xs text-muted-foreground">目前無待處理任務</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -258,7 +258,7 @@ function AnalyticsTaskHistoryDrawer({
                   <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   </span>
-                  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200">🟢 已完成 ({completedTasks.length})</h3>
+                  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200">已完成 ({completedTasks.length})</h3>
                 </div>
                 {completedTasks.length === 0 ? (
                   <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
@@ -476,14 +476,15 @@ export default function Analytics() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const total = tasksStats?.total ?? 259;
-  const completed = tasksStats?.completed ?? 168;
-  const pending = tasksStats?.pending ?? 91;
+  const total = tasksStats?.total ?? 0;
+  const completed = tasksStats?.completed ?? 0;
+  const pending = tasksStats?.pending ?? 0;
+  const hasStats = tasksStats != null;
 
   const kpi: KpiItem[] = [
     {
       title: "本月總任務數",
-      value: total,
+      value: hasStats ? total : "-",
       suffix: "",
       icon: ClipboardList,
       accentColor: "text-blue-600 dark:text-blue-400",
@@ -491,16 +492,16 @@ export default function Analytics() {
     },
     {
       title: "自動化省下工時",
-      value: `~${Math.round(total * 0.5)}`,
-      suffix: "h",
+      value: hasStats ? `~${Math.round(total * 0.5)}` : "-",
+      suffix: hasStats ? "h" : "",
       icon: Clock,
       accentColor: "text-emerald-600 dark:text-emerald-400",
       iconBg: "bg-emerald-500",
     },
     {
       title: "平均回應時間",
-      value: "1.2",
-      suffix: "s",
+      value: tasksStats?.avgResponseTime ?? "-",
+      suffix: tasksStats?.avgResponseTime ? "s" : "",
       icon: Zap,
       accentColor: "text-amber-600 dark:text-amber-400",
       iconBg: "bg-amber-500",

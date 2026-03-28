@@ -14,12 +14,12 @@ import AnomalyReports from "@/pages/anomaly-reports";
 import NotFound from "@/pages/not-found";
 
 const PAGE_TITLES: Record<string, string> = {
-  "/": "📊 營運戰情總覽",
-  "/analytics": "📈 決策與數據洞察",
-  "/operations": "🏢 跨館資源監控",
-  "/hr-audit": "🛡️ HR 與權限稽核",
-  "/system-health": "⚙️ 微服務健康監控",
-  "/anomaly-reports": "🚨 打卡異常管理",
+  "/": "營運戰情總覽",
+  "/analytics": "決策與數據洞察",
+  "/operations": "跨館資源監控",
+  "/hr-audit": "HR 與權限稽核",
+  "/system-health": "微服務健康監控",
+  "/anomaly-reports": "打卡異常管理",
 };
 
 function AppRouter() {
@@ -43,8 +43,8 @@ const sidebarStyle = {
 
 function HeaderTitle() {
   const [location] = useLocation();
-  const title = PAGE_TITLES[location] || "群組功能戰情室";
-  return <span className="text-sm text-muted-foreground" data-testid="text-page-title">{title}</span>;
+  const title = PAGE_TITLES[location] || "DAOS 管理後台";
+  return <span className="text-sm font-medium text-muted-foreground" data-testid="text-page-title">{title}</span>;
 }
 
 function App() {
@@ -55,8 +55,9 @@ function App() {
           <div className="flex h-screen w-full">
             <AppSidebar />
             <div className="flex flex-col flex-1 min-w-0">
-              <header className="flex items-center gap-2 p-3 border-b">
+              <header className="flex items-center gap-2 px-4 py-3 border-b bg-card/50 backdrop-blur-sm">
                 <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <div className="h-4 w-px bg-border" />
                 <HeaderTitle />
               </header>
               <main className="flex-1 overflow-hidden">

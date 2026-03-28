@@ -154,7 +154,6 @@ function parseRate(val: string | number): number {
 }
 
 interface FeatureSpec {
-  emoji: string;
   label: string;
   instruction: string;
   icon: typeof Users;
@@ -166,70 +165,70 @@ interface FeatureSpec {
 
 const VENUE_FEATURES: FeatureSpec[] = [
   {
-    emoji: "📝", label: "交辦任務", instruction: "⌨️ 輸入：交辦XXX",
+    label: "交辦任務", instruction: "輸入：交辦XXX",
     icon: ClipboardList, color: "text-blue-600 dark:text-blue-400",
     enabledBg: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
     apiKeys: ["任務交辦"],
   },
   {
-    emoji: "🔍", label: "處理事項查詢", instruction: "⌨️ 輸入：處理事項",
+    label: "處理事項查詢", instruction: "輸入：處理事項",
     icon: Search, color: "text-indigo-600 dark:text-indigo-400",
     enabledBg: "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
     apiKeys: ["處理事項查詢", "處理事項"],
   },
   {
-    emoji: "✅", label: "任務完成", instruction: "⌨️ 輸入：任務XX完成",
+    label: "任務完成", instruction: "輸入：任務XX完成",
     icon: CheckCircle2, color: "text-green-600 dark:text-green-400",
     enabledBg: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
     apiKeys: ["任務完成"],
   },
   {
-    emoji: "⏰", label: "排程提醒", instruction: "⏱️ 定時推送 (回覆觸發)",
+    label: "排程提醒", instruction: "定時推送（回覆觸發）",
     icon: Timer, color: "text-orange-600 dark:text-orange-400",
     enabledBg: "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
     apiKeys: ["排程提醒"],
   },
   {
-    emoji: "💧", label: "水質監控", instruction: "🤖 自動辨識水質數據格式",
+    label: "水質監控", instruction: "自動辨識水質數據格式",
     icon: Droplets, color: "text-cyan-600 dark:text-cyan-400",
     enabledBg: "bg-cyan-50 border-cyan-200 dark:bg-cyan-950/30 dark:border-cyan-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
     apiKeys: ["水質監控"],
   },
   {
-    emoji: "🌤️", label: "天氣預報", instruction: "⏱️ 特定時間 (回覆觸發)",
+    label: "天氣預報", instruction: "特定時間（回覆觸發）",
     icon: Cloud, color: "text-sky-600 dark:text-sky-400",
     enabledBg: "bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
     apiKeys: ["天氣預報"],
   },
   {
-    emoji: "🌬️", label: "風力預報", instruction: "⏱️ 特定時間 (回覆觸發)",
+    label: "風力預報", instruction: "特定時間（回覆觸發）",
     icon: Wind, color: "text-teal-600 dark:text-teal-400",
     enabledBg: "bg-teal-50 border-teal-200 dark:bg-teal-950/30 dark:border-teal-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
     apiKeys: ["風力預報"],
   },
   {
-    emoji: "📊", label: "合併報告推送", instruction: "⏱️ 排程自動推送",
+    label: "合併報告推送", instruction: "排程自動推送",
     icon: BarChart3, color: "text-purple-600 dark:text-purple-400",
     enabledBg: "bg-purple-50 border-purple-200 dark:bg-purple-950/30 dark:border-purple-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
     apiKeys: ["合併報告推送", "合併報告"],
   },
   {
-    emoji: "🔗", label: "滿意度調查", instruction: "👆 點擊圖文選單開啟 (LIFF)",
+    label: "滿意度調查", instruction: "點擊圖文選單開啟（LIFF）",
     icon: Globe, color: "text-amber-600 dark:text-amber-400",
     enabledBg: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
     apiKeys: ["客戶調查", "滿意度調查"],
   },
   {
-    emoji: "🤖", label: "GPT小助理", instruction: "💬 直接輸入長任務對話",
+    label: "GPT小助理", instruction: "直接輸入長任務對話",
     icon: MessageCircle, color: "text-rose-600 dark:text-rose-400",
     enabledBg: "bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800/50",
     disabledBg: "bg-gray-50/50 border-gray-200/60 dark:bg-zinc-800/30 dark:border-zinc-700/40 opacity-50",
@@ -300,20 +299,19 @@ function KpiCard({ item, index }: { item: KpiItem; index: number }) {
   );
 }
 
-function SectionHeader({ emoji, title, subtitle, color }: { emoji: string; title: string; subtitle: string; color: string }) {
+function SectionHeader({ icon: Icon, title, subtitle, color }: { icon: typeof Users; title: string; subtitle: string; color: string }) {
   return (
     <motion.div variants={fadeIn} className="mb-5">
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-lg">{emoji}</span>
+        <Icon className={`h-5 w-5 ${color}`} />
         <h2 className={`text-base font-bold ${color}`} data-testid={`text-section-${title}`}>{title}</h2>
       </div>
-      <p className="text-sm text-gray-400 dark:text-zinc-500 ml-7">{subtitle}</p>
+      <p className="text-sm text-muted-foreground ml-7">{subtitle}</p>
     </motion.div>
   );
 }
 
 interface GlobalCardProps {
-  emoji: string;
   title: string;
   description: string;
   icon: typeof Users;
@@ -324,32 +322,32 @@ interface GlobalCardProps {
   usageGuide?: string;
 }
 
-function GlobalFeatureCard({ emoji, title, description, icon: Icon, gradient, iconColor, stats, isLiff, usageGuide }: GlobalCardProps) {
+function GlobalFeatureCard({ title, description, icon: Icon, gradient, iconColor, stats, isLiff, usageGuide }: GlobalCardProps) {
   return (
     <motion.div variants={cardVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} className="flex-1 min-w-[200px]">
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-5 h-full flex flex-col" data-testid={`card-global-${title}`}>
+      <div className="bg-card rounded-2xl shadow-sm border p-5 h-full flex flex-col" data-testid={`card-global-${title}`}>
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl mb-4 ${gradient}`}>
           <Icon className={`h-5 w-5 ${iconColor}`} />
         </div>
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <p className="text-sm font-bold text-gray-800 dark:text-zinc-100">{emoji} {title}</p>
+          <p className="text-sm font-bold text-foreground">{title}</p>
           {isLiff && (
             <span className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 whitespace-nowrap" data-testid={`badge-liff-${title}`}>
-              🔗 外接網頁 (LIFF)
+              外接網頁 (LIFF)
             </span>
           )}
         </div>
-        <p className="text-xs text-gray-400 dark:text-zinc-500 leading-relaxed flex-1">{description}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed flex-1">{description}</p>
         {usageGuide && (
-          <div className="bg-gray-50 dark:bg-zinc-800/60 rounded-lg p-2.5 mt-2.5 border border-gray-100 dark:border-zinc-700/50" data-testid={`guide-${title}`}>
-            <p className="text-[11px] text-gray-500 dark:text-zinc-400 leading-relaxed">{usageGuide}</p>
+          <div className="bg-muted/50 rounded-lg p-2.5 mt-2.5 border" data-testid={`guide-${title}`}>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">{usageGuide}</p>
           </div>
         )}
         {stats && stats.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800 space-y-1">
+          <div className="mt-3 pt-3 border-t space-y-1">
             {stats.map((s) => (
               <div key={s.label} className="flex items-center justify-between">
-                <span className="text-[11px] text-gray-400 dark:text-zinc-500">{s.label}</span>
+                <span className="text-[11px] text-muted-foreground">{s.label}</span>
                 <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{s.value}</span>
               </div>
             ))}
@@ -362,7 +360,7 @@ function GlobalFeatureCard({ emoji, title, description, icon: Icon, gradient, ic
 
 function PrivateSection({ privateData }: { privateData: any }) {
   const generalBindings = privateData?.general?.totalBindings;
-  const adminCount = privateData?.management?.authorizedUsersCount ?? 7;
+  const adminCount = privateData?.management?.authorizedUsersCount;
 
   return (
     <motion.div variants={fadeIn} className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -377,20 +375,20 @@ function PrivateSection({ privateData }: { privateData: any }) {
           <div className="flex items-start gap-3 bg-white/80 dark:bg-zinc-900/60 rounded-xl p-3.5 border border-blue-100/60 dark:border-blue-900/30">
             <Search className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">🔍 員工編號 / LINE ID 綁定查詢</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">員工編號 / LINE ID 綁定查詢</p>
               <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">透過私訊查詢員工資料與帳號綁定狀態</p>
               {generalBindings != null && (
                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">已綁定 {generalBindings} 人</p>
               )}
               <div className="bg-blue-50/80 dark:bg-blue-950/20 rounded-md p-2 mt-2 border border-blue-100/50 dark:border-blue-900/30" data-testid="guide-employee-query">
-                <p className="text-[11px] text-blue-600/80 dark:text-blue-400/80 leading-relaxed">⌨️ <span className="font-semibold">觸發方式：</span>直接輸入員工編號或 LINE ID</p>
+                <p className="text-[11px] text-blue-600/80 dark:text-blue-400/80 leading-relaxed"><span className="font-semibold">觸發方式：</span>直接輸入員工編號或 LINE ID</p>
               </div>
             </div>
           </div>
           <div className="flex items-start gap-3 bg-white/80 dark:bg-zinc-900/60 rounded-xl p-3.5 border border-blue-100/60 dark:border-blue-900/30">
             <MessageCircle className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">💬 呼叫小編</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">呼叫小編</p>
               <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">一對一私訊呼叫客服小編協助</p>
             </div>
           </div>
@@ -409,19 +407,19 @@ function PrivateSection({ privateData }: { privateData: any }) {
             <FileCheck className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
             <div>
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">📝 面試與救生員檢核</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">面試與救生員檢核</p>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 text-amber-400 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-[220px] text-center">
-                    <p className="text-xs">僅限特定 {adminCount} 位管理員可用</p>
+                    <p className="text-xs">僅限特定{adminCount != null ? ` ${adminCount} 位` : ""}管理員可用</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
               <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">介接體育署 API + Ragic 名單，進行資格驗證</p>
               <div className="bg-amber-50/80 dark:bg-amber-950/20 rounded-md p-2 mt-2 border border-amber-100/50 dark:border-amber-900/30" data-testid="guide-interview">
-                <p className="text-[11px] text-amber-600/80 dark:text-amber-400/80 leading-relaxed">⌨️ <span className="font-semibold">嚴格觸發指令：</span>輸入「面試+身分證字號」（不含括號且無空格）</p>
+                <p className="text-[11px] text-amber-600/80 dark:text-amber-400/80 leading-relaxed"><span className="font-semibold">嚴格觸發指令：</span>輸入「面試+身分證字號」（不含括號且無空格）</p>
               </div>
             </div>
           </div>
@@ -429,7 +427,7 @@ function PrivateSection({ privateData }: { privateData: any }) {
             <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-amber-100/80 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
               <Lock className="h-3 w-3" /> 權限受限
             </span>
-            <span className="text-xs text-amber-600/70 dark:text-amber-400/70">{adminCount} 位授權</span>
+            <span className="text-xs text-amber-600/70 dark:text-amber-400/70">{adminCount != null ? `${adminCount} 位授權` : "權限控管"}</span>
           </div>
         </div>
       </div>
@@ -587,11 +585,11 @@ function TaskSwimlaneContent({ groupId }: { groupId: string }) {
           <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900/40">
             <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
           </span>
-          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-open-title">🟡 待處理 ({openTasks.length})</h3>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-open-title">待處理 ({openTasks.length})</h3>
         </div>
         {openTasks.length === 0 ? (
           <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
-            <p className="text-xs text-gray-400 dark:text-zinc-500">目前無待處理任務 🎉</p>
+            <p className="text-xs text-muted-foreground">目前無待處理任務</p>
           </div>
         ) : (
           <div className="space-y-3">{openTasks.map((t) => <TaskTicket key={t.id || t.taskId} task={t} isCompleted={false} />)}</div>
@@ -602,7 +600,7 @@ function TaskSwimlaneContent({ groupId }: { groupId: string }) {
           <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40">
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
           </span>
-          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-completed-title">🟢 已完成 ({completedTasks.length})</h3>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-completed-title">已完成 ({completedTasks.length})</h3>
         </div>
         {completedTasks.length === 0 ? (
           <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
@@ -618,109 +616,29 @@ function TaskSwimlaneContent({ groupId }: { groupId: string }) {
 
 function WeatherPanel() {
   return (
-    <div className="space-y-5" data-testid="panel-weather">
-      <div className="bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <p className="text-sm font-medium opacity-80">📍 新竹科學園區</p>
-            <p className="text-4xl font-light mt-2">27°C</p>
-            <p className="text-sm opacity-80 mt-1">多雲時晴</p>
-          </div>
-          <div className="text-6xl">⛅</div>
-        </div>
-        <div className="grid grid-cols-3 gap-3 mt-6 pt-4 border-t border-white/20">
-          <div className="text-center">
-            <p className="text-xs opacity-70">體感溫度</p>
-            <p className="text-lg font-semibold">29°C</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs opacity-70">濕度</p>
-            <p className="text-lg font-semibold">72%</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs opacity-70">降雨機率</p>
-            <p className="text-lg font-semibold">15%</p>
-          </div>
-        </div>
+    <div className="flex flex-col items-center justify-center py-20 gap-4" data-testid="panel-weather">
+      <div className="h-16 w-16 rounded-2xl bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+        <Cloud className="h-8 w-8 text-sky-500" />
       </div>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800">
-        <h4 className="text-sm font-bold text-gray-700 dark:text-zinc-200 mb-4">🕐 未來 6 小時預報</h4>
-        <div className="grid grid-cols-6 gap-2">
-          {[
-            { time: "10:00", icon: "☀️", temp: "26°C" },
-            { time: "12:00", icon: "⛅", temp: "28°C" },
-            { time: "14:00", icon: "🌤️", temp: "27°C" },
-            { time: "16:00", icon: "⛅", temp: "26°C" },
-            { time: "18:00", icon: "🌥️", temp: "25°C" },
-            { time: "20:00", icon: "🌙", temp: "23°C" },
-          ].map((h) => (
-            <div key={h.time} className="text-center py-3 rounded-xl bg-gray-50 dark:bg-zinc-800">
-              <p className="text-[10px] text-gray-400 dark:text-zinc-500">{h.time}</p>
-              <p className="text-xl my-1">{h.icon}</p>
-              <p className="text-xs font-semibold text-gray-700 dark:text-zinc-200">{h.temp}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800">
-        <h4 className="text-sm font-bold text-gray-700 dark:text-zinc-200 mb-3">💨 風力資訊</h4>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-50 dark:bg-zinc-800 rounded-xl p-4 text-center">
-            <p className="text-xs text-gray-400 dark:text-zinc-500">目前風速</p>
-            <p className="text-2xl font-bold text-sky-600 dark:text-sky-400 mt-1">3.2 m/s</p>
-            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1">微風 · 適合戶外活動</p>
-          </div>
-          <div className="bg-gray-50 dark:bg-zinc-800 rounded-xl p-4 text-center">
-            <p className="text-xs text-gray-400 dark:text-zinc-500">風向</p>
-            <p className="text-2xl font-bold text-sky-600 dark:text-sky-400 mt-1">東北風</p>
-            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1">NE 45°</p>
-          </div>
-        </div>
+      <div className="text-center">
+        <p className="text-lg font-bold text-foreground">天氣 / 風力預報</p>
+        <p className="text-sm text-muted-foreground mt-2">待氣象 API 接入後即時顯示天氣與風力數據</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">LINE Bot 將在排定時間自動推送天氣資訊至群組</p>
       </div>
     </div>
   );
 }
 
 function WaterQualityPanel() {
-  const metrics = [
-    { label: "PH 值", value: "7.2", unit: "", status: "穩定", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30", icon: "🧪", range: "標準 6.5-8.0" },
-    { label: "餘氯", value: "0.5", unit: "ppm", status: "正常", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/30", icon: "💧", range: "標準 0.3-0.7 ppm" },
-    { label: "水溫", value: "28", unit: "°C", status: "正常", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30", icon: "🌡️", range: "標準 26-30°C" },
-    { label: "濁度", value: "0.8", unit: "NTU", status: "清澈", color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-950/30", icon: "🔬", range: "標準 < 2 NTU" },
-  ];
   return (
-    <div className="space-y-5" data-testid="panel-water-quality">
-      <div className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium opacity-80">💧 即時水質總覽</p>
-            <p className="text-2xl font-bold mt-2">所有指標正常</p>
-            <p className="text-sm opacity-80 mt-1">最後更新：今日 09:30</p>
-          </div>
-          <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center text-3xl">✅</div>
-        </div>
+    <div className="flex flex-col items-center justify-center py-20 gap-4" data-testid="panel-water-quality">
+      <div className="h-16 w-16 rounded-2xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+        <Droplets className="h-8 w-8 text-cyan-500" />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        {metrics.map((m) => (
-          <div key={m.label} className={`${m.bg} rounded-2xl p-5 border border-gray-100 dark:border-zinc-800`}>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl">{m.icon}</span>
-              <span className="text-sm font-bold text-gray-700 dark:text-zinc-200">{m.label}</span>
-            </div>
-            <p className={`text-3xl font-bold ${m.color}`}>{m.value}<span className="text-base ml-1">{m.unit}</span></p>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">{m.status}</span>
-              <span className="text-[10px] text-gray-400 dark:text-zinc-500">{m.range}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm">📋</span>
-          <h4 className="text-sm font-bold text-gray-700 dark:text-zinc-200">AI 建議</h4>
-        </div>
-        <p className="text-sm text-gray-500 dark:text-zinc-400 leading-relaxed">目前所有水質指標皆在正常範圍內，建議維持現有加藥量。下次檢測排程：今日 15:00。</p>
+      <div className="text-center">
+        <p className="text-lg font-bold text-foreground">水質監控</p>
+        <p className="text-sm text-muted-foreground mt-2">待水質感測 API 接入後即時顯示水質數據</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">系統將自動辨識群組內水質數據格式並記錄</p>
       </div>
     </div>
   );
@@ -731,7 +649,9 @@ function GptChatPanel() {
     <div className="space-y-4" data-testid="panel-gpt">
       <div className="bg-gradient-to-r from-rose-500 to-pink-600 rounded-2xl p-5 text-white shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">🤖</div>
+          <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <MessageCircle className="h-5 w-5" />
+          </div>
           <div>
             <p className="font-bold">GPT 小助理</p>
             <p className="text-xs opacity-80">駿斯專屬 AI 對話助手 · 即時回覆</p>
@@ -760,7 +680,7 @@ function GenericFeaturePanel({ featureName }: { featureName: string }) {
         <FIcon className={`h-8 w-8 ${featureSpec?.color || "text-gray-400"}`} />
       </div>
       <div className="text-center">
-        <p className="text-lg font-bold text-gray-700 dark:text-zinc-200">{featureSpec?.emoji || "📦"} {featureName}</p>
+        <p className="text-lg font-bold text-foreground">{featureName}</p>
         <p className="text-sm text-gray-400 dark:text-zinc-500 mt-2">模組詳細數據建置中...</p>
         <p className="text-xs text-gray-300 dark:text-zinc-600 mt-1">後端 API 開發完成後將自動串接真實資料</p>
       </div>
@@ -809,7 +729,7 @@ function FeatureDetailDrawer({
         <div className="sticky top-0 z-10 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between">
           <div className="min-w-0">
             <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100 truncate" data-testid="text-drawer-title">
-              {featureSpec?.emoji || "📋"} {venueName}
+              {venueName}
             </h2>
             <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">{drawerTitle}</p>
           </div>
@@ -913,7 +833,7 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
                             <div className={`h-6 w-6 rounded-lg flex items-center justify-center ${spec.enabledBg}`}>
                               <FIcon className={`h-3.5 w-3.5 ${spec.color}`} />
                             </div>
-                            <span className="text-xs font-semibold text-gray-700 dark:text-zinc-200">{spec.emoji} {spec.label}</span>
+                            <span className="text-xs font-semibold text-gray-700 dark:text-zinc-200">{spec.label}</span>
                           </div>
                           <p className="text-[10px] leading-tight text-gray-400 dark:text-zinc-500 ml-8">
                             {spec.instruction}
@@ -932,7 +852,7 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
                           <Timer className="h-3.5 w-3.5 text-amber-500" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-gray-700 dark:text-zinc-200 truncate">⏰ {s.name || s.label}</p>
+                          <p className="text-xs font-semibold text-gray-700 dark:text-zinc-200 truncate">{s.name || s.label}</p>
                           <p className="text-[10px] text-gray-400 dark:text-zinc-500">{s.time || s.cron}</p>
                         </div>
                       </div>
@@ -947,7 +867,7 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
                   data-testid={`button-venue-history-${i}`}
                   onClick={() => onFeatureClick(group.groupId!, displayName, "交辦任務")}
                 >
-                  📋 查看歷史交辦紀錄
+                  查看歷史交辦紀錄
                 </button>
               )}
             </motion.div>
@@ -964,18 +884,18 @@ interface ServiceStatus {
   color: string;
 }
 
-const DEFAULT_SERVICES: ServiceStatus[] = [
-  { name: "LINE Messaging API", status: "healthy", color: "bg-emerald-500" },
-  { name: "Task Service", status: "healthy", color: "bg-emerald-500" },
-  { name: "Message Handler", status: "healthy", color: "bg-emerald-500" },
-  { name: "Scheduler", status: "healthy", color: "bg-emerald-500" },
-  { name: "LLM / GPT", status: "healthy", color: "bg-emerald-500" },
-  { name: "Weather Service", status: "healthy", color: "bg-emerald-500" },
-  { name: "Water Quality", status: "healthy", color: "bg-emerald-500" },
+const SERVICE_NAMES: { key: string; label: string }[] = [
+  { key: "lineService", label: "LINE Messaging API" },
+  { key: "taskService", label: "Task Service" },
+  { key: "messageHandler", label: "Message Handler" },
+  { key: "scheduler", label: "Scheduler" },
+  { key: "llmService", label: "LLM / GPT" },
+  { key: "weatherService", label: "Weather Service" },
+  { key: "waterQualityService", label: "Water Quality" },
 ];
 
 function MicroservicesSection({ healthData }: { healthData: any }) {
-  let services: ServiceStatus[] = DEFAULT_SERVICES;
+  let services: ServiceStatus[] = [];
 
   if (healthData && typeof healthData === "object") {
     const mapped: ServiceStatus[] = [];
@@ -1003,35 +923,42 @@ function MicroservicesSection({ healthData }: { healthData: any }) {
   }
 
   return (
-    <motion.div variants={fadeIn} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6" data-testid="section-microservices">
+    <motion.div variants={fadeIn} className="bg-card rounded-2xl shadow-sm border p-6" data-testid="section-microservices">
       <div className="flex items-center gap-2 mb-4">
-        <Layers className="h-4 w-4 text-gray-500 dark:text-zinc-400" />
-        <p className="text-sm font-bold text-gray-700 dark:text-zinc-200">系統微服務架構</p>
+        <Layers className="h-4 w-4 text-muted-foreground" />
+        <p className="text-sm font-bold text-foreground">系統微服務架構</p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {services.map((svc, i) => (
-          <div key={svc.name} className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <motion.span
-                  whileHover={{ scale: 1.05 }}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 border border-gray-100 dark:border-zinc-700 cursor-default"
-                  data-testid={`badge-service-${i}`}
-                >
-                  <span className={`h-2 w-2 rounded-full ${svc.color}`} />
-                  {svc.name}
-                </motion.span>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs capitalize">{svc.status}</p>
-              </TooltipContent>
-            </Tooltip>
-            {i < services.length - 1 && (
-              <ArrowRight className="h-3.5 w-3.5 text-gray-300 dark:text-zinc-600 shrink-0" />
-            )}
-          </div>
-        ))}
-      </div>
+      {services.length === 0 ? (
+        <div className="text-center py-6">
+          <p className="text-sm text-muted-foreground">等待健康檢查 API 回傳資料...</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">微服務狀態將於 API 連線後即時顯示</p>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          {services.map((svc, i) => (
+            <div key={svc.name} className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.span
+                    whileHover={{ scale: 1.05 }}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold bg-muted text-foreground border cursor-default"
+                    data-testid={`badge-service-${i}`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${svc.color}`} />
+                    {svc.name}
+                  </motion.span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs capitalize">{svc.status}</p>
+                </TooltipContent>
+              </Tooltip>
+              {i < services.length - 1 && (
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -1371,49 +1298,49 @@ export default function Dashboard() {
 
             <section data-testid="section-global">
               <SectionHeader
-                emoji="🌐"
+                icon={Globe}
                 title="全域通用與網頁應用"
                 subtitle="所有群組與使用者皆可觸發的通用模組"
                 color="text-blue-700 dark:text-blue-300"
               />
               <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" variants={containerVariants}>
                 <GlobalFeatureCard
-                  emoji="📋" title="任務管理系統"
+                  title="任務管理系統"
                   description="包含任務交辦、完成標記、待辦查詢，支援群組內快速指派與追蹤"
                   icon={ClipboardList} gradient="bg-blue-50 dark:bg-blue-950/30" iconColor="text-blue-500"
                   stats={globalTaskStats}
-                  usageGuide={"⌨️ 觸發指令：輸入『交辦XXX』、『任務XX完成』或『處理事項』"}
+                  usageGuide={"觸發指令：輸入「交辦XXX」、「任務XX完成」或「處理事項」"}
                 />
                 <GlobalFeatureCard
-                  emoji="📍" title="GPS 打卡系統"
+                  title="GPS 打卡系統"
                   description="員工透過 LINE 進行即時 GPS 定位打卡，管理端可即時查看出勤紀錄"
                   icon={Navigation} gradient="bg-violet-50 dark:bg-violet-950/30" iconColor="text-violet-500"
                   stats={globalGpsStats}
                   isLiff
-                  usageGuide={"💡 操作方式：點擊 LINE 官方帳號下方圖文選單，開啟專屬外部網頁"}
+                  usageGuide={"操作方式：點擊 LINE 官方帳號下方圖文選單，開啟專屬外部網頁"}
                 />
                 <GlobalFeatureCard
-                  emoji="🏋️" title="教練簽到"
+                  title="教練簽到"
                   description="教練透過 LIFF 網頁完成簽到流程，自動記錄到班時間"
                   icon={Dumbbell} gradient="bg-emerald-50 dark:bg-emerald-950/30" iconColor="text-emerald-500"
                   stats={globalCoachStats.length > 0 ? globalCoachStats : undefined}
                   isLiff
-                  usageGuide={"💡 操作方式：點擊 LINE 官方帳號下方圖文選單，開啟專屬外部網頁"}
+                  usageGuide={"操作方式：點擊 LINE 官方帳號下方圖文選單，開啟專屬外部網頁"}
                 />
                 <GlobalFeatureCard
-                  emoji="📊" title="客戶調查"
+                  title="客戶調查"
                   description="透過 LIFF 問卷發送滿意度調查，自動收集並彙整回覆結果"
                   icon={BarChart3} gradient="bg-amber-50 dark:bg-amber-950/30" iconColor="text-amber-500"
                   stats={globalSurveyStats.length > 0 ? globalSurveyStats : undefined}
                   isLiff
-                  usageGuide={"💡 操作方式：點擊 LINE 官方帳號下方圖文選單，開啟專屬外部網頁"}
+                  usageGuide={"操作方式：點擊 LINE 官方帳號下方圖文選單，開啟專屬外部網頁"}
                 />
               </motion.div>
             </section>
 
             <section data-testid="section-private">
               <SectionHeader
-                emoji="👤"
+                icon={Lock}
                 title="私人專屬與權限對話"
                 subtitle="基於身份權限的 1 對 1 私人對話服務"
                 color="text-amber-700 dark:text-amber-300"
@@ -1424,7 +1351,7 @@ export default function Dashboard() {
             {groups.length > 0 && (
               <section data-testid="section-venue">
                 <SectionHeader
-                  emoji="🏢"
+                  icon={Building2}
                   title="實體場館自動化矩陣"
                   subtitle="各實體場館群組的專屬觸發指令與定時推播"
                   color="text-slate-700 dark:text-zinc-200"
@@ -1435,7 +1362,7 @@ export default function Dashboard() {
 
             <section data-testid="section-architecture">
               <SectionHeader
-                emoji="⚙️"
+                icon={Layers}
                 title="架構與依賴關係"
                 subtitle="核心微服務元件與資料流向"
                 color="text-gray-600 dark:text-zinc-300"
