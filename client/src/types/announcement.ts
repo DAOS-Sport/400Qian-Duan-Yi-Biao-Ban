@@ -93,12 +93,13 @@ export interface AnnouncementFilters {
   dateTo?: string;
   page?: number;
   pageSize?: number;
+  vipFocus?: boolean;
 }
 
 export const CANDIDATE_TYPES = ["rule", "notice", "campaign", "discount", "script", "ignore"] as const;
 export type CandidateType = (typeof CANDIDATE_TYPES)[number];
 
-export const CANDIDATE_STATUSES = ["pending_review", "approved", "rejected", "ignored"] as const;
+export const CANDIDATE_STATUSES = ["pending_review", "approved", "rejected", "ignored", "vip_chat"] as const;
 export type CandidateStatus = (typeof CANDIDATE_STATUSES)[number];
 
 export const TYPE_LABELS: Record<string, string> = {
@@ -115,4 +116,5 @@ export const STATUS_LABELS: Record<string, string> = {
   approved: "已核准",
   rejected: "已退回",
   ignored: "已忽略",
+  vip_chat: "\u2B50 VIP閒聊",
 };

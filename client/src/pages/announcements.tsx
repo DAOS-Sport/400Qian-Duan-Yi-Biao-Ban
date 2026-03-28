@@ -7,7 +7,6 @@ import {
   RefreshCw,
   Loader2,
   AlertCircle,
-  Inbox,
   ChevronLeft,
   ChevronRight,
   X,
@@ -22,6 +21,8 @@ import {
   Calendar,
   User,
   Sparkles,
+  Star,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ const STATUS_BADGE_COLORS: Record<string, string> = {
   approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
   rejected: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300",
   ignored: "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400",
+  vip_chat: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700",
 };
 
 function TypeBadge({ type }: { type: string }) {
@@ -70,11 +72,37 @@ function TypeBadge({ type }: { type: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const Icon = status === "approved" ? CheckCircle2 : status === "rejected" ? XCircle : status === "ignored" ? XCircle : Clock;
+  const Icon = status === "approved" ? CheckCircle2 : status === "rejected" ? XCircle : status === "ignored" ? XCircle : status === "vip_chat" ? Star : Clock;
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_BADGE_COLORS[status] || STATUS_BADGE_COLORS.pending_review}`} data-testid={`badge-status-${status}`}>
-      <Icon className="h-3 w-3" />
+      <Icon className={`h-3 w-3 ${status === "vip_chat" ? "fill-yellow-500 text-yellow-600" : ""}`} />
       {STATUS_LABELS[status] || status}
+    </span>
+  );
+}
+
+function isVipCandidate(candidate: AnnouncementCandidate): boolean {
+  return candidate.reasoningTags?.some(t => t.includes("特別關注")) || candidate.status === "vip_chat" || false;
+}
+
+function VipTag({ candidate }: { candidate: AnnouncementCandidate }) {
+  const vipTag = candidate.reasoningTags?.find(t => t.includes("特別關注"));
+  if (!vipTag && candidate.status !== "vip_chat") return null;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700" data-testid="badge-vip">
+      <Star className="h-3 w-3 fill-yellow-500 text-yellow-600" />
+      {vipTag || "\u2B50 特別關注"}
+    </span>
+  );
+}
+
+function GroupNameBadge({ facilityName, groupId }: { facilityName?: string; groupId?: string }) {
+  const name = facilityName || groupId;
+  if (!name) return null;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300" data-testid="badge-group-name">
+      <MapPin className="h-3 w-3" />
+      {name}
     </span>
   );
 }
@@ -114,6 +142,7 @@ function formatTaipeiDate(dateStr: string | undefined) {
 function buildQueryString(filters: AnnouncementFilters): string {
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(filters)) {
+    if (k === "vipFocus") continue;
     if (v != null && v !== "" && v !== undefined) params.set(k, String(v));
   }
   const qs = params.toString();
@@ -126,9 +155,21 @@ function FilterBar({ filters, onChange }: { filters: AnnouncementFilters; onChan
 
   return (
     <motion.div variants={rowVariants} className="bg-card rounded-xl border p-4 space-y-3" data-testid="section-filters">
-      <div className="flex items-center gap-2 mb-2">
-        <Filter className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-bold text-foreground">篩選條件</h3>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-bold text-foreground">篩選條件</h3>
+        </div>
+        <Button
+          variant={filters.vipFocus ? "default" : "outline"}
+          size="sm"
+          className={`h-8 text-xs ${filters.vipFocus ? "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500" : "border-yellow-400 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/30"}`}
+          onClick={() => onChange({ ...filters, vipFocus: filters.vipFocus ? undefined : true, page: 1 })}
+          data-testid="button-vip-filter"
+        >
+          <Star className={`h-3.5 w-3.5 mr-1 ${filters.vipFocus ? "fill-white" : "fill-yellow-500 text-yellow-600"}`} />
+          特別關注
+        </Button>
       </div>
       <div className="flex flex-wrap gap-2 items-end">
         <div className="flex-1 min-w-[180px]">
@@ -235,12 +276,13 @@ function FilterBar({ filters, onChange }: { filters: AnnouncementFilters; onChan
 }
 
 function CandidateRow({ candidate, onClick }: { candidate: AnnouncementCandidate; onClick: () => void }) {
+  const isVip = isVipCandidate(candidate);
   return (
     <motion.div
       variants={rowVariants}
       whileHover={{ y: -2, transition: { duration: 0.15 } }}
       onClick={onClick}
-      className="bg-card rounded-xl border p-4 cursor-pointer hover:shadow-md transition-shadow"
+      className={`bg-card rounded-xl border p-4 cursor-pointer hover:shadow-md transition-shadow ${isVip ? "ring-1 ring-yellow-300 dark:ring-yellow-700" : ""}`}
       data-testid={`candidate-row-${candidate.id}`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -250,19 +292,17 @@ function CandidateRow({ candidate, onClick }: { candidate: AnnouncementCandidate
             <TypeBadge type={candidate.candidateType} />
             <StatusBadge status={candidate.status} />
             <ConfidenceBadge confidence={candidate.confidence} />
+            <VipTag candidate={candidate} />
           </div>
           {candidate.summary && (
             <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{candidate.summary}</p>
           )}
-          <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-            {candidate.facilityName && (
+          <div className="flex items-center gap-4 text-[10px] text-muted-foreground flex-wrap">
+            <GroupNameBadge facilityName={candidate.facilityName} groupId={candidate.groupId} />
+            {candidate.displayName && (
               <span className="flex items-center gap-1">
-                <Building2 className="h-3 w-3" />{candidate.facilityName}
-              </span>
-            )}
-            {(candidate.groupName || candidate.groupId) && (
-              <span className="flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" />{candidate.groupName || candidate.groupId}
+                {isVip ? <Star className="h-3 w-3 fill-yellow-500 text-yellow-600" /> : <User className="h-3 w-3" />}
+                {candidate.displayName}
               </span>
             )}
             <span className="flex items-center gap-1">
@@ -375,10 +415,38 @@ function DetailDrawer({ candidateId, onClose }: { candidateId: number; onClose: 
 
           {d && (
             <>
+              <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-4 border border-blue-200 dark:border-blue-800 space-y-2" data-testid="section-source-group">
+                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                  <MapPin className="h-4 w-4" />
+                  <span className="text-xs font-bold uppercase tracking-wide">來源群組</span>
+                </div>
+                <p className="text-sm font-semibold text-foreground">{d.facilityName || "未知場館"}</p>
+                {d.groupId && (
+                  <p className="text-[10px] text-muted-foreground font-mono break-all">{d.groupId}</p>
+                )}
+                {d.displayName && (
+                  <div className="flex items-center gap-1.5 pt-1 text-sm text-foreground">
+                    {isVipCandidate(d) ? (
+                      <>
+                        <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-600" />
+                        <span className="font-semibold">{d.displayName}</span>
+                        <span className="text-[10px] text-yellow-600 dark:text-yellow-400 font-medium">（特別關注）</span>
+                      </>
+                    ) : (
+                      <>
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{d.displayName}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="flex flex-wrap gap-2">
                 <TypeBadge type={d.candidateType} />
                 <StatusBadge status={d.status} />
                 <ConfidenceBadge confidence={d.confidence} />
+                <VipTag candidate={d} />
                 {d.scopeType && (
                   <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
                     <Shield className="h-3 w-3" />{d.scopeType}
@@ -496,7 +564,7 @@ function DetailDrawer({ candidateId, onClose }: { candidateId: number; onClose: 
                 </div>
               )}
 
-              {(d.status === "pending_review" || d.status === "ignored") && (
+              {(d.status === "pending_review" || d.status === "ignored" || d.status === "vip_chat") && (
                 <div className="border-t pt-5 space-y-3">
                   <div>
                     <label className="text-[10px] text-muted-foreground mb-1 block">備註（選填）</label>
@@ -563,7 +631,10 @@ export default function Announcements() {
   });
 
   const data = candidatesQ.data;
-  const candidates = data?.candidates || [];
+  const allCandidates = data?.candidates || [];
+  const candidates = filters.vipFocus
+    ? allCandidates.filter((c) => isVipCandidate(c))
+    : allCandidates;
   const totalPages = data?.totalPages || 1;
   const currentPage = filters.page || 1;
 
