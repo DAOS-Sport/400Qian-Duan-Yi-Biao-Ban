@@ -9,6 +9,8 @@ import {
   AlertTriangle,
   Sun,
   Moon,
+  FileText,
+  BarChart3,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,12 +26,14 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { title: "營運戰情總覽", url: "/", icon: LayoutDashboard },
-  { title: "打卡異常管理", url: "/anomaly-reports", icon: AlertTriangle },
-  { title: "決策與數據洞察", url: "/analytics", icon: TrendingUp },
-  { title: "跨館資源監控", url: "/operations", icon: Building2 },
-  { title: "HR 與權限稽核", url: "/hr-audit", icon: ShieldCheck },
-  { title: "微服務健康監控", url: "/system-health", icon: Activity },
+  { title: "營運戰情總覽", url: "/", icon: LayoutDashboard, group: "營運管理" },
+  { title: "打卡異常管理", url: "/anomaly-reports", icon: AlertTriangle, group: "營運管理" },
+  { title: "決策與數據洞察", url: "/analytics", icon: TrendingUp, group: "營運管理" },
+  { title: "跨館資源監控", url: "/operations", icon: Building2, group: "營運管理" },
+  { title: "公告審核中心", url: "/announcements", icon: FileText, group: "公告歸納" },
+  { title: "公告分析總覽", url: "/announcements/summary", icon: BarChart3, group: "公告歸納" },
+  { title: "HR 與權限稽核", url: "/hr-audit", icon: ShieldCheck, group: "系統管理" },
+  { title: "微服務健康監控", url: "/system-health", icon: Activity, group: "系統管理" },
 ];
 
 function ThemeToggle() {
@@ -92,30 +96,32 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>營運管理</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => {
-                const isActive = location === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      data-active={isActive || undefined}
-                      className={isActive ? "data-[active=true]:bg-sidebar-accent" : ""}
-                    >
-                      <Link href={item.url} data-testid={`link-nav-${item.title}`}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {["營運管理", "公告歸納", "系統管理"].map((group) => (
+          <SidebarGroup key={group}>
+            <SidebarGroupLabel>{group}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {navItems.filter((item) => item.group === group).map((item) => {
+                  const isActive = location === item.url;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        data-active={isActive || undefined}
+                        className={isActive ? "data-[active=true]:bg-sidebar-accent" : ""}
+                      >
+                        <Link href={item.url} data-testid={`link-nav-${item.title}`}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="p-4 space-y-2">
         <ThemeToggle />

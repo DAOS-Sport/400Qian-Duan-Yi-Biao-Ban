@@ -1,7 +1,7 @@
 # LINE Bot 系統全局藍圖 (System Blueprint)
 
 ## Overview
-Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS application with 6 views: main dashboard with live API data, analytics, cross-venue operations, HR audit, system health monitoring, and anomaly report management.
+Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS application with 8 views: main dashboard with live API data, analytics, cross-venue operations, HR audit, system health monitoring, anomaly report management, and a 2-page Announcement Classifier module (公告歸納器) with candidate review workflow.
 
 ## Tech Stack
 - **Frontend**: React, Vite, TypeScript
@@ -10,22 +10,25 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - **Charts**: Recharts (used in Analytics page)
 - **Icons**: Lucide React (no emoji in UI — SVG icons only)
 - **Font**: Inter (body) + JetBrains Mono (monospace)
-- **Routing**: Wouter (6 routes)
+- **Routing**: Wouter (8 routes)
 - **Backend**: Express + PostgreSQL (Drizzle ORM)
 - **Email**: Nodemailer (Gmail SMTP with app password)
 - **File Upload**: Multer (for anomaly report images)
 - **Dark Mode**: Class-based toggle via sidebar footer, persisted to localStorage
 
 ## Project Structure
-- `client/src/App.tsx` - App root with sidebar layout, routing (6 routes), dynamic header title (no emoji)
+- `client/src/App.tsx` - App root with sidebar layout, routing (8 routes), dynamic header title (no emoji)
 - `client/src/components/app-sidebar.tsx` - Sidebar with SVG icons, dark mode toggle (ThemeToggle), active state via `useLocation`
 - `client/src/pages/dashboard.tsx` - Main dashboard with 4 blueprint sections (live API data)
 - `client/src/pages/analytics.tsx` - Analytics with KPIs, venue task ranking (live API); interaction chart shows empty state until API connected
 - `client/src/pages/operations.tsx` - Cross-venue resource monitoring (live API from venue-automations), shows venue features & schedules
 - `client/src/pages/hr-audit.tsx` - HR audit with search bar, calls POST /api/hr-audit (returns 503 until API connected)
-- `client/src/pages/system-health.tsx` - Real-time API health check (pings 9 endpoints every 60s), shows HTTP status & latency
+- `client/src/pages/system-health.tsx` - Real-time API health check (pings 11 endpoints every 60s), shows HTTP status & latency
 - `client/src/pages/anomaly-reports.tsx` - Anomaly report management with expandable cards (live DB data)
-- `server/routes.ts` - API routes for anomaly reports, proxy endpoints for admin/overview and admin/interview-users
+- `client/src/pages/announcements.tsx` - Announcement candidate list with filters, detail drawer, approve/reject workflow
+- `client/src/pages/announcement-summary.tsx` - Announcement analytics dashboard (KPIs, 7-day trends, type/facility distribution)
+- `client/src/types/announcement.ts` - TypeScript types for announcement module
+- `server/routes.ts` - API routes for anomaly reports, proxy endpoints for admin, and 6 announcement proxy endpoints
 - `server/storage.ts` - DatabaseStorage using Drizzle ORM with PostgreSQL
 - `server/db.ts` - Drizzle database connection (Neon serverless)
 - `shared/schema.ts` - Drizzle schema (users, anomalyReports tables)
@@ -44,9 +47,17 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 7. `GET /api/admin/dashboard/services-health` → service health statuses
 8. `GET /api/admin/tasks/history/${groupId}` → HistoryTask[]
 
-### Proxied (Base: `https://smart-schedule-manager.replit.app`, via server/routes.ts):
+### Proxied Smart Schedule (Base: `https://smart-schedule-manager.replit.app`, via server/routes.ts):
 9. `GET /api/admin/overview` → Proxied schedule manager overview
 10. `GET /api/admin/interview-users` → Proxied interview/authorized users
+
+### Proxied Announcement (Base: `https://line-bot-assistant-ronchen2.replit.app`, via server/routes.ts):
+11. `GET /api/announcement-dashboard/summary` → Today's KPI stats (totalMessagesToday, analyzedMessagesToday, pendingReviewCount, approvedCount, rejectedCount, byType, byFacility)
+12. `GET /api/announcement-candidates` → Paginated candidate list (supports status/candidateType/facilityName/groupId/dateFrom/dateTo/keyword/page/pageSize)
+13. `GET /api/announcement-candidates/:id` → Single candidate detail + review history
+14. `POST /api/announcement-candidates/:id/approve` → Approve candidate (body: { comment? })
+15. `POST /api/announcement-candidates/:id/reject` → Reject candidate (body: { comment? })
+16. `GET /api/announcement-reports/weekly` → 7-day trend report (days[] with totalMessages/analyzedMessages/candidatesCreated/approved/rejected/highConfidenceCount)
 
 ## Data Model
 - **STRICT RULE**: No mock/fake/hardcoded data anywhere. All data must come from real APIs or show empty state.
@@ -70,15 +81,17 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
   - KPIs: 總異常數, 今日異常, 最常見場館, 最常見原因
   - Each card expands to show: employee info, clock details, distance, fail reason, error msg, user note, images, full report text
 
-## Routing (6 Pages)
+## Routing (8 Pages)
 | Route | Page | Data Source |
 |-------|------|-------------|
 | `/` | 營運戰情總覽 (Dashboard) | Live API (7+ endpoints) |
 | `/analytics` | 決策與數據洞察 | Live API (tasks/stats) |
 | `/operations` | 跨館資源監控 | Live API (venue-automations) |
 | `/hr-audit` | HR 與權限稽核 | POST /api/hr-audit (503 until connected) |
-| `/system-health` | 微服務健康監控 | Real-time health pings (9 endpoints) |
+| `/system-health` | 微服務健康監控 | Real-time health pings (11 endpoints) |
 | `/anomaly-reports` | 打卡異常管理 | Live PostgreSQL data + Gmail notification |
+| `/announcements` | 公告審核中心 | Live API (candidates list, approve/reject) |
+| `/announcements/summary` | 公告分析總覽 | Live API (summary KPIs, weekly trends) |
 
 ## Dashboard Layout (4 Sections)
 1. **全域通用與網頁應用**: 4 cards with live stats, LIFF badges on GPS/教練/客戶調查, usage guide text blocks
@@ -91,11 +104,16 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
    - Others → GenericFeaturePanel ("建置中" placeholder)
 4. **架構與依賴關係**: Microservices with health status from API or empty state
 
-## Sidebar Navigation
+## Sidebar Navigation (3 groups)
+### 營運管理
 - 營運戰情總覽 → / (LayoutDashboard icon)
 - 打卡異常管理 → /anomaly-reports (AlertTriangle icon)
 - 決策與數據洞察 → /analytics (TrendingUp icon)
 - 跨館資源監控 → /operations (Building2 icon)
+### 公告歸納
+- 公告審核中心 → /announcements (FileText icon)
+- 公告分析總覽 → /announcements/summary (BarChart3 icon)
+### 系統管理
 - HR 與權限稽核 → /hr-audit (ShieldCheck icon)
 - 微服務健康監控 → /system-health (Activity icon)
 

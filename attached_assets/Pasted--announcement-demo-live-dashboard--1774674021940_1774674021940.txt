@@ -1,0 +1,280 @@
+你現在要幫我把「前端儀表板」接上新的 announcement 模組，目標不是重做整套，而是用現有架構快速做出可 demo 的 live dashboard。
+
+【既有專案背景，請務必沿用】
+- Frontend: React + Vite + TypeScript
+- Routing: Wouter
+- State: TanStack Query
+- UI: Tailwind CSS + shadcn/ui
+- Charts: Recharts
+- Icons: Lucide React
+- 風格要求：商業感、乾淨、不要 emoji、不要寫死資料、不要做假圖表
+- 原則：所有資料必須來自真 API；如果 API 沒資料或失敗，顯示 empty state / error state，不可用 mock data 假裝有資料
+
+【本次任務】
+把 announcement 模組正式接進前端儀表板，做出能 demo 的兩個主要頁面與必要元件：
+
+1. /announcements
+2. /announcements/summary
+
+並且把它們加進 sidebar 導航。
+
+【announcement API 已存在，請直接串接】
+Base URL:
+- 優先使用相對路徑 /api
+- 若專案需要外部 API base URL，請支援 VITE_API_BASE_URL
+- fetch client 請統一集中在 client/src/lib/api.ts
+
+API endpoints:
+1. GET /api/announcement-dashboard/summary
+2. GET /api/announcement-candidates
+   query:
+   - status
+   - candidateType
+   - facilityName
+   - groupId
+   - dateFrom
+   - dateTo
+   - keyword
+   - page
+   - pageSize
+3. GET /api/announcement-candidates/:id
+4. POST /api/announcement-candidates/:id/approve
+5. POST /api/announcement-candidates/:id/reject
+6. GET /api/announcement-reports/weekly
+
+【UI 目標】
+我要 demo 時一打開就看得懂 announcement 模組的價值，所以畫面要偏「營運管理後台」而不是開發者測試頁。
+
+-----------------------------------
+A. /announcements/summary 頁面需求
+-----------------------------------
+
+這頁是 announcement 總覽首頁，請做成高質感 SaaS 風格 dashboard。
+
+區塊 1：KPI Cards（第一排）
+- 今日總訊息數 totalMessagesToday
+- 今日分析數 analyzedMessagesToday
+- 待審核數 pendingReviewCount
+- 已核准數 approvedCount
+- 已退回數 rejectedCount
+
+區塊 2：7 天趨勢
+資料來源：
+- GET /api/announcement-reports/weekly
+
+至少做這些圖表：
+1. 每日抓取量 / analyzedMessages / candidatesCreated 折線圖
+2. approved / rejected 柱狀圖
+3. 高信心公告數 highConfidenceCount 顯示
+
+區塊 3：類型分布
+- rule
+- notice
+- campaign
+- discount
+- script
+- ignore（若後端 summary 有回傳才顯示，若沒有就隱藏）
+可用 donut chart 或 horizontal bar chart
+
+區塊 4：館別分布
+- 以 facility 為單位顯示 count
+- 排序由高到低
+- 顯示前幾名即可，剩餘可折疊或滾動
+
+區塊 5：系統狀態提示
+- 若 summary API 成功但 weekly API 失敗，要顯示 partial success 狀態
+- 若 API 為空，顯示「目前尚無公告分析資料」
+- 若失敗，顯示 retry 按鈕
+
+-----------------------------------
+B. /announcements 頁面需求
+-----------------------------------
+
+這頁是候選公告列表 + 審核操作頁。
+
+上方 filter bar：
+- 關鍵字搜尋 keyword
+- status 下拉
+- candidateType 下拉
+- facilityName 搜尋或下拉
+- groupId 搜尋或下拉
+- dateFrom / dateTo
+- pageSize
+
+主體區塊：候選公告列表
+每列至少顯示：
+- title
+- candidateType
+- status
+- facilityName
+- groupName（若 API 有）
+- confidence
+- detectedAt
+- summary
+
+列表互動：
+- 點 row 或按鈕可打開 detail drawer / side panel
+- 支援 pagination
+- 支援 loading skeleton
+- 支援 empty state
+- 支援 refetch
+
+單筆 detail drawer / modal：
+呼叫 GET /api/announcement-candidates/:id
+顯示：
+- title
+- candidateType
+- scopeType
+- status
+- summary
+- recommendedAction
+- badExample
+- recommendedReply
+- confidence
+- extractedJson（請格式化顯示，不要直接 raw dump 太醜）
+- sourceMessage:
+  - text
+  - sentAt
+  - isFromSupervisor
+  - groupName
+  - facilityName
+- review history（若 API 有）
+
+操作按鈕：
+- Approve
+- Reject
+
+approve / reject 行為：
+- 使用 mutation
+- 成功後 toast
+- 自動 refetch 列表與 summary
+- 支援輸入 comment
+- 操作中按鈕 disabled
+- 發生錯誤顯示後端訊息
+
+-----------------------------------
+C. Demo 優化要求
+-----------------------------------
+
+這次是要 demo，用戶一看就要知道 announcement 模組有在工作，所以請補這些細節：
+
+1. confidence 用 badge 顯示
+- >= 0.8 高信心
+- 0.6 ~ 0.79 中等
+- < 0.6 低信心
+
+2. candidateType 用固定顏色 badge
+- rule
+- notice
+- campaign
+- discount
+- script
+- ignore
+
+3. status 用明確 badge
+- pending_review
+- approved
+- rejected
+
+4. detectedAt / sentAt 顯示為 Asia/Taipei 格式
+5. 頁面標題、副標、說明文字要專業，像企業內部審核中心
+6. 不要使用 emoji
+7. 不要塞假資料
+8. 若某 API 還沒有資料，畫面要好看地顯示 empty state，而不是空白
+
+-----------------------------------
+D. 檔案結構建議
+-----------------------------------
+
+請依現有專案風格新增或修改：
+
+- client/src/pages/announcements.tsx
+- client/src/pages/announcement-summary.tsx
+- client/src/components/announcement/
+  - AnnouncementFilters.tsx
+  - AnnouncementTable.tsx
+  - AnnouncementDetailDrawer.tsx
+  - AnnouncementKpiCards.tsx
+  - AnnouncementTypeChart.tsx
+  - AnnouncementFacilityChart.tsx
+  - AnnouncementWeeklyTrend.tsx
+  - StatusBadge.tsx
+  - TypeBadge.tsx
+  - ConfidenceBadge.tsx
+- client/src/hooks/
+  - useAnnouncementSummary.ts
+  - useAnnouncementCandidates.ts
+  - useAnnouncementDetail.ts
+  - useApproveAnnouncement.ts
+  - useRejectAnnouncement.ts
+  - useAnnouncementWeeklyReport.ts
+- client/src/lib/api.ts
+- client/src/lib/announcement.ts
+- client/src/types/announcement.ts
+
+如果現有 sidebar / routing 在：
+- client/src/App.tsx
+- client/src/components/app-sidebar.tsx
+
+請直接把新頁面掛進去，不要另開平行 router。
+
+-----------------------------------
+E. 型別與資料驗證
+-----------------------------------
+
+請建立完整 TypeScript types，至少包含：
+
+- AnnouncementSummaryResponse
+- AnnouncementCandidate
+- AnnouncementCandidateDetail
+- AnnouncementReview
+- AnnouncementWeeklyReportResponse
+
+若專案已有 zod，請用 zod parse API response。
+若沒有，也請至少做 defensive parsing，不可假設資料一定完整。
+
+-----------------------------------
+F. Fetch 規則
+-----------------------------------
+
+請建立統一 fetch helper：
+
+- strictFetchJSON:
+  用於 summary、candidates、detail 這種核心 API
+  失敗時丟錯，畫面顯示 error state
+
+- safeFetchJSON:
+  用於可選附加區塊
+  失敗時回傳 null，畫面顯示 unavailable state
+
+Query key 請規劃清楚，例如：
+- ["announcement-summary"]
+- ["announcement-weekly-report"]
+- ["announcement-candidates", filters]
+- ["announcement-candidate", id]
+
+-----------------------------------
+G. Demo 驗收標準
+-----------------------------------
+
+完成後請確保：
+
+1. Sidebar 可看到 announcement 入口
+2. /announcements/summary 可顯示 KPI、7天趨勢、類型分布、館別分布
+3. /announcements 可搜尋、篩選、分頁、點開詳情
+4. approve / reject 可正常操作並自動刷新
+5. 沒資料時有好看的 empty state
+6. API 壞掉時有明確錯誤提示
+7. 全程無 mock data、無硬編假數字
+8. UI 保持一致：商業 SaaS dashboard 風格、SVG icon、乾淨布局、適合現場 demo
+
+-----------------------------------
+H. 最後輸出
+-----------------------------------
+
+最後請輸出：
+1. 你修改 / 新增了哪些檔案
+2. announcement 模組的前端資料流
+3. API 串接點總表
+4. 哪些地方仍依賴後端補欄位
+5. demo 時建議先展示的操作流程

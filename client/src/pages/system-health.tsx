@@ -14,6 +14,8 @@ import {
   ShieldAlert,
   Loader2,
   Inbox,
+  FileText,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -105,6 +107,20 @@ const ENDPOINTS: HealthEndpoint[] = [
     icon: Cpu,
     iconColor: "text-rose-600 dark:text-rose-400",
     iconBg: "bg-rose-100 dark:bg-rose-900/50",
+  },
+  {
+    name: "公告分析摘要 API",
+    url: `/api/announcement-dashboard/summary`,
+    icon: FileText,
+    iconColor: "text-violet-600 dark:text-violet-400",
+    iconBg: "bg-violet-100 dark:bg-violet-900/50",
+  },
+  {
+    name: "公告週報 API",
+    url: `/api/announcement-reports/weekly`,
+    icon: BarChart3,
+    iconColor: "text-orange-600 dark:text-orange-400",
+    iconBg: "bg-orange-100 dark:bg-orange-900/50",
   },
 ];
 

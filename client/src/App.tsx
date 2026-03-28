@@ -11,6 +11,8 @@ import Operations from "@/pages/operations";
 import HrAudit from "@/pages/hr-audit";
 import SystemHealth from "@/pages/system-health";
 import AnomalyReports from "@/pages/anomaly-reports";
+import Announcements from "@/pages/announcements";
+import AnnouncementSummary from "@/pages/announcement-summary";
 import NotFound from "@/pages/not-found";
 
 const PAGE_TITLES: Record<string, string> = {
@@ -20,6 +22,8 @@ const PAGE_TITLES: Record<string, string> = {
   "/hr-audit": "HR 與權限稽核",
   "/system-health": "微服務健康監控",
   "/anomaly-reports": "打卡異常管理",
+  "/announcements": "公告審核中心",
+  "/announcements/summary": "公告分析總覽",
 };
 
 function AppRouter() {
@@ -31,6 +35,8 @@ function AppRouter() {
       <Route path="/hr-audit" component={HrAudit} />
       <Route path="/system-health" component={SystemHealth} />
       <Route path="/anomaly-reports" component={AnomalyReports} />
+      <Route path="/announcements/summary" component={AnnouncementSummary} />
+      <Route path="/announcements" component={Announcements} />
       <Route component={NotFound} />
     </Switch>
   );

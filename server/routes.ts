@@ -526,47 +526,88 @@ export async function registerRoutes(
     });
   });
 
+  const LINE_BOT_BASE = "https://line-bot-assistant-ronchen2.replit.app";
   const SMART_SCHEDULE_BASE = "https://smart-schedule-manager.replit.app";
 
-  app.get("/api/admin/overview", async (_req, res) => {
+  async function proxyGet(upstreamUrl: string, res: any, label: string) {
     try {
-      const upstream = await fetch(`${SMART_SCHEDULE_BASE}/api/admin/overview`, {
+      const upstream = await fetch(upstreamUrl, {
         headers: { Accept: "application/json" },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(10000),
       });
       if (!upstream.ok) {
-        return res.status(upstream.status).json({ message: `上游回傳 HTTP ${upstream.status}` });
+        return res.status(upstream.status).json({ message: `${label} 回傳 HTTP ${upstream.status}` });
       }
       const ct = upstream.headers.get("content-type") || "";
       if (!ct.includes("application/json")) {
-        return res.status(502).json({ message: "上游未回傳 JSON，端點可能尚未部署" });
+        return res.status(502).json({ message: `${label} 未回傳 JSON` });
       }
       const data = await upstream.json();
       res.json(data);
     } catch (err: any) {
-      res.status(502).json({ message: err.message || "無法連線至排班管理系統" });
+      res.status(502).json({ message: err.message || `無法連線至${label}` });
     }
+  }
+
+  async function proxyPost(upstreamUrl: string, body: any, res: any, label: string) {
+    try {
+      const upstream = await fetch(upstreamUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(body || {}),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!upstream.ok) {
+        const errBody = await upstream.text().catch(() => "");
+        return res.status(upstream.status).json({ message: errBody || `${label} 回傳 HTTP ${upstream.status}` });
+      }
+      const ct = upstream.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        return res.status(502).json({ message: `${label} 未回傳 JSON` });
+      }
+      const data = await upstream.json();
+      res.json(data);
+    } catch (err: any) {
+      res.status(502).json({ message: err.message || `無法連線至${label}` });
+    }
+  }
+
+  app.get("/api/announcement-dashboard/summary", (req, res) =>
+    proxyGet(`${LINE_BOT_BASE}/api/announcement-dashboard/summary`, res, "公告摘要")
+  );
+
+  app.get("/api/announcement-candidates", (req, res) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(req.query)) {
+      if (v != null && v !== "") qs.set(k, String(v));
+    }
+    const qsStr = qs.toString();
+    proxyGet(`${LINE_BOT_BASE}/api/announcement-candidates${qsStr ? "?" + qsStr : ""}`, res, "公告候選列表");
   });
 
-  app.get("/api/admin/interview-users", async (_req, res) => {
-    try {
-      const upstream = await fetch(`${SMART_SCHEDULE_BASE}/api/admin/interview-users`, {
-        headers: { Accept: "application/json" },
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!upstream.ok) {
-        return res.status(upstream.status).json({ message: `上游回傳 HTTP ${upstream.status}` });
-      }
-      const ct = upstream.headers.get("content-type") || "";
-      if (!ct.includes("application/json")) {
-        return res.status(502).json({ message: "上游未回傳 JSON，端點可能尚未部署" });
-      }
-      const data = await upstream.json();
-      res.json(data);
-    } catch (err: any) {
-      res.status(502).json({ message: err.message || "無法連線至排班管理系統" });
-    }
-  });
+  app.get("/api/announcement-candidates/:id", (req, res) =>
+    proxyGet(`${LINE_BOT_BASE}/api/announcement-candidates/${req.params.id}`, res, "公告詳情")
+  );
+
+  app.post("/api/announcement-candidates/:id/approve", (req, res) =>
+    proxyPost(`${LINE_BOT_BASE}/api/announcement-candidates/${req.params.id}/approve`, req.body, res, "核准公告")
+  );
+
+  app.post("/api/announcement-candidates/:id/reject", (req, res) =>
+    proxyPost(`${LINE_BOT_BASE}/api/announcement-candidates/${req.params.id}/reject`, req.body, res, "退回公告")
+  );
+
+  app.get("/api/announcement-reports/weekly", (req, res) =>
+    proxyGet(`${LINE_BOT_BASE}/api/announcement-reports/weekly`, res, "週報")
+  );
+
+  app.get("/api/admin/overview", (_req, res) =>
+    proxyGet(`${SMART_SCHEDULE_BASE}/api/admin/overview`, res, "排班系統總覽")
+  );
+
+  app.get("/api/admin/interview-users", (_req, res) =>
+    proxyGet(`${SMART_SCHEDULE_BASE}/api/admin/interview-users`, res, "面試授權用戶")
+  );
 
   return httpServer;
 }
