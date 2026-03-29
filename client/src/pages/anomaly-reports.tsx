@@ -452,9 +452,21 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
             </div>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               {report.venueName && (
-                <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-zinc-400">
+                <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-zinc-400" data-testid={`text-venue-${report.id}`}>
                   <Building2 className="h-3 w-3" />
                   {report.venueName}
+                </span>
+              )}
+              {report.clockTime && (
+                <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-zinc-400" data-testid={`text-clocktime-${report.id}`}>
+                  <Clock className="h-3 w-3" />
+                  {report.clockTime}
+                </span>
+              )}
+              {report.distance && (
+                <span className="flex items-center gap-1 text-xs text-orange-500 dark:text-orange-400 font-medium" data-testid={`text-distance-${report.id}`}>
+                  <MapPin className="h-3 w-3" />
+                  {report.distance}
                 </span>
               )}
               {report.failReason && (
@@ -474,10 +486,10 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
           <div className="flex items-center gap-3 shrink-0 pr-1">
             <div className="text-right hidden sm:block">
               <p className="text-xs text-gray-500 dark:text-zinc-400" data-testid={`text-anomaly-time-${report.id}`}>
-                {formatDate(report.createdAt)}
+                {formatDate(report.clockTime || report.createdAt)}
               </p>
               <p className="text-[10px] text-gray-400 dark:text-zinc-500">
-                {relativeTime(report.createdAt)}
+                {relativeTime(report.clockTime || report.createdAt)}
               </p>
             </div>
             <motion.div animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
