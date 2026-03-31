@@ -139,6 +139,13 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - **Email fallback**: When no recipients are configured, system auto-sends to GMAIL_USER as default recipient
 - **Test email**: `POST /api/test-email` — sends a test email to verify Gmail configuration works
 
+## Announcement Candidates Export
+- **`GET /api/announcement-candidates/export/all`** — Fetches all candidates from upstream API (up to 1000) and writes to `exports/announcement-candidates-export.json`
+  - Returns: `{ success, message, filePath, exportedAt, totalCount }`
+  - Each candidate includes: id, status, candidateType, title, summary, originalText, confidence, reasoningTags, recommendedAction, recommendedReply, badExample, appliesToRoles, scopeType, facilityName, groupId, displayName, userId, isFromSupervisor, startAt, endAt, detectedAt, sourceMessageId, extractedJson
+- **`GET /exports/announcement-candidates-export.json`** — Serves the latest exported JSON file directly
+- File is stored at `exports/announcement-candidates-export.json` and updated each time the export endpoint is called
+
 ## Environment Variables
 - `GMAIL_USER` — Gmail address for anomaly notifications (daos.ragic.system@gmail.com)
 - `GMAIL_APP_PASSWORD` — Gmail app password for SMTP auth

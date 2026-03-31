@@ -601,6 +601,78 @@ export async function registerRoutes(
     proxyGet(`${LINE_BOT_BASE}/api/announcement-reports/weekly`, res, "週報")
   );
 
+  const EXPORT_DIR = path.join(process.cwd(), "exports");
+  if (!fs.existsSync(EXPORT_DIR)) {
+    fs.mkdirSync(EXPORT_DIR, { recursive: true });
+  }
+
+  app.get("/api/announcement-candidates/export/all", async (_req, res) => {
+    try {
+      const upstream = await fetch(
+        `${LINE_BOT_BASE}/api/announcement-candidates?pageSize=1000`,
+        { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(15000) }
+      );
+      if (!upstream.ok) {
+        return res.status(upstream.status).json({ message: `上游回傳 HTTP ${upstream.status}` });
+      }
+      const raw: any = await upstream.json();
+      const items: any[] = raw.items || raw.candidates || [];
+
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        exportedAtTaipei: new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }),
+        totalCount: items.length,
+        candidates: items.map((c: any) => ({
+          id: c.id,
+          status: c.status,
+          candidateType: c.candidateType,
+          title: c.title,
+          summary: c.summary,
+          originalText: c.originalText,
+          confidence: c.confidence,
+          reasoningTags: c.reasoningTags,
+          recommendedAction: c.recommendedAction,
+          recommendedReply: c.recommendedReply,
+          badExample: c.badExample,
+          appliesToRoles: c.appliesToRoles,
+          scopeType: c.scopeType,
+          facilityName: c.facilityName,
+          groupId: c.groupId,
+          displayName: c.displayName,
+          userId: c.userId,
+          isFromSupervisor: c.isFromSupervisor,
+          startAt: c.startAt,
+          endAt: c.endAt,
+          detectedAt: c.detectedAt,
+          sourceMessageId: c.sourceMessageId,
+          extractedJson: c.extractedJson,
+        })),
+      };
+
+      const filePath = path.join(EXPORT_DIR, "announcement-candidates-export.json");
+      fs.writeFileSync(filePath, JSON.stringify(exportData, null, 2), "utf-8");
+
+      res.json({
+        success: true,
+        message: `已匯出 ${items.length} 筆公告候選資料`,
+        filePath: "/exports/announcement-candidates-export.json",
+        exportedAt: exportData.exportedAt,
+        totalCount: items.length,
+      });
+    } catch (err: any) {
+      res.status(502).json({ message: err.message || "匯出失敗" });
+    }
+  });
+
+  app.get("/exports/:filename", (req, res) => {
+    const filePath = path.join(EXPORT_DIR, req.params.filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "檔案不存在" });
+    }
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.sendFile(filePath);
+  });
+
   app.get("/api/admin/overview", (_req, res) =>
     proxyGet(`${SMART_SCHEDULE_BASE}/api/admin/overview`, res, "排班系統總覽")
   );
