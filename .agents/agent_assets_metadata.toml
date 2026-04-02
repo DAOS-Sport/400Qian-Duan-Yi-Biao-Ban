@@ -6,3 +6,15 @@ id = "qE4KK0TxDHNdkwBcOVVzx"
 uri = "file://docs/migration-guide.md"
 type = "text"
 title = "儀表板遷移指南 — 搬進 LINE Webhook 專案"
+
+[[outputs]]
+id = "5ITmOwyKoWzImSir5fLoQ"
+uri = "file://docs/frontend-source-code.md"
+type = "text"
+title = "DAOS 管理後台 — 前端完整原始碼"
+
+[[outputs]]
+id = "U7frzLi3j2znIXFk8t70J"
+uri = "file://docs/functional-design-document.md"
+type = "text"
+title = "DAOS 管理後台 — 功能設計書"
