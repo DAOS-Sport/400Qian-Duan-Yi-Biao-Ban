@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "qE4KK0TxDHNdkwBcOVVzx"
+uri = "file://docs/migration-guide.md"
+type = "text"
+title = "儀表板遷移指南 — 搬進 LINE Webhook 專案"
