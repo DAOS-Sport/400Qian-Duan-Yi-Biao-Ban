@@ -608,45 +608,62 @@ export async function registerRoutes(
 
   app.get("/api/announcement-candidates/export/all", async (_req, res) => {
     try {
-      const upstream = await fetch(
-        `${LINE_BOT_BASE}/api/announcement-candidates?pageSize=1000`,
-        { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(15000) }
-      );
-      if (!upstream.ok) {
-        return res.status(upstream.status).json({ message: `上游回傳 HTTP ${upstream.status}` });
+      const PAGE_SIZE = 100;
+      let allItems: any[] = [];
+      let page = 1;
+      let totalFromApi = 0;
+
+      while (true) {
+        const upstream = await fetch(
+          `${LINE_BOT_BASE}/api/announcement-candidates?pageSize=${PAGE_SIZE}&page=${page}`,
+          { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(15000) }
+        );
+        if (!upstream.ok) {
+          return res.status(upstream.status).json({ message: `上游回傳 HTTP ${upstream.status} (page ${page})` });
+        }
+        const raw: any = await upstream.json();
+        const items: any[] = raw.items || raw.candidates || [];
+        totalFromApi = raw.total || totalFromApi;
+        allItems = allItems.concat(items);
+
+        if (items.length < PAGE_SIZE || allItems.length >= totalFromApi) break;
+        page++;
+        if (page > 50) break;
       }
-      const raw: any = await upstream.json();
-      const items: any[] = raw.items || raw.candidates || [];
+
+      const mapCandidate = (c: any) => ({
+        id: c.id,
+        status: c.status,
+        candidateType: c.candidateType,
+        title: c.title,
+        summary: c.summary,
+        originalText: c.originalText,
+        confidence: c.confidence,
+        reasoningTags: c.reasoningTags,
+        recommendedAction: c.recommendedAction,
+        recommendedReply: c.recommendedReply,
+        badExample: c.badExample,
+        appliesToRoles: c.appliesToRoles,
+        scopeType: c.scopeType,
+        facilityName: c.facilityName,
+        groupId: c.groupId,
+        displayName: c.displayName,
+        userId: c.userId,
+        isFromSupervisor: c.isFromSupervisor,
+        startAt: c.startAt,
+        endAt: c.endAt,
+        detectedAt: c.detectedAt,
+        sourceMessageId: c.sourceMessageId,
+        extractedJson: c.extractedJson,
+      });
 
       const exportData = {
         exportedAt: new Date().toISOString(),
         exportedAtTaipei: new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }),
-        totalCount: items.length,
-        candidates: items.map((c: any) => ({
-          id: c.id,
-          status: c.status,
-          candidateType: c.candidateType,
-          title: c.title,
-          summary: c.summary,
-          originalText: c.originalText,
-          confidence: c.confidence,
-          reasoningTags: c.reasoningTags,
-          recommendedAction: c.recommendedAction,
-          recommendedReply: c.recommendedReply,
-          badExample: c.badExample,
-          appliesToRoles: c.appliesToRoles,
-          scopeType: c.scopeType,
-          facilityName: c.facilityName,
-          groupId: c.groupId,
-          displayName: c.displayName,
-          userId: c.userId,
-          isFromSupervisor: c.isFromSupervisor,
-          startAt: c.startAt,
-          endAt: c.endAt,
-          detectedAt: c.detectedAt,
-          sourceMessageId: c.sourceMessageId,
-          extractedJson: c.extractedJson,
-        })),
+        totalFromApi,
+        totalExported: allItems.length,
+        pagesfetched: page,
+        candidates: allItems.map(mapCandidate),
       };
 
       const filePath = path.join(EXPORT_DIR, "announcement-candidates-export.json");
@@ -654,10 +671,12 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        message: `已匯出 ${items.length} 筆公告候選資料`,
+        message: `已匯出全部 ${allItems.length}/${totalFromApi} 筆公告候選資料`,
         filePath: "/exports/announcement-candidates-export.json",
         exportedAt: exportData.exportedAt,
-        totalCount: items.length,
+        totalFromApi,
+        totalExported: allItems.length,
+        pagesFetched: page,
       });
     } catch (err: any) {
       res.status(502).json({ message: err.message || "匯出失敗" });
