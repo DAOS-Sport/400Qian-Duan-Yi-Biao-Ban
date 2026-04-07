@@ -1,0 +1,74 @@
+前端 Portal 開發指南 (Frontend Repo)
+這份指南請放在你的 React (Vite) 前端專案中使用。
+1. TypeScript 型別定義 (Types/Interfaces)
+請先建立對應後端 API 的資料型別（例如 src/types/announcement.ts）：
+code
+TypeScript
+export interface Announcement {
+  id: number;
+  title: string;
+  summary: string;
+  candidateType: 'rule' | 'notice' | 'campaign' | 'discount' | 'script';
+  priority: 'critical' | 'high' | 'normal' | 'low';
+  scopeType: 'group' | 'facility' | 'multi_facility' | 'global';
+  facilityName: string;
+  effectiveStartAt: string;
+  effectiveEndAt?: string;
+  needsAck: boolean;
+  // 以下為詳情頁才有
+  body?: string;
+  recommendedAction?: string;
+  recommendedReply?: string;
+  badExample?: string;
+}
+
+export interface FacilityHomePayload {
+  me: { name: string; role: string; };
+  todayShift: { facilityId: number; facilityName: string; };
+  blocks: {
+    mustRead: Announcement[];
+    groupAnnouncements: Announcement[];
+    campaigns: any[];
+    handover: any[];
+  };
+}
+2. 頁面佈局與元件拆分 (Components)
+依據 STEP 2 規格，前端首頁 (FacilityHomePage.tsx) 需要拆分成 6 大區塊。請使用 Tailwind CSS Grid 進行切版：
+主視圖結構 (FacilityHomePage.tsx)
+TopBar (搜尋欄與身份狀態): TopSearchAndUserBar.tsx (包含全域搜尋 Input)。
+Main Layout (分為左右欄或三欄 Grid):
+左上 - 今日必看 (MustReadSection.tsx): 顯示 priority 為 high/critical 或 pinned 的公告卡片。UI 需醒目，可加紅色或橘色標籤。
+右上 - 群組公告/規範 (GroupAnnouncementSection.tsx): 瀑布流顯示 rule, notice, script 類型的卡片。需顯示「來源群組 Tag」。
+下半部 - 交接與排班 (ShiftHandoverSection.tsx): 顯示當班注意事項與點名簿/班表快速入口。
+3. API 串接策略 (Hooks)
+建議寫一個 Custom Hook 來管理首頁資料流：
+code
+TypeScript
+// src/hooks/useFacilityHome.ts
+import { useState, useEffect } from 'react';
+
+export const useFacilityHome = () => {
+  const [data, setData] = useState<FacilityHomePayload | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // 呼叫後端 API: GET /api/me/facility-home
+    const fetchHomeData = async () => {
+      try {
+        const response = await fetch('/api/me/facility-home');
+        const result = await response.json();
+        setData(result);
+      } catch (error) {
+        console.error("載入首頁失敗", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHomeData();
+  }, []);
+
+  return { data, loading };
+};
+4. UI 互動設計 (UX)
+空狀態 (Empty State): 若 mustRead 陣列為空，請顯示友善文案「🎉 今日無緊急必看公告，祝您值班順利！」。
+詳情彈窗 (Drawer/Modal): 當員工點擊公告卡片時，不要跳轉頁面，請使用 shadcn/ui 的 Sheet 或 Dialog 元件從側邊滑出或彈出，顯示詳細的 recommendedReply (建議說法) 與 badExample (禁止說法)。

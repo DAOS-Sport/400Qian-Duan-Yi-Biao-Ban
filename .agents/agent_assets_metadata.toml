@@ -24,3 +24,9 @@ id = "VNtpQ-AzDKsNrwCLwW2Ge"
 uri = "file://exports/announcement-quality-report.md"
 type = "text"
 title = "公告歸納器 品質檢視報告"
+
+[[outputs]]
+id = "o_cnq_v3eB2UxF_QJ_ops"
+uri = "file://exports/employee-portal-architecture.md"
+type = "text"
+title = "員工值班入口 前端架構規劃書 v1.0"
