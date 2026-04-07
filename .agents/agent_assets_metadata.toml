@@ -18,3 +18,9 @@ id = "U7frzLi3j2znIXFk8t70J"
 uri = "file://docs/functional-design-document.md"
 type = "text"
 title = "DAOS 管理後台 — 功能設計書"
+
+[[outputs]]
+id = "VNtpQ-AzDKsNrwCLwW2Ge"
+uri = "file://exports/announcement-quality-report.md"
+type = "text"
+title = "公告歸納器 品質檢視報告"
