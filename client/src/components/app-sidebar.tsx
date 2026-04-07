@@ -124,7 +124,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="p-4 space-y-2">
         <a
-          href="/portal/login"
+          href="/portal"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 w-full rounded-md px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"

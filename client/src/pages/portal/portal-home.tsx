@@ -137,7 +137,13 @@ function AnnouncementItem({
           {item.summary && (
             <p className="text-xs text-gray-600 line-clamp-2 mb-1">{item.summary}</p>
           )}
-          <div className="flex items-center gap-3 text-[10px] text-gray-400">
+          <div className="flex items-center gap-3 text-[10px] text-gray-400 flex-wrap">
+            {(item.groupName || item.groupId) && (
+              <span className="flex items-center gap-0.5 portal-pill bg-blue-50 text-blue-600">
+                <MapPin className="h-3 w-3" />
+                {item.groupName || item.groupId}
+              </span>
+            )}
             <span className="flex items-center gap-0.5">
               <Calendar className="h-3 w-3" />
               {formatDate(item.detectedAt)}
@@ -286,9 +292,6 @@ function useFilteredAnnouncements(
   if (candidateTypes.length === 1) {
     params.candidateType = candidateTypes[0];
   }
-  if (searchTerm) {
-    params.keyword = searchTerm;
-  }
 
   const query = useQuery<AnnouncementCandidatesResponse>({
     queryKey: ["/api/announcement-candidates", params],
@@ -306,6 +309,16 @@ function useFilteredAnnouncements(
     items = items.filter((c) => candidateTypes.includes(c.candidateType));
   }
 
+  if (searchTerm) {
+    const lower = searchTerm.toLowerCase();
+    items = items.filter((c) =>
+      (c.title && c.title.toLowerCase().includes(lower)) ||
+      (c.summary && c.summary.toLowerCase().includes(lower)) ||
+      (c.originalText && c.originalText.toLowerCase().includes(lower)) ||
+      (c.displayName && c.displayName.toLowerCase().includes(lower))
+    );
+  }
+
   return { ...query, items };
 }
 
@@ -319,8 +332,13 @@ function MustReadSection({
   onSelect: (c: AnnouncementCandidate) => void;
 }) {
   const { items, isLoading, isError } = useFilteredAnnouncements(
-    facilityName, ["rule", "notice", "script"], 10, searchTerm,
+    facilityName, ["rule", "notice", "script"], 20, searchTerm,
   );
+
+  const highPriorityItems = items.filter((c) => {
+    const p = derivePriority(c);
+    return p === "critical" || p === "high";
+  });
 
   return (
     <SectionCard icon={Shield} title="必讀公告 / SOP" accentColor="#e53e3e" testId="section-must-read">
@@ -335,11 +353,11 @@ function MustReadSection({
           <span>暫時無法載入</span>
         </div>
       )}
-      {!isLoading && !isError && items.length === 0 && (
+      {!isLoading && !isError && highPriorityItems.length === 0 && (
         <p className="text-sm text-gray-400 py-4">目前沒有待讀公告</p>
       )}
       <div className="space-y-2">
-        {items.slice(0, 5).map((item) => (
+        {highPriorityItems.slice(0, 5).map((item) => (
           <AnnouncementItem key={item.id} item={item} onClick={() => onSelect(item)} />
         ))}
       </div>
