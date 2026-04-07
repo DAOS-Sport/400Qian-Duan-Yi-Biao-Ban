@@ -1,0 +1,229 @@
+你現在是一位資深全端工程師（TypeScript / React / Node.js 專家）。
+
+我們正在開發「駿斯跨館值班入口系統 STEP2」，請你幫我直接實作前端 Portal（React + Vite + Tailwind + shadcn/ui）。
+
+⚠️ 這個系統有一個核心設計：
+👉 一套 UI，多館配置（不要為每個館寫不同頁面）
+
+---
+
+# 🎯 系統核心需求
+
+1. 每個場館都有自己的電腦（固定設備）
+2. 每個場館有自己的資料（但結構幾乎一樣）
+3. 新北館需要額外顯示「場租窗口」
+4. 不使用地理位置
+5. 不讓使用者選館（預設自動進館）
+6. 用 localStorage 綁定館別
+
+---
+
+# 🧠 設計原則（非常重要）
+
+* UI 只能有一套
+* 所有差異用「config 控制」
+* 不允許為不同館寫不同頁面
+* 所有區塊顯示用開關控制
+* 新北場租只能透過 config 出現
+
+---
+
+# 📦 STEP 1：建立型別
+
+請建立以下 TypeScript 型別：
+
+```ts
+export interface FacilityContactPoint {
+  type: "general" | "course" | "maintenance" | "supervisor" | "rental";
+  label: string;
+  name: string;
+  phone?: string;
+  note?: string;
+}
+
+export interface FacilitySectionToggle {
+  mustRead: boolean;
+  groupAnnouncements: boolean;
+  campaigns: boolean;
+  handover: boolean;
+  onDutyStaff: boolean;
+  contacts: boolean;
+  rental: boolean;
+}
+
+export interface FacilityConfig {
+  facilityKey: string;
+  facilityLineGroupId: string;
+  facilityName: string;
+  shortName: string;
+  portalPath: string;
+  isActive: boolean;
+  sections: FacilitySectionToggle;
+  contactPoints: FacilityContactPoint[];
+}
+```
+
+---
+
+# 📦 STEP 2：建立 facilityConfigs（重點）
+
+請建立一個 config 檔：
+
+```ts
+export const facilityConfigs = {
+  xinbei_pool: {
+    facilityKey: "xinbei_pool",
+    facilityLineGroupId: "C66a4b3b...",
+    facilityName: "新北高中游泳池&運動中心",
+    shortName: "新北",
+    portalPath: "/portal/xinbei_pool",
+    isActive: true,
+    sections: {
+      mustRead: true,
+      groupAnnouncements: true,
+      campaigns: true,
+      handover: true,
+      onDutyStaff: true,
+      contacts: true,
+      rental: true
+    },
+    contactPoints: [
+      { type: "general", label: "櫃台窗口", name: "櫃台" },
+      { type: "course", label: "課程窗口", name: "課程負責人" },
+      { type: "supervisor", label: "主管窗口", name: "館主管" },
+      { type: "rental", label: "場租窗口", name: "場租負責人" }
+    ]
+  },
+
+  songshan_pool: {
+    facilityKey: "songshan_pool",
+    facilityLineGroupId: "C9b3c5df...",
+    facilityName: "松山國小室內溫水游泳池",
+    shortName: "松山",
+    portalPath: "/portal/songshan_pool",
+    isActive: true,
+    sections: {
+      mustRead: true,
+      groupAnnouncements: true,
+      campaigns: true,
+      handover: true,
+      onDutyStaff: true,
+      contacts: true,
+      rental: false
+    },
+    contactPoints: [
+      { type: "general", label: "櫃台窗口", name: "櫃台" },
+      { type: "supervisor", label: "主管窗口", name: "館主管" }
+    ]
+  }
+}
+```
+
+---
+
+# 📦 STEP 3：實作 useBoundFacility Hook
+
+功能：
+
+* 從 localStorage 讀取 facilityKey
+* 回傳 facilityConfig
+
+```ts
+localStorage.getItem("facilityKey")
+```
+
+---
+
+# 📦 STEP 4：實作自動進館邏輯
+
+建立 `/portal` 頁面：
+
+* 若 localStorage 有 facilityKey → 自動導向
+* 若沒有 → 顯示提示「此設備尚未設定館別」
+
+---
+
+# 📦 STEP 5：實作首頁（最重要）
+
+建立 `/portal/:facilityKey`
+
+頁面需包含：
+
+## 區塊（用 config 控制顯示）
+
+1. 今日必看（mustRead）
+2. 群組公告（groupAnnouncements）
+3. 聯絡窗口（contacts）
+4. 場租區塊（只有新北）
+
+---
+
+# 📦 STEP 6：串接 API
+
+呼叫：
+
+```
+GET /api/facility-home/:groupId/home
+```
+
+資料來源：
+
+```
+facilityConfig.facilityLineGroupId
+```
+
+---
+
+# 📦 STEP 7：條件渲染（超重要）
+
+```tsx
+{config.sections.mustRead && <MustReadSection />}
+{config.sections.groupAnnouncements && <GroupAnnouncementSection />}
+{config.sections.contacts && <ContactSection />}
+{config.sections.rental && <RentalSection />}
+```
+
+---
+
+# 📦 STEP 8：Contact Section 動態渲染
+
+```tsx
+config.contactPoints.map(...)
+```
+
+---
+
+# 📦 STEP 9：UI 規範
+
+* 使用 Tailwind
+* 卡片式設計
+* 不使用 emoji
+* 使用 Lucide icon
+* 必看公告用紅/橘標籤
+* 點擊卡片用 Drawer（不要跳頁）
+
+---
+
+# 📦 STEP 10：設備綁定指令
+
+請提供初始化方式：
+
+```js
+localStorage.setItem("facilityKey", "xinbei_pool")
+```
+
+---
+
+# 🎯 最終要求
+
+請輸出：
+
+1. 完整檔案結構
+2. 每個檔案的實作程式碼
+3. hooks / pages / components 全部寫出
+4. 可直接在 Vite 專案執行
+5. 所有地方加上中文註解
+
+---
+
+現在請開始實作。
