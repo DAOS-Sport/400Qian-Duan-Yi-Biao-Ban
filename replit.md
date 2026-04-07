@@ -148,7 +148,28 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 - **`GET /exports/announcement-candidates-export.json`** — Serves the latest exported JSON file directly
 - File is stored at `exports/announcement-candidates-export.json` and updated each time the export endpoint is called
 
+## Employee Portal (員工值班入口)
+- **Routes**: `/portal/login` (login page), `/portal/:facilityKey` (facility home)
+- **Design**: Separate from admin — navy/teal/green Material Design 3 palette, Manrope + Inter fonts
+- **Colors**: primary `#001d42`, secondary `#006b60`, accent `#1CB4A3`, green `#8DC63F`, bg `#f7f9fb`
+- **Auth**: Ragic login — employee number as username, phone as password, proxied via `POST /api/auth/ragic-login`
+- **Session**: localStorage (`portalAuth` for user, `facilityKey` for facility binding)
+- **Layout**: Fixed dark navy top bar, dark navy sidebar (rounded-r-3xl), bento grid (12-col, 8+4), mobile bottom nav
+- **Facilities**: 4 configs — `xinbei_pool`, `salu_counter`, `songshan_pool`, `sanmin_pool`
+- **Sections**: Must-read SOP, group announcements, campaigns, handover, on-duty staff, contacts, rental (config-driven)
+- **Data**: Announcements filtered by `status=approved` + `facilityName`; priority derived from confidence + candidateType + VIP tags
+- **Files**:
+  - `client/src/types/portal.ts` — Portal TypeScript types
+  - `client/src/config/facility-configs.ts` — Facility configurations
+  - `client/src/hooks/use-bound-facility.ts` — useBoundFacility + usePortalAuth hooks
+  - `client/src/pages/portal/portal-login.tsx` — Login page
+  - `client/src/pages/portal/portal-layout.tsx` — Layout with sidebar/topbar/bottom nav
+  - `client/src/pages/portal/portal-home.tsx` — Home page with config-driven sections
+
 ## Environment Variables
 - `GMAIL_USER` — Gmail address for anomaly notifications (daos.ragic.system@gmail.com)
 - `GMAIL_APP_PASSWORD` — Gmail app password for SMTP auth
 - `DATABASE_URL` — PostgreSQL connection string (Neon serverless)
+- `RAGIC_API_KEY` — Ragic API key for employee login authentication
+- `RAGIC_ACCOUNT_PATH` — Ragic account path (default: "daos")
+- `RAGIC_EMPLOYEE_SHEET` — Ragic employee sheet path (default: "/default/1") — field mapping: 1000=員工編號, 1001=手機號碼, 1002=姓名, 1003=職位, 1004=場館

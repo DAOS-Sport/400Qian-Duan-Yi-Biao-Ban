@@ -11,6 +11,7 @@ import {
   Moon,
   FileText,
   BarChart3,
+  ExternalLink,
 } from "lucide-react";
 import {
   Sidebar,
@@ -122,6 +123,16 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
       <SidebarFooter className="p-4 space-y-2">
+        <a
+          href="/portal/login"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 w-full rounded-md px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          data-testid="link-portal-entry"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          <span>員工值班入口</span>
+        </a>
         <ThemeToggle />
         <div className="px-3 py-2">
           <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-wider">

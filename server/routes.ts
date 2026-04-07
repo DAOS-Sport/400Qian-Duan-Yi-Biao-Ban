@@ -520,6 +520,67 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/auth/ragic-login", async (req, res) => {
+    try {
+      const { employeeNumber, phone } = req.body || {};
+      if (!employeeNumber || !phone) {
+        return res.status(400).json({ message: "請提供員工編號和手機號碼" });
+      }
+
+      const ragicApiKey = process.env.RAGIC_API_KEY;
+      const ragicAccountPath = process.env.RAGIC_ACCOUNT_PATH || "daos";
+      const ragicSheetPath = process.env.RAGIC_EMPLOYEE_SHEET || "/default/1";
+
+      if (!ragicApiKey) {
+        console.log("[ragic-login] RAGIC_API_KEY not set, using fallback validation");
+        return res.status(503).json({
+          message: "Ragic API 尚未設定，請聯繫管理員設定 RAGIC_API_KEY",
+        });
+      }
+
+      const ragicUrl = `https://www.ragic.com/${ragicAccountPath}${ragicSheetPath}?api&where=1000,eq,${encodeURIComponent(employeeNumber)}`;
+
+      const upstream = await fetch(ragicUrl, {
+        headers: {
+          Authorization: `Basic ${ragicApiKey}`,
+          Accept: "application/json",
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!upstream.ok) {
+        console.error("[ragic-login] Ragic API error:", upstream.status);
+        return res.status(502).json({ message: "無法連線至 Ragic，請稍後再試" });
+      }
+
+      const data = await upstream.json();
+      const entries = Object.values(data) as any[];
+
+      if (entries.length === 0) {
+        return res.status(401).json({ message: "查無此員工編號" });
+      }
+
+      const employee = entries[0] as Record<string, any>;
+
+      const storedPhone = String(employee["1001"] || "").trim().replace(/[-\s]/g, "");
+      const inputPhone = phone.trim().replace(/[-\s]/g, "");
+
+      if (storedPhone !== inputPhone) {
+        return res.status(401).json({ message: "手機號碼不正確" });
+      }
+
+      res.json({
+        employeeNumber: employee["1000"] || employeeNumber,
+        name: employee["1002"] || employee["1000"] || employeeNumber,
+        role: employee["1003"] || undefined,
+        facility: employee["1004"] || undefined,
+      });
+    } catch (err: any) {
+      console.error("[ragic-login] Error:", err.message);
+      res.status(500).json({ message: err.message || "登入驗證失敗" });
+    }
+  });
+
   app.post("/api/hr-audit", async (req, res) => {
     res.status(503).json({
       message: "稽核 API 尚未接入，待體育署 API 與 Ragic 慎用名單介接完成後即可使用",

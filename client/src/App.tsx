@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,6 +14,10 @@ import AnomalyReports from "@/pages/anomaly-reports";
 import Announcements from "@/pages/announcements";
 import AnnouncementSummary from "@/pages/announcement-summary";
 import NotFound from "@/pages/not-found";
+import PortalLogin from "@/pages/portal/portal-login";
+import PortalLayout from "@/pages/portal/portal-layout";
+import PortalHome from "@/pages/portal/portal-home";
+import { usePortalAuth } from "@/hooks/use-bound-facility";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "營運戰情總覽",
@@ -42,6 +46,44 @@ function AppRouter() {
   );
 }
 
+function PortalAuthGuard({ children }: { children: React.ReactNode }) {
+  const { isLoggedIn } = usePortalAuth();
+  if (!isLoggedIn) {
+    return <Redirect to="/portal/login" />;
+  }
+  return <>{children}</>;
+}
+
+function PortalFacilityPage({ params }: { params: { facilityKey: string } }) {
+  return (
+    <PortalAuthGuard>
+      <PortalLayout facilityKey={params.facilityKey}>
+        <PortalHome facilityKey={params.facilityKey} />
+      </PortalLayout>
+    </PortalAuthGuard>
+  );
+}
+
+function PortalIndexPage() {
+  const facilityKey = localStorage.getItem("facilityKey");
+  if (facilityKey) {
+    return <Redirect to={`/portal/${facilityKey}`} />;
+  }
+  return <Redirect to="/portal/login" />;
+}
+
+function PortalRouter() {
+  return (
+    <Switch>
+      <Route path="/portal/login" component={PortalLogin} />
+      <Route path="/portal/:facilityKey">
+        {(params) => <PortalFacilityPage params={params} />}
+      </Route>
+      <Route path="/portal" component={PortalIndexPage} />
+    </Switch>
+  );
+}
+
 const sidebarStyle = {
   "--sidebar-width": "16rem",
   "--sidebar-width-icon": "3rem",
@@ -54,6 +96,20 @@ function HeaderTitle() {
 }
 
 function App() {
+  const [location] = useLocation();
+  const isPortal = location.startsWith("/portal");
+
+  if (isPortal) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <PortalRouter />
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
