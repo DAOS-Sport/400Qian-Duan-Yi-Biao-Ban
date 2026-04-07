@@ -5,11 +5,13 @@ Enterprise-grade dashboard for the 駿斯 LINE Bot system. Multi-page SaaS appli
 
 ## Tech Stack
 - **Frontend**: React, Vite, TypeScript
-- **Styling**: Tailwind CSS, Shadcn UI (semantic color tokens: bg-card, text-foreground, text-muted-foreground, border)
+- **Styling**: Tailwind CSS, Shadcn UI with Vercel-inspired design system (DESIGN.md)
+- **Design System**: Vercel style — shadow-as-border (`0px 0px 0px 1px rgba(0,0,0,0.08)`), achromatic palette, `.vercel-card` utility class
 - **Animation**: Framer Motion
 - **Charts**: Recharts (used in Analytics page)
 - **Icons**: Lucide React (no emoji in UI — SVG icons only)
-- **Font**: Inter (body) + JetBrains Mono (monospace)
+- **Font**: Geist Sans (body/UI) + Geist Mono (code/labels) — loaded from Google Fonts, OpenType `"liga"` enabled
+- **Typography**: Weight 400 (body), 500 (UI/interactive), 600 (headings); negative letter-spacing at display sizes (-0.04em display, -0.02em heading)
 - **Routing**: Wouter (8 routes)
 - **Backend**: Express + PostgreSQL (Drizzle ORM)
 - **Email**: Nodemailer (Gmail SMTP with app password)

@@ -52,14 +52,14 @@ const TYPE_BADGE_COLORS: Record<string, string> = {
   campaign: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
   discount: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
   script: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300",
-  ignore: "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400",
+  ignore: "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-muted-foreground",
 };
 
 const STATUS_BADGE_COLORS: Record<string, string> = {
   pending_review: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
   approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
   rejected: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300",
-  ignored: "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400",
+  ignored: "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-muted-foreground",
   vip_chat: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700",
 };
 
@@ -120,7 +120,7 @@ function ConfidenceBadge({ confidence }: { confidence: number | string }) {
     ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
     : level === "mid"
       ? "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
-      : "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400";
+      : "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-muted-foreground";
   const label = level === "high" ? "高信心" : level === "mid" ? "中等" : "低信心";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`} data-testid="badge-confidence">
@@ -158,7 +158,7 @@ function FilterBar({ filters, onChange }: { filters: AnnouncementFilters; onChan
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-bold text-foreground">篩選條件</h3>
+          <h3 className="text-sm font-semibold text-foreground">篩選條件</h3>
         </div>
         <Button
           variant={filters.vipFocus ? "default" : "outline"}
@@ -282,7 +282,7 @@ function CandidateRow({ candidate, onClick }: { candidate: AnnouncementCandidate
       variants={rowVariants}
       whileHover={{ y: -2, transition: { duration: 0.15 } }}
       onClick={onClick}
-      className={`bg-card rounded-xl border p-4 cursor-pointer hover:shadow-md transition-shadow ${isVip ? "ring-1 ring-yellow-300 dark:ring-yellow-700" : ""}`}
+      className={`bg-card rounded-xl border p-4 cursor-pointer hover:shadow-sm transition-shadow ${isVip ? "ring-1 ring-yellow-300 dark:ring-yellow-700" : ""}`}
       data-testid={`candidate-row-${candidate.id}`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -388,7 +388,7 @@ function DetailDrawer({ candidateId, onClose }: { candidateId: number; onClose: 
         data-testid="drawer-detail"
       >
         <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between">
-          <h2 className="text-base font-bold text-foreground truncate" data-testid="text-detail-title">
+          <h2 className="text-base font-semibold text-foreground truncate" data-testid="text-detail-title">
             {d?.title || "公告詳情"}
           </h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors" data-testid="button-close-detail">
@@ -418,7 +418,7 @@ function DetailDrawer({ candidateId, onClose }: { candidateId: number; onClose: 
               <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-4 border border-blue-200 dark:border-blue-800 space-y-2" data-testid="section-source-group">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
                   <MapPin className="h-4 w-4" />
-                  <span className="text-xs font-bold uppercase tracking-wide">來源群組</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide">來源群組</span>
                 </div>
                 <p className="text-sm font-semibold text-foreground">{d.facilityName || "未知場館"}</p>
                 {d.groupId && (
@@ -648,7 +648,7 @@ export default function Announcements() {
       >
         <motion.div variants={rowVariants} className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-foreground" data-testid="text-announcements-title">候選公告審核</h1>
+            <h1 className="text-lg font-semibold text-foreground" data-testid="text-announcements-title">候選公告審核</h1>
             <p className="text-sm text-muted-foreground mt-0.5">AI 自動歸納的公告候選項目，待人工審核確認</p>
           </div>
           <Button

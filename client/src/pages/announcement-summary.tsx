@@ -150,7 +150,7 @@ export default function AnnouncementSummary() {
       >
         <motion.div variants={cardVariants} className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-foreground" data-testid="text-summary-title">公告分析總覽</h1>
+            <h1 className="text-lg font-semibold text-foreground" data-testid="text-summary-title">公告分析總覽</h1>
             <p className="text-sm text-muted-foreground mt-0.5">AI 公告歸納器即時統計與趨勢分析</p>
           </div>
           <Button
@@ -200,7 +200,7 @@ export default function AnnouncementSummary() {
                           <Icon className={`h-4 w-4 ${kpi.accent}`} />
                         </div>
                       </div>
-                      <p className={`text-2xl font-bold ${kpi.accent}`}>{val ?? "-"}</p>
+                      <p className={`text-2xl font-semibold ${kpi.accent}`}>{val ?? "-"}</p>
                     </div>
                   );
                 })}
@@ -217,7 +217,7 @@ export default function AnnouncementSummary() {
                         <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-foreground">本週高信心公告：{totalHigh} 筆</p>
+                        <p className="text-sm font-semibold text-foreground">本週高信心公告：{totalHigh} 筆</p>
                         <p className="text-xs text-muted-foreground">信心度 80% 以上，建議優先審核</p>
                       </div>
                     </motion.div>
@@ -227,7 +227,7 @@ export default function AnnouncementSummary() {
                   <motion.div variants={cardVariants} className="bg-card rounded-xl border p-5" data-testid="chart-trend-line">
                     <div className="flex items-center gap-2 mb-4">
                       <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="text-sm font-bold text-foreground">7 天分析趨勢</h3>
+                      <h3 className="text-sm font-semibold text-foreground">7 天分析趨勢</h3>
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
                       <LineChart data={trendDays}>
@@ -246,7 +246,7 @@ export default function AnnouncementSummary() {
                   <motion.div variants={cardVariants} className="bg-card rounded-xl border p-5" data-testid="chart-approval-bar">
                     <div className="flex items-center gap-2 mb-4">
                       <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="text-sm font-bold text-foreground">核准 / 退回統計</h3>
+                      <h3 className="text-sm font-semibold text-foreground">核准 / 退回統計</h3>
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={trendDays}>
@@ -269,7 +269,7 @@ export default function AnnouncementSummary() {
                 <motion.div variants={cardVariants} className="bg-card rounded-xl border p-5" data-testid="chart-type-distribution">
                   <div className="flex items-center gap-2 mb-4">
                     <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-sm font-bold text-foreground">類型分布</h3>
+                    <h3 className="text-sm font-semibold text-foreground">類型分布</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={240}>
                     <PieChart>
@@ -288,7 +288,7 @@ export default function AnnouncementSummary() {
                 <motion.div variants={cardVariants} className="bg-card rounded-xl border p-5" data-testid="chart-facility-distribution">
                   <div className="flex items-center gap-2 mb-4">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-sm font-bold text-foreground">場館分布 (Top {facilityData.length})</h3>
+                    <h3 className="text-sm font-semibold text-foreground">場館分布 (Top {facilityData.length})</h3>
                   </div>
                   <div className="space-y-2.5">
                     {facilityData.map((f, i) => {
@@ -300,7 +300,7 @@ export default function AnnouncementSummary() {
                           <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden">
                             <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="text-xs font-bold text-foreground w-8 text-right">{f.count}</span>
+                          <span className="text-xs font-semibold text-foreground w-8 text-right">{f.count}</span>
                         </div>
                       );
                     })}
@@ -313,7 +313,7 @@ export default function AnnouncementSummary() {
               <motion.div variants={cardVariants} className="bg-card rounded-xl border p-5" data-testid="section-weekly-summary">
                 <div className="flex items-center gap-2 mb-3">
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="text-sm font-bold text-foreground">本週彙總</h3>
+                  <h3 className="text-sm font-semibold text-foreground">本週彙總</h3>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
@@ -324,7 +324,7 @@ export default function AnnouncementSummary() {
                   ].map((item) => (
                     <div key={item.label} className="text-center">
                       <p className="text-xs text-muted-foreground">{item.label}</p>
-                      <p className="text-xl font-bold text-foreground mt-1">{item.value ?? "-"}</p>
+                      <p className="text-xl font-semibold text-foreground mt-1">{item.value ?? "-"}</p>
                     </div>
                   ))}
                 </div>

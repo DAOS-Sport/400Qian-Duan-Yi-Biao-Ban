@@ -132,7 +132,7 @@ function NotificationSettingsPanel() {
     <motion.div variants={fadeIn}>
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
+        className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-gray-700 dark:hover:text-foreground transition-colors"
         data-testid="button-toggle-notifications"
       >
         <Settings className="h-4 w-4" />
@@ -141,7 +141,7 @@ function NotificationSettingsPanel() {
           <ChevronRight className="h-4 w-4" />
         </motion.div>
         {recipients && recipients.length > 0 && (
-          <span className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded-full px-2 py-0.5 font-bold">
+          <span className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded-full px-2 py-0.5 font-semibold">
             {recipients.filter(r => r.enabled).length} 位收件者
           </span>
         )}
@@ -156,35 +156,35 @@ function NotificationSettingsPanel() {
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <div className="mt-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-5">
+            <div className="mt-3 vercel-card p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Mail className="h-4 w-4 text-blue-500" />
-                <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200">通知收件者管理</h3>
+                <h3 className="text-sm font-semibold text-foreground">通知收件者管理</h3>
               </div>
-              <p className="text-xs text-gray-400 dark:text-zinc-500 mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 發件信箱：daos.ragic.system@gmail.com — 以下收件者會在新異常或處理狀態變更時收到通知
               </p>
 
               <div className="flex flex-wrap items-end gap-2 mb-4">
                 <div className="flex-1 min-w-[200px]">
-                  <label className="text-xs text-gray-500 dark:text-zinc-400 mb-1 block">Email</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Email</label>
                   <input
                     type="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     placeholder="example@gmail.com"
-                    className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    className="w-full rounded-lg border border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                     data-testid="input-new-email"
                   />
                 </div>
                 <div className="min-w-[140px]">
-                  <label className="text-xs text-gray-500 dark:text-zinc-400 mb-1 block">名稱標籤（選填）</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">名稱標籤（選填）</label>
                   <input
                     type="text"
                     value={newLabel}
                     onChange={(e) => setNewLabel(e.target.value)}
                     placeholder="例：主管"
-                    className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    className="w-full rounded-lg border border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                     data-testid="input-new-label"
                   />
                 </div>
@@ -208,7 +208,7 @@ function NotificationSettingsPanel() {
               )}
 
               {recipients && recipients.length === 0 && (
-                <div className="text-center py-6 text-gray-400 dark:text-zinc-500">
+                <div className="text-center py-6 text-muted-foreground">
                   <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-xs">尚未設定任何收件者</p>
                   <p className="text-[10px] mt-1">未設定收件者時，系統會自動寄到發件信箱</p>
@@ -220,7 +220,7 @@ function NotificationSettingsPanel() {
                   {recipients.map((r) => (
                     <div
                       key={r.id}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${r.enabled ? "bg-gray-50/50 dark:bg-zinc-800/30 border-gray-100 dark:border-zinc-700" : "bg-gray-100/50 dark:bg-zinc-800/10 border-gray-200/50 dark:border-zinc-800 opacity-60"}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${r.enabled ? "bg-muted/50 border" : "bg-muted/40 border opacity-60"}`}
                       data-testid={`recipient-${r.id}`}
                     >
                       <button
@@ -232,22 +232,22 @@ function NotificationSettingsPanel() {
                         {r.enabled ? (
                           <ToggleRight className="h-6 w-6 text-green-500" />
                         ) : (
-                          <ToggleLeft className="h-6 w-6 text-gray-300 dark:text-zinc-600" />
+                          <ToggleLeft className="h-6 w-6 text-muted-foreground/60" />
                         )}
                       </button>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-gray-700 dark:text-zinc-200 truncate">{r.email}</p>
+                          <p className="text-sm font-medium text-foreground truncate">{r.email}</p>
                           {r.label && (
-                            <span className="text-[10px] bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 rounded-full px-2 py-0.5">{r.label}</span>
+                            <span className="text-[10px] bg-muted text-muted-foreground rounded-full px-2 py-0.5">{r.label}</span>
                           )}
                         </div>
                         <div className="flex items-center gap-3 mt-1">
                           <button
                             onClick={() => toggleMutation.mutate({ id: r.id, field: "notifyNewReport", value: !r.notifyNewReport })}
                             disabled={toggleMutation.isPending}
-                            className={`flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 transition-colors disabled:opacity-50 ${r.notifyNewReport ? "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300" : "bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-zinc-500"}`}
+                            className={`flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 transition-colors disabled:opacity-50 ${r.notifyNewReport ? "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300" : "bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-muted-foreground"}`}
                             data-testid={`toggle-new-report-${r.id}`}
                           >
                             <AlertTriangle className="h-3 w-3" />
@@ -256,7 +256,7 @@ function NotificationSettingsPanel() {
                           <button
                             onClick={() => toggleMutation.mutate({ id: r.id, field: "notifyResolution", value: !r.notifyResolution })}
                             disabled={toggleMutation.isPending}
-                            className={`flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 transition-colors disabled:opacity-50 ${r.notifyResolution ? "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-300" : "bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-zinc-500"}`}
+                            className={`flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 transition-colors disabled:opacity-50 ${r.notifyResolution ? "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-300" : "bg-gray-100 text-gray-400 dark:bg-zinc-800 dark:text-muted-foreground"}`}
                             data-testid={`toggle-resolution-${r.id}`}
                           >
                             <CheckCircle2 className="h-3 w-3" />
@@ -280,8 +280,8 @@ function NotificationSettingsPanel() {
                 </div>
               )}
 
-              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                <p className="text-[10px] text-gray-400 dark:text-zinc-500">
+              <div className="mt-4 pt-4 border-t border flex items-center justify-between">
+                <p className="text-[10px] text-muted-foreground">
                   {recipients && recipients.length === 0
                     ? "未設定收件者時，測試信會寄到發件信箱本身"
                     : `測試信會寄送到所有啟用「新異常」通知的收件者`}
@@ -346,14 +346,14 @@ function relativeTime(dateStr: string): string {
 
 function KpiCard({ title, value, icon: Icon, color, iconBg }: { title: string; value: string | number; icon: typeof AlertTriangle; color: string; iconBg: string }) {
   return (
-    <motion.div variants={cardVariants} whileHover={{ y: -2, transition: { duration: 0.2 } }} className="flex-1 min-w-[150px]">
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-4 border border-gray-100 dark:border-zinc-800">
+    <motion.div variants={cardVariants} whileHover={{ y: -2, transition: { duration: 0.15 } }} className="flex-1 min-w-[150px]">
+      <div className="vercel-card p-4">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[10px] font-medium tracking-wide uppercase text-gray-400 dark:text-zinc-500 mb-0.5 truncate">{title}</p>
-            <p className={`text-xl font-bold tracking-tight ${color} truncate`} data-testid={`text-kpi-${title}`}>{value}</p>
+            <p className="vercel-mono text-muted-foreground mb-1 truncate">{title}</p>
+            <p className={`text-xl font-semibold tracking-heading ${color} truncate`} data-testid={`text-kpi-${title}`}>{value}</p>
           </div>
-          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${iconBg}`}>
             <Icon className="h-4 w-4 text-white" />
           </div>
         </div>
@@ -365,10 +365,10 @@ function KpiCard({ title, value, icon: Icon, color, iconBg }: { title: string; v
 function DetailRow({ label, value, icon: Icon }: { label: string; value: string; icon?: typeof User }) {
   return (
     <div className="flex items-start gap-2">
-      {Icon && <Icon className="h-3.5 w-3.5 shrink-0 mt-0.5 text-gray-400 dark:text-zinc-500" />}
+      {Icon && <Icon className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground" />}
       <div className="min-w-0">
-        <span className="text-[10px] font-medium text-gray-400 dark:text-zinc-500 uppercase tracking-wide">{label}</span>
-        <p className="text-sm text-gray-700 dark:text-zinc-200">{value}</p>
+        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
+        <p className="text-sm text-foreground">{value}</p>
       </div>
     </div>
   );
@@ -401,12 +401,12 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
 
   const bgTint = isResolved
     ? "bg-green-50/30 dark:bg-green-950/10"
-    : "bg-white dark:bg-zinc-900";
+    : "bg-card";
 
   return (
     <motion.div
       variants={cardVariants}
-      className={`${bgTint} rounded-2xl shadow-sm border ${borderColor} overflow-hidden ${selected ? "ring-2 ring-blue-400 dark:ring-blue-500" : ""}`}
+      className={`${bgTint} rounded-lg shadow-sm border ${borderColor} overflow-hidden ${selected ? "ring-2 ring-blue-400 dark:ring-blue-500" : ""}`}
       data-testid={`card-anomaly-${report.id}`}
     >
       <div className="flex items-center">
@@ -418,7 +418,7 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
           {selected ? (
             <CheckSquare className="h-5 w-5 text-blue-500" />
           ) : (
-            <Square className="h-5 w-5 text-gray-300 dark:text-zinc-600" />
+            <Square className="h-5 w-5 text-muted-foreground/60" />
           )}
         </button>
         <button
@@ -438,27 +438,27 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-bold text-gray-800 dark:text-zinc-100" data-testid={`text-anomaly-employee-${report.id}`}>
+              <p className="text-sm font-semibold text-foreground" data-testid={`text-anomaly-employee-${report.id}`}>
                 {report.employeeName || "未知員工"}
               </p>
-              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${isResolved ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"}`} data-testid={`badge-resolution-${report.id}`}>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${isResolved ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"}`} data-testid={`badge-resolution-${report.id}`}>
                 {isResolved ? (<><CheckCircle2 className="h-3 w-3" /> 已處理</>) : (<><CircleDot className="h-3 w-3" /> 待解決</>)}
               </span>
               {report.clockType && (
-                <span className="text-[10px] font-medium text-gray-400 dark:text-zinc-500 bg-gray-100 dark:bg-zinc-800 rounded-full px-2 py-0.5">
+                <span className="text-[10px] font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5">
                   {report.clockType === "in" ? "上班" : report.clockType === "out" ? "下班" : report.clockType}
                 </span>
               )}
             </div>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               {report.venueName && (
-                <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-zinc-400" data-testid={`text-venue-${report.id}`}>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`text-venue-${report.id}`}>
                   <Building2 className="h-3 w-3" />
                   {report.venueName}
                 </span>
               )}
               {report.clockTime && (
-                <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-zinc-400" data-testid={`text-clocktime-${report.id}`}>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`text-clocktime-${report.id}`}>
                   <Clock className="h-3 w-3" />
                   {report.clockTime}
                 </span>
@@ -485,15 +485,15 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
 
           <div className="flex items-center gap-3 shrink-0 pr-1">
             <div className="text-right hidden sm:block">
-              <p className="text-xs text-gray-500 dark:text-zinc-400" data-testid={`text-anomaly-time-${report.id}`}>
+              <p className="text-xs text-muted-foreground" data-testid={`text-anomaly-time-${report.id}`}>
                 {formatDate(report.clockTime || report.createdAt)}
               </p>
-              <p className="text-[10px] text-gray-400 dark:text-zinc-500">
+              <p className="text-[10px] text-muted-foreground">
                 {relativeTime(report.clockTime || report.createdAt)}
               </p>
             </div>
             <motion.div animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronRight className="h-4 w-4 text-gray-400 dark:text-zinc-500" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </motion.div>
           </div>
         </button>
@@ -508,7 +508,7 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
             transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5 border-t border-gray-100 dark:border-zinc-800 pt-4" data-testid={`detail-anomaly-${report.id}`}>
+            <div className="px-5 pb-5 border-t border pt-4" data-testid={`detail-anomaly-${report.id}`}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {report.employeeName && <DetailRow label="員工姓名" value={report.employeeName} icon={User} />}
                 {report.employeeCode && <DetailRow label="員工編號" value={report.employeeCode} icon={Hash} />}
@@ -559,7 +559,7 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
                           href={imgSrc}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="shrink-0 h-24 w-24 rounded-lg border border-gray-200 dark:border-zinc-700 overflow-hidden hover:opacity-80 transition-opacity bg-gray-100 dark:bg-zinc-800 flex items-center justify-center"
+                          className="shrink-0 h-24 w-24 rounded-lg border border overflow-hidden hover:opacity-80 transition-opacity bg-muted flex items-center justify-center"
                           data-testid={`img-anomaly-${report.id}-${i}`}
                         >
                           <img
@@ -573,7 +573,7 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
                               const parent = el.parentElement;
                               if (parent && !parent.querySelector(".img-fallback")) {
                                 const fallback = document.createElement("div");
-                                fallback.className = "img-fallback flex flex-col items-center justify-center h-full w-full text-gray-400 dark:text-zinc-500";
+                                fallback.className = "img-fallback flex flex-col items-center justify-center h-full w-full text-muted-foreground";
                                 fallback.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><span style="font-size:9px;margin-top:4px">載入失敗</span>`;
                                 parent.appendChild(fallback);
                               }
@@ -590,13 +590,13 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
                 <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-3">處理狀態</p>
                 <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3">
                   <div className="flex-1 w-full">
-                    <label className="text-xs text-gray-500 dark:text-zinc-400 mb-1 block">備註說明</label>
+                    <label className="text-xs text-muted-foreground mb-1 block">備註說明</label>
                     <input
                       type="text"
                       value={noteInput}
                       onChange={(e) => setNoteInput(e.target.value)}
                       placeholder="輸入處理備註..."
-                      className="w-full rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                      className="w-full rounded-lg border border bg-card px-3 py-2 text-sm text-foreground placeholder:text-gray-400 dark:placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                       data-testid={`input-note-${report.id}`}
                     />
                   </div>
@@ -628,7 +628,7 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
                   </div>
                 </div>
                 {report.resolvedNote && (
-                  <p className="mt-2 text-xs text-gray-500 dark:text-zinc-400">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     <span className="font-medium">目前備註：</span>{report.resolvedNote}
                   </p>
                 )}
@@ -636,10 +636,10 @@ function AnomalyCard({ report, selected, onToggleSelect }: { report: AnomalyRepo
 
               {report.reportText && (
                 <details className="mt-3 group">
-                  <summary className="text-[10px] font-medium text-gray-400 dark:text-zinc-500 uppercase tracking-wide cursor-pointer hover:text-gray-600 dark:hover:text-zinc-300 transition-colors" data-testid={`toggle-report-text-${report.id}`}>
+                  <summary className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide cursor-pointer hover:text-gray-600 dark:hover:text-zinc-300 transition-colors" data-testid={`toggle-report-text-${report.id}`}>
                     完整報告文字 ▸
                   </summary>
-                  <pre className="mt-2 text-xs text-gray-600 dark:text-zinc-400 whitespace-pre-wrap bg-gray-50 dark:bg-zinc-800/50 rounded-xl p-3 border border-gray-100 dark:border-zinc-700 font-mono leading-relaxed" data-testid={`text-report-full-${report.id}`}>
+                  <pre className="mt-2 text-xs text-gray-600 dark:text-muted-foreground whitespace-pre-wrap bg-muted/50 rounded-xl p-3 border border font-mono leading-relaxed" data-testid={`text-report-full-${report.id}`}>
                     {report.reportText}
                   </pre>
                 </details>
@@ -743,7 +743,7 @@ export default function AnomalyReportsPage() {
   const hasActiveFilters = searchQuery || venueFilter !== "all" || statusFilter !== "all";
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50/80 dark:bg-zinc-950" data-testid="page-anomaly-reports">
+    <div className="h-full overflow-y-auto bg-background" data-testid="page-anomaly-reports">
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -756,10 +756,10 @@ export default function AnomalyReportsPage() {
               <AlertTriangle className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-800 dark:text-zinc-100" data-testid="text-page-title">
+              <h1 className="text-lg font-semibold text-foreground" data-testid="text-page-title">
                 打卡異常管理
               </h1>
-              <p className="text-sm text-gray-400 dark:text-zinc-500">
+              <p className="text-sm text-muted-foreground">
                 即時監控排班系統打卡異常紀錄 · 自動 10 秒刷新
               </p>
             </div>
@@ -786,26 +786,26 @@ export default function AnomalyReportsPage() {
 
         <NotificationSettingsPanel />
 
-        <motion.div variants={fadeIn} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-4">
+        <motion.div variants={fadeIn} className="vercel-card p-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-zinc-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="搜尋員工姓名、編號、場館..."
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-sm text-gray-700 dark:text-zinc-200 placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border bg-muted text-sm text-foreground placeholder:text-gray-400 dark:placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 data-testid="input-search"
               />
             </div>
 
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400 dark:text-zinc-500 shrink-0" />
+              <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
               <select
                 value={venueFilter}
                 onChange={(e) => setVenueFilter(e.target.value)}
-                className="rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="rounded-lg border border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 data-testid="select-venue"
               >
                 <option value="all">全部場館</option>
@@ -817,7 +817,7 @@ export default function AnomalyReportsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                className="rounded-lg border border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 data-testid="select-status"
               >
                 <option value="all">全部狀態</option>
@@ -831,7 +831,7 @@ export default function AnomalyReportsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => { setSearchQuery(""); setVenueFilter("all"); setStatusFilter("all"); }}
-                className="text-gray-400 hover:text-gray-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                className="text-gray-400 hover:text-gray-600 dark:text-muted-foreground dark:hover:text-zinc-300"
                 data-testid="button-clear-filters"
               >
                 <X className="h-4 w-4 mr-1" />
@@ -845,7 +845,7 @@ export default function AnomalyReportsPage() {
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-blue-50 dark:bg-blue-950/30 rounded-2xl border border-blue-200 dark:border-blue-800/50 p-4"
+            className="bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800/50 p-4"
           >
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-sm font-semibold text-blue-700 dark:text-blue-300" data-testid="text-selected-count">
@@ -857,7 +857,7 @@ export default function AnomalyReportsPage() {
                   value={batchNote}
                   onChange={(e) => setBatchNote(e.target.value)}
                   placeholder="批量備註（選填）..."
-                  className="w-full rounded-lg border border-blue-200 dark:border-blue-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-sm text-gray-700 dark:text-zinc-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full rounded-lg border border-blue-200 dark:border-blue-700 bg-card px-3 py-1.5 text-sm text-foreground placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   data-testid="input-batch-note"
                 />
               </div>
@@ -900,25 +900,25 @@ export default function AnomalyReportsPage() {
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-red-500" />
-            <p className="text-sm text-gray-400 dark:text-zinc-500">載入異常紀錄中...</p>
+            <p className="text-sm text-muted-foreground">載入異常紀錄中...</p>
           </div>
         )}
 
         {error && (
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-red-200 dark:border-red-800/50 p-8 text-center">
+          <div className="vercel-card border-red-200 dark:border-red-800/50 p-8 text-center">
             <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-gray-700 dark:text-zinc-200 mb-1">無法載入異常紀錄</p>
-            <p className="text-xs text-gray-400 dark:text-zinc-500">{(error as Error).message}</p>
+            <p className="text-sm font-semibold text-foreground mb-1">無法載入異常紀錄</p>
+            <p className="text-xs text-muted-foreground">{(error as Error).message}</p>
           </div>
         )}
 
         {!isLoading && !error && reports && reports.length === 0 && (
-          <motion.div variants={fadeIn} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-12 text-center">
-            <Inbox className="h-12 w-12 text-gray-300 dark:text-zinc-600 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-gray-500 dark:text-zinc-400 mb-1" data-testid="text-empty-state">
+          <motion.div variants={fadeIn} className="vercel-card p-12 text-center">
+            <Inbox className="h-12 w-12 text-muted-foreground/60 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-muted-foreground mb-1" data-testid="text-empty-state">
               目前沒有異常紀錄
             </p>
-            <p className="text-xs text-gray-400 dark:text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               當排班系統偵測到打卡異常時，紀錄會自動顯示在此處
             </p>
           </motion.div>
@@ -927,7 +927,7 @@ export default function AnomalyReportsPage() {
         {!isLoading && !error && reports && reports.length > 0 && (
           <motion.div variants={containerVariants} className="space-y-3" data-testid="list-anomaly-reports">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-gray-500 dark:text-zinc-400">
+              <span className="text-xs font-semibold text-muted-foreground">
                 {hasActiveFilters
                   ? `篩選結果：${filteredReports.length} / ${reports.length} 筆`
                   : `共 ${reports.length} 筆異常紀錄`}
@@ -937,7 +937,7 @@ export default function AnomalyReportsPage() {
                   variant="ghost"
                   size="sm"
                   onClick={selectAllFiltered}
-                  className="text-xs text-gray-500 dark:text-zinc-400 h-7"
+                  className="text-xs text-muted-foreground h-7"
                   data-testid="button-select-all"
                 >
                   <CheckSquare className="h-3.5 w-3.5 mr-1" />
@@ -948,7 +948,7 @@ export default function AnomalyReportsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={clearSelection}
-                    className="text-xs text-gray-500 dark:text-zinc-400 h-7"
+                    className="text-xs text-muted-foreground h-7"
                     data-testid="button-deselect-all"
                   >
                     取消全選
@@ -957,10 +957,10 @@ export default function AnomalyReportsPage() {
               </div>
             </div>
             {filteredReports.length === 0 && hasActiveFilters && (
-              <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-8 text-center">
-                <Search className="h-8 w-8 text-gray-300 dark:text-zinc-600 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-gray-500 dark:text-zinc-400 mb-1">無符合條件的紀錄</p>
-                <p className="text-xs text-gray-400 dark:text-zinc-500">請調整篩選條件或清除搜尋</p>
+              <div className="vercel-card p-8 text-center">
+                <Search className="h-8 w-8 text-muted-foreground/60 mx-auto mb-3" />
+                <p className="text-sm font-semibold text-muted-foreground mb-1">無符合條件的紀錄</p>
+                <p className="text-xs text-muted-foreground">請調整篩選條件或清除搜尋</p>
               </div>
             )}
             {filteredReports.map((report) => (

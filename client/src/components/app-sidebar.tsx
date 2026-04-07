@@ -56,23 +56,19 @@ function ThemeToggle() {
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
-    if (saved === "dark") {
-      setDark(true);
-    } else if (saved === "light") {
-      setDark(false);
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setDark(true);
-    }
+    if (saved === "dark") setDark(true);
+    else if (saved === "light") setDark(false);
+    else if (window.matchMedia("(prefers-color-scheme: dark)").matches) setDark(true);
   }, []);
 
   return (
     <button
       onClick={() => setDark(!dark)}
-      className="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-xs font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+      className="flex items-center gap-2 w-full rounded-md px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
       data-testid="button-theme-toggle"
     >
-      {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-      <span>{dark ? "淺色模式" : "深色模式"}</span>
+      {dark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+      <span>{dark ? "Light" : "Dark"}</span>
     </button>
   );
 }
@@ -84,21 +80,23 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <LayoutDashboard className="h-5 w-5" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground text-background">
+            <LayoutDashboard className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-sidebar-foreground" data-testid="text-app-title">
-              DAOS 管理後台
+            <p className="text-sm font-semibold tracking-heading text-foreground" data-testid="text-app-title">
+              DAOS
             </p>
-            <p className="text-xs text-muted-foreground">LINE Bot 監控系統 v2.1</p>
+            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">v2.1</p>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         {["營運管理", "公告歸納", "系統管理"].map((group) => (
           <SidebarGroup key={group}>
-            <SidebarGroupLabel>{group}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground px-3">
+              {group}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navItems.filter((item) => item.group === group).map((item) => {
@@ -108,11 +106,11 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         asChild
                         data-active={isActive || undefined}
-                        className={isActive ? "data-[active=true]:bg-sidebar-accent" : ""}
+                        className={isActive ? "bg-accent font-medium" : ""}
                       >
                         <Link href={item.url} data-testid={`link-nav-${item.title}`}>
                           <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
+                          <span className="text-[13px]">{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -125,9 +123,9 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="p-4 space-y-2">
         <ThemeToggle />
-        <div className="rounded-lg bg-sidebar-accent/50 p-3">
-          <p className="text-xs text-muted-foreground">
-            駿斯運動事業 LINE Bot 管理平台
+        <div className="px-3 py-2">
+          <p className="text-[11px] text-muted-foreground font-mono uppercase tracking-wider">
+            駿斯運動事業
           </p>
         </div>
       </SidebarFooter>

@@ -123,12 +123,12 @@ function TaskTicket({ task, isCompleted }: { task: HistoryTask; isCompleted: boo
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-700 p-4 hover:shadow-md transition-shadow"
+      className="vercel-card p-4 hover:shadow-sm transition-shadow"
       data-testid={`card-task-${taskNum}`}
     >
-      <p className="text-xs font-mono text-gray-400 dark:text-zinc-500 mb-1.5">#{taskNum}</p>
-      <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100 leading-snug mb-3">{desc}</p>
-      <div className="space-y-1.5 text-xs text-gray-500 dark:text-zinc-400">
+      <p className="text-xs font-mono text-muted-foreground mb-1.5">#{taskNum}</p>
+      <p className="text-sm font-semibold text-foreground leading-snug mb-3">{desc}</p>
+      <div className="space-y-1.5 text-xs text-muted-foreground">
         {task.reporter && (
           <div className="flex items-center gap-1.5">
             <User className="h-3 w-3 shrink-0" />
@@ -204,18 +204,18 @@ function AnalyticsTaskHistoryDrawer({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed top-0 right-0 z-[51] h-full w-full max-w-3xl bg-gray-50 dark:bg-zinc-950 shadow-2xl overflow-y-auto"
+        className="fixed top-0 right-0 z-[51] h-full w-full max-w-3xl bg-background shadow-2xl overflow-y-auto"
         data-testid="drawer-task-history"
       >
-        <div className="sticky top-0 z-10 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b border px-6 py-4 flex items-center justify-between">
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100 truncate" data-testid="text-drawer-title">
+            <h2 className="text-lg font-semibold text-foreground truncate" data-testid="text-drawer-title">
               {venueName}
             </h2>
-            <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">任務歷史紀錄 · 雙欄泳道圖</p>
+            <p className="text-xs text-muted-foreground mt-0.5">任務歷史紀錄 · 雙欄泳道圖</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors" data-testid="button-close-drawer">
-            <X className="h-5 w-5 text-gray-500 dark:text-zinc-400" />
+            <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
 
@@ -223,14 +223,14 @@ function AnalyticsTaskHistoryDrawer({
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-loading">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-              <p className="text-sm text-gray-400 dark:text-zinc-500">載入任務歷史中...</p>
+              <p className="text-sm text-muted-foreground">載入任務歷史中...</p>
             </div>
           )}
 
           {!loading && tasks.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-empty">
-              <Inbox className="h-12 w-12 text-gray-300 dark:text-zinc-600" />
-              <p className="text-sm text-gray-400 dark:text-zinc-500">尚無歷史交辦任務紀錄</p>
+              <Inbox className="h-12 w-12 text-muted-foreground/60" />
+              <p className="text-sm text-muted-foreground">尚無歷史交辦任務紀錄</p>
             </div>
           )}
 
@@ -241,10 +241,10 @@ function AnalyticsTaskHistoryDrawer({
                   <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900/40">
                     <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                   </span>
-                  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200">待處理 ({openTasks.length})</h3>
+                  <h3 className="text-sm font-semibold text-foreground">待處理 ({openTasks.length})</h3>
                 </div>
                 {openTasks.length === 0 ? (
-                  <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
+                  <div className="rounded-xl border-2 border-dashed border p-8 text-center">
                     <p className="text-xs text-muted-foreground">目前無待處理任務</p>
                   </div>
                 ) : (
@@ -258,11 +258,11 @@ function AnalyticsTaskHistoryDrawer({
                   <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   </span>
-                  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200">已完成 ({completedTasks.length})</h3>
+                  <h3 className="text-sm font-semibold text-foreground">已完成 ({completedTasks.length})</h3>
                 </div>
                 {completedTasks.length === 0 ? (
-                  <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
-                    <p className="text-xs text-gray-400 dark:text-zinc-500">尚無已完成的任務</p>
+                  <div className="rounded-xl border-2 border-dashed border p-8 text-center">
+                    <p className="text-xs text-muted-foreground">尚無已完成的任務</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -291,11 +291,11 @@ function KpiCard({ item, index }: { item: KpiItem; index: number }) {
   const Icon = item.icon;
   return (
     <motion.div variants={cardVariants} whileHover={{ y: -3, transition: { duration: 0.2 } }} className="flex-1 min-w-[200px]">
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-5 cursor-default border border-gray-100 dark:border-zinc-800" data-testid={`card-analytics-kpi-${index}`}>
+      <div className="vercel-card p-5 cursor-default" data-testid={`card-analytics-kpi-${index}`}>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-medium tracking-wide uppercase text-gray-400 dark:text-zinc-500 mb-1" data-testid={`text-analytics-kpi-title-${index}`}>{item.title}</p>
-            <p className={`text-2xl font-bold tracking-tight ${item.accentColor}`} data-testid={`text-analytics-kpi-value-${index}`}>{item.value}{item.suffix}</p>
+            <p className="text-xs font-medium tracking-wide uppercase text-muted-foreground mb-1" data-testid={`text-analytics-kpi-title-${index}`}>{item.title}</p>
+            <p className={`text-2xl font-semibold tracking-tight ${item.accentColor}`} data-testid={`text-analytics-kpi-value-${index}`}>{item.value}{item.suffix}</p>
           </div>
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${item.iconBg}`}>
             <Icon className="h-5 w-5 text-white" />
@@ -308,17 +308,17 @@ function KpiCard({ item, index }: { item: KpiItem; index: number }) {
 
 function InteractionChart() {
   return (
-    <motion.div variants={cardVariants} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6" data-testid="card-interaction-chart">
+    <motion.div variants={cardVariants} className="vercel-card p-6" data-testid="card-interaction-chart">
       <div className="flex items-center gap-2 mb-5">
         <TrendingUp className="h-4 w-4 text-blue-500" />
-        <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-chart-title">近七日系統互動趨勢</h3>
+        <h3 className="text-sm font-semibold text-foreground" data-testid="text-chart-title">近七日系統互動趨勢</h3>
       </div>
       <div className="h-[280px] w-full flex flex-col items-center justify-center">
-        <div className="h-12 w-12 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-3">
-          <BarChart3 className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
+        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+          <BarChart3 className="h-5 w-5 text-muted-foreground" />
         </div>
-        <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">尚無互動趨勢資料</p>
-        <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">系統互動數據將於 API 接入後自動顯示</p>
+        <p className="text-sm font-medium text-muted-foreground">尚無互動趨勢資料</p>
+        <p className="text-xs text-muted-foreground mt-1">系統互動數據將於 API 接入後自動顯示</p>
       </div>
     </motion.div>
   );
@@ -337,11 +337,11 @@ function VenueLoadRanking({ venues, onVenueClick }: { venues: VenueLoad[]; onVen
   const maxTotal = Math.max(...venues.map((v) => v.total), 1);
 
   return (
-    <motion.div variants={cardVariants} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6" data-testid="card-venue-ranking">
+    <motion.div variants={cardVariants} className="vercel-card p-6" data-testid="card-venue-ranking">
       <div className="flex items-center gap-2 mb-5">
         <BarChart3 className="h-4 w-4 text-purple-500" />
-        <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-venue-ranking-title">各場館任務負載排行</h3>
-        <span className="text-[10px] text-gray-400 dark:text-zinc-500 ml-1">（點擊查看歷史任務）</span>
+        <h3 className="text-sm font-semibold text-foreground" data-testid="text-venue-ranking-title">各場館任務負載排行</h3>
+        <span className="text-[10px] text-muted-foreground ml-1">（點擊查看歷史任務）</span>
       </div>
       <div className="space-y-3">
         {venues.map((venue, i) => {
@@ -356,24 +356,24 @@ function VenueLoadRanking({ venues, onVenueClick }: { venues: VenueLoad[]; onVen
             >
               <div className="flex items-center justify-between gap-3 mb-1.5">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-bold text-gray-300 dark:text-zinc-600 w-5 text-right shrink-0">
+                  <span className="text-xs font-semibold text-muted-foreground/60 w-5 text-right shrink-0">
                     {i + 1}
                   </span>
-                  <Building2 className="h-3.5 w-3.5 text-gray-400 dark:text-zinc-500 shrink-0" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-zinc-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" data-testid={`text-venue-load-name-${i}`}>
+                  <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium text-foreground truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" data-testid={`text-venue-load-name-${i}`}>
                     {venue.name}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-xs text-gray-400 dark:text-zinc-500" data-testid={`text-venue-load-stats-${i}`}>
+                  <span className="text-xs text-muted-foreground" data-testid={`text-venue-load-stats-${i}`}>
                     {venue.completed}/{venue.total} 完成
                   </span>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 w-12 text-right" data-testid={`text-venue-load-rate-${i}`}>
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 w-12 text-right" data-testid={`text-venue-load-rate-${i}`}>
                     {venue.rate.toFixed(0)}%
                   </span>
                 </div>
               </div>
-              <div className="ml-7 h-2 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div className="ml-7 h-2 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-400 transition-all duration-700"
                   style={{ width: `${barWidth}%` }}
@@ -383,7 +383,7 @@ function VenueLoadRanking({ venues, onVenueClick }: { venues: VenueLoad[]; onVen
           );
         })}
         {venues.length === 0 && (
-          <p className="text-sm text-gray-400 dark:text-zinc-500 text-center py-6" data-testid="text-venue-ranking-empty">
+          <p className="text-sm text-muted-foreground text-center py-6" data-testid="text-venue-ranking-empty">
             暫無場館任務資料
           </p>
         )}
@@ -398,7 +398,7 @@ function LoadingSkeleton() {
       <div className="flex flex-wrap gap-5">
         {[0, 1, 2].map((i) => (
           <div key={i} className="flex-1 min-w-[200px]">
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-zinc-800">
+            <div className="vercel-card p-5">
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-2"><Skeleton className="h-3 w-16" /><Skeleton className="h-7 w-14" /></div>
                 <Skeleton className="h-10 w-10 rounded-lg" />
@@ -407,11 +407,11 @@ function LoadingSkeleton() {
           </div>
         ))}
       </div>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-zinc-800">
+      <div className="vercel-card p-6">
         <Skeleton className="h-4 w-40 mb-4" />
         <Skeleton className="h-[280px] w-full rounded-xl" />
       </div>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-zinc-800 space-y-4">
+      <div className="vercel-card p-6 space-y-4">
         <Skeleton className="h-4 w-40" />
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="space-y-2">
@@ -430,14 +430,14 @@ function LoadingSkeleton() {
 function ErrorBlock({ message, onRetry, isRetrying }: { message: string; onRetry: () => void; isRetrying: boolean }) {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="flex flex-col items-center justify-center py-20">
-      <div className="rounded-2xl bg-white dark:bg-zinc-900 shadow-sm border border-gray-100 dark:border-zinc-800 p-10 max-w-lg w-full text-center space-y-5">
+      <div className="vercel-card p-10 max-w-lg w-full text-center space-y-5">
         <div className="flex justify-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/30">
             <AlertCircle className="h-7 w-7 text-red-500" />
           </div>
         </div>
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-zinc-100" data-testid="text-analytics-error-title">無法載入資料</h2>
-        <p className="text-sm text-gray-500 dark:text-zinc-400" data-testid="text-analytics-error-message">{message}</p>
+        <h2 className="text-lg font-semibold text-foreground" data-testid="text-analytics-error-title">無法載入資料</h2>
+        <p className="text-sm text-muted-foreground" data-testid="text-analytics-error-message">{message}</p>
         <Button variant="outline" onClick={onRetry} disabled={isRetrying} data-testid="button-analytics-retry">
           <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? "animate-spin" : ""}`} />
           {isRetrying ? "重新載入中..." : "重新載入"}
@@ -526,15 +526,15 @@ export default function Analytics() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50/80 dark:bg-zinc-950">
+    <div className="h-full overflow-y-auto bg-background">
       <div className="p-6 lg:p-8 max-w-[1440px] mx-auto space-y-8">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2.5 mb-1">
               <TrendingUp className="h-5 w-5 text-blue-500" />
-              <h1 className="text-xl font-bold tracking-tight text-gray-800 dark:text-zinc-100" data-testid="text-analytics-page-title">決策與數據洞察</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-foreground" data-testid="text-analytics-page-title">決策與數據洞察</h1>
             </div>
-            <p className="text-sm text-gray-400 dark:text-zinc-500">任務數據分析、互動趨勢與場館負載總覽</p>
+            <p className="text-sm text-muted-foreground">任務數據分析、互動趨勢與場館負載總覽</p>
           </div>
           <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading} data-testid="button-analytics-refresh" className="shrink-0">
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? "animate-spin" : ""}`} />

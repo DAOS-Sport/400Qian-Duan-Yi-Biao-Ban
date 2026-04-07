@@ -246,17 +246,17 @@ export default function SystemHealthPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            <h1 className="text-lg font-bold text-gray-800 dark:text-zinc-100" data-testid="text-page-title">
+            <h1 className="text-lg font-semibold text-foreground" data-testid="text-page-title">
               微服務健康監控
             </h1>
           </div>
-          <p className="text-sm text-gray-400 dark:text-zinc-500 ml-7" data-testid="text-page-subtitle">
+          <p className="text-sm text-muted-foreground ml-7" data-testid="text-page-subtitle">
             即時 API 端點健康檢測 · 每 60 秒自動刷新
           </p>
         </div>
         <div className="flex items-center gap-4">
           {lastChecked && (
-            <span className="text-[11px] text-gray-400 dark:text-zinc-500">
+            <span className="text-[11px] text-muted-foreground">
               最後檢測：{lastChecked.toLocaleTimeString("zh-TW")}
             </span>
           )}
@@ -276,8 +276,8 @@ export default function SystemHealthPage() {
       </motion.div>
 
       <motion.div variants={fadeIn}>
-        <h2 className="text-sm font-bold text-gray-700 dark:text-zinc-200 mb-4 flex items-center gap-2" data-testid="text-section-server-status">
-          <Gauge className="h-4 w-4 text-gray-500 dark:text-zinc-400" />
+        <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2" data-testid="text-section-server-status">
+          <Gauge className="h-4 w-4 text-muted-foreground" />
           API 端點即時狀態
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -291,19 +291,19 @@ export default function SystemHealthPage() {
                 whileHover={{ y: -3, transition: { duration: 0.2 } }}
                 data-testid={`card-service-${index}`}
               >
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-5">
+                <div className="vercel-card p-5">
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${result.endpoint.iconBg}`}>
                         <Icon className={`h-5 w-5 ${result.endpoint.iconColor}`} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-800 dark:text-zinc-100" data-testid={`text-service-name-${index}`}>
+                        <p className="text-sm font-semibold text-foreground" data-testid={`text-service-name-${index}`}>
                           {result.name}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className={`inline-block h-2 w-2 rounded-full ${getStatusColor(result.status)}`} />
-                          <span className="text-xs text-gray-500 dark:text-zinc-400" data-testid={`text-service-status-${index}`}>
+                          <span className="text-xs text-muted-foreground" data-testid={`text-service-status-${index}`}>
                             {getStatusLabel(result.status)}
                           </span>
                         </div>
@@ -315,19 +315,19 @@ export default function SystemHealthPage() {
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50 dark:bg-zinc-800/60 rounded-lg p-3 border border-gray-100 dark:border-zinc-700/50">
-                      <p className="text-[10px] uppercase tracking-wide font-medium text-gray-400 dark:text-zinc-500 mb-0.5">
+                    <div className="bg-muted/60 rounded-lg p-3 border border/50">
+                      <p className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground mb-0.5">
                         HTTP 狀態
                       </p>
-                      <p className={`text-sm font-bold ${result.httpStatus && result.httpStatus < 400 ? "text-emerald-600 dark:text-emerald-400" : result.httpStatus ? "text-red-600 dark:text-red-400" : "text-gray-400 dark:text-zinc-500"}`} data-testid={`text-service-http-${index}`}>
+                      <p className={`text-sm font-semibold ${result.httpStatus && result.httpStatus < 400 ? "text-emerald-600 dark:text-emerald-400" : result.httpStatus ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`} data-testid={`text-service-http-${index}`}>
                         {result.status === "checking" ? "..." : result.httpStatus ? `${result.httpStatus}` : "N/A"}
                       </p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-zinc-800/60 rounded-lg p-3 border border-gray-100 dark:border-zinc-700/50">
-                      <p className="text-[10px] uppercase tracking-wide font-medium text-gray-400 dark:text-zinc-500 mb-0.5">
+                    <div className="bg-muted/60 rounded-lg p-3 border border/50">
+                      <p className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground mb-0.5">
                         回應延遲
                       </p>
-                      <p className={`text-sm font-bold ${result.latency !== null && result.latency < 1000 ? "text-gray-800 dark:text-zinc-100" : result.latency !== null ? "text-amber-600 dark:text-amber-400" : "text-gray-400 dark:text-zinc-500"}`} data-testid={`text-service-latency-${index}`}>
+                      <p className={`text-sm font-semibold ${result.latency !== null && result.latency < 1000 ? "text-foreground" : result.latency !== null ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} data-testid={`text-service-latency-${index}`}>
                         {result.status === "checking" ? "..." : result.latency !== null ? `${result.latency}ms` : "N/A"}
                       </p>
                     </div>
@@ -345,38 +345,38 @@ export default function SystemHealthPage() {
       </motion.div>
 
       <motion.div variants={fadeIn}>
-        <h2 className="text-sm font-bold text-gray-700 dark:text-zinc-200 mb-4 flex items-center gap-2" data-testid="text-section-summary">
-          <Inbox className="h-4 w-4 text-gray-500 dark:text-zinc-400" />
+        <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2" data-testid="text-section-summary">
+          <Inbox className="h-4 w-4 text-muted-foreground" />
           檢測摘要
         </h2>
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-6">
+        <div className="vercel-card p-6">
           {allChecking ? (
             <div className="flex items-center justify-center gap-2 py-4">
               <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
-              <span className="text-sm text-gray-500 dark:text-zinc-400">正在檢測所有端點...</span>
+              <span className="text-sm text-muted-foreground">正在檢測所有端點...</span>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400" data-testid="text-summary-healthy">
+                <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400" data-testid="text-summary-healthy">
                   {results.filter((r) => r.status === "healthy").length}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">正常</p>
+                <p className="text-xs text-muted-foreground mt-0.5">正常</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400" data-testid="text-summary-degraded">
+                <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-summary-degraded">
                   {results.filter((r) => r.status === "degraded").length}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">延遲</p>
+                <p className="text-xs text-muted-foreground mt-0.5">延遲</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400" data-testid="text-summary-down">
+                <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-summary-down">
                   {results.filter((r) => r.status === "down").length}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">離線</p>
+                <p className="text-xs text-muted-foreground mt-0.5">離線</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-gray-700 dark:text-zinc-200" data-testid="text-summary-avg-latency">
+                <p className="text-2xl font-semibold text-foreground" data-testid="text-summary-avg-latency">
                   {(() => {
                     const valid = results.filter((r) => r.latency !== null);
                     if (valid.length === 0) return "—";
@@ -384,7 +384,7 @@ export default function SystemHealthPage() {
                     return `${avg}ms`;
                   })()}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">平均延遲</p>
+                <p className="text-xs text-muted-foreground mt-0.5">平均延遲</p>
               </div>
             </div>
           )}

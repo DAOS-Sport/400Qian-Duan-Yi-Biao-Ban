@@ -50,7 +50,7 @@ const sidebarStyle = {
 function HeaderTitle() {
   const [location] = useLocation();
   const title = PAGE_TITLES[location] || "DAOS 管理後台";
-  return <span className="text-sm font-medium text-muted-foreground" data-testid="text-page-title">{title}</span>;
+  return <span className="text-[13px] font-medium text-muted-foreground" data-testid="text-page-title">{title}</span>;
 }
 
 function App() {
@@ -58,10 +58,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-          <div className="flex h-screen w-full">
+          <div className="flex h-screen w-full bg-background">
             <AppSidebar />
             <div className="flex flex-col flex-1 min-w-0">
-              <header className="flex items-center gap-2 px-4 py-3 border-b bg-card/50 backdrop-blur-sm">
+              <header className="flex items-center gap-2.5 px-4 h-12 border-b bg-background/80 backdrop-blur-md" style={{ boxShadow: "rgba(0,0,0,0.08) 0px 1px 0px" }}>
                 <SidebarTrigger data-testid="button-sidebar-toggle" />
                 <div className="h-4 w-px bg-border" />
                 <HeaderTitle />

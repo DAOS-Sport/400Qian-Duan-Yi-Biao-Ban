@@ -283,14 +283,14 @@ interface KpiItem {
 function KpiCard({ item, index }: { item: KpiItem; index: number }) {
   const Icon = item.icon;
   return (
-    <motion.div variants={cardVariants} whileHover={{ y: -3, transition: { duration: 0.2 } }} className="flex-1 min-w-[200px]">
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-5 cursor-default border border-gray-100 dark:border-zinc-800" data-testid={`card-kpi-${index}`}>
+    <motion.div variants={cardVariants} whileHover={{ y: -2, transition: { duration: 0.15 } }} className="flex-1 min-w-[200px]">
+      <div className="vercel-card p-5 cursor-default" data-testid={`card-kpi-${index}`}>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-medium tracking-wide uppercase text-gray-400 dark:text-zinc-500 mb-1" data-testid={`text-kpi-title-${index}`}>{item.title}</p>
-            <p className={`text-2xl font-bold tracking-tight ${item.accentColor}`} data-testid={`text-kpi-value-${index}`}>{item.value}{item.suffix}</p>
+            <p className="vercel-mono text-muted-foreground mb-1.5" data-testid={`text-kpi-title-${index}`}>{item.title}</p>
+            <p className={`text-2xl font-semibold tracking-heading ${item.accentColor}`} data-testid={`text-kpi-value-${index}`}>{item.value}{item.suffix}</p>
           </div>
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${item.iconBg}`}>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${item.iconBg}`}>
             <Icon className="h-5 w-5 text-white" />
           </div>
         </div>
@@ -303,10 +303,10 @@ function SectionHeader({ icon: Icon, title, subtitle, color }: { icon: typeof Us
   return (
     <motion.div variants={fadeIn} className="mb-5">
       <div className="flex items-center gap-2 mb-1">
-        <Icon className={`h-5 w-5 ${color}`} />
-        <h2 className={`text-base font-bold ${color}`} data-testid={`text-section-${title}`}>{title}</h2>
+        <Icon className={`h-4 w-4 ${color}`} />
+        <h2 className="text-sm font-semibold tracking-heading text-foreground" data-testid={`text-section-${title}`}>{title}</h2>
       </div>
-      <p className="text-sm text-muted-foreground ml-7">{subtitle}</p>
+      <p className="text-[13px] text-muted-foreground ml-6">{subtitle}</p>
     </motion.div>
   );
 }
@@ -324,16 +324,16 @@ interface GlobalCardProps {
 
 function GlobalFeatureCard({ title, description, icon: Icon, gradient, iconColor, stats, isLiff, usageGuide }: GlobalCardProps) {
   return (
-    <motion.div variants={cardVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }} className="flex-1 min-w-[200px]">
-      <div className="bg-card rounded-2xl shadow-sm border p-5 h-full flex flex-col" data-testid={`card-global-${title}`}>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl mb-4 ${gradient}`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
+    <motion.div variants={cardVariants} whileHover={{ y: -2, transition: { duration: 0.15 } }} className="flex-1 min-w-[200px]">
+      <div className="vercel-card p-5 h-full flex flex-col" data-testid={`card-global-${title}`}>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-md mb-3 ${gradient}`}>
+          <Icon className={`h-4 w-4 ${iconColor}`} />
         </div>
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <p className="text-sm font-bold text-foreground">{title}</p>
+          <p className="text-sm font-semibold text-foreground">{title}</p>
           {isLiff && (
-            <span className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 whitespace-nowrap" data-testid={`badge-liff-${title}`}>
-              外接網頁 (LIFF)
+            <span className="vercel-pill bg-indigo-50 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300" data-testid={`badge-liff-${title}`}>
+              LIFF
             </span>
           )}
         </div>
@@ -348,7 +348,7 @@ function GlobalFeatureCard({ title, description, icon: Icon, gradient, iconColor
             {stats.map((s) => (
               <div key={s.label} className="flex items-center justify-between">
                 <span className="text-[11px] text-muted-foreground">{s.label}</span>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{s.value}</span>
+                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{s.value}</span>
               </div>
             ))}
           </div>
@@ -364,19 +364,19 @@ function PrivateSection({ privateData }: { privateData: any }) {
 
   return (
     <motion.div variants={fadeIn} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-      <div className="bg-blue-50/70 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900/40 p-6" data-testid="card-private-general">
+      <div className="bg-blue-50/70 dark:bg-blue-950/20 rounded-lg border border-blue-100 dark:border-blue-900/40 p-6" data-testid="card-private-general">
         <div className="flex items-center gap-2 mb-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50">
             <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </div>
-          <p className="text-sm font-bold text-blue-700 dark:text-blue-300">一般使用者</p>
+          <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">一般使用者</p>
         </div>
         <div className="space-y-3">
-          <div className="flex items-start gap-3 bg-white/80 dark:bg-zinc-900/60 rounded-xl p-3.5 border border-blue-100/60 dark:border-blue-900/30">
+          <div className="flex items-start gap-3 bg-card/80 rounded-xl p-3.5 border border-blue-100/60 dark:border-blue-900/30">
             <Search className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">員工編號 / LINE ID 綁定查詢</p>
-              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">透過私訊查詢員工資料與帳號綁定狀態</p>
+              <p className="text-sm font-semibold text-foreground">員工編號 / LINE ID 綁定查詢</p>
+              <p className="text-xs text-muted-foreground mt-0.5">透過私訊查詢員工資料與帳號綁定狀態</p>
               {generalBindings != null && (
                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">已綁定 {generalBindings} 人</p>
               )}
@@ -385,29 +385,29 @@ function PrivateSection({ privateData }: { privateData: any }) {
               </div>
             </div>
           </div>
-          <div className="flex items-start gap-3 bg-white/80 dark:bg-zinc-900/60 rounded-xl p-3.5 border border-blue-100/60 dark:border-blue-900/30">
+          <div className="flex items-start gap-3 bg-card/80 rounded-xl p-3.5 border border-blue-100/60 dark:border-blue-900/30">
             <MessageCircle className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">呼叫小編</p>
-              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">一對一私訊呼叫客服小編協助</p>
+              <p className="text-sm font-semibold text-foreground">呼叫小編</p>
+              <p className="text-xs text-muted-foreground mt-0.5">一對一私訊呼叫客服小編協助</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-amber-50/70 dark:bg-amber-950/20 rounded-2xl border border-amber-100 dark:border-amber-900/40 p-6" data-testid="card-private-admin">
+      <div className="bg-amber-50/70 dark:bg-amber-950/20 rounded-lg border border-amber-100 dark:border-amber-900/40 p-6" data-testid="card-private-admin">
         <div className="flex items-center gap-2 mb-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/50">
             <ShieldCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </div>
-          <p className="text-sm font-bold text-amber-700 dark:text-amber-300">管理層專屬</p>
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">管理層專屬</p>
         </div>
         <div className="space-y-3">
-          <div className="flex items-start gap-3 bg-white/80 dark:bg-zinc-900/60 rounded-xl p-3.5 border border-amber-100/60 dark:border-amber-900/30">
+          <div className="flex items-start gap-3 bg-card/80 rounded-xl p-3.5 border border-amber-100/60 dark:border-amber-900/30">
             <FileCheck className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
             <div>
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100">面試與救生員檢核</p>
+                <p className="text-sm font-semibold text-foreground">面試與救生員檢核</p>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 text-amber-400 cursor-help" />
@@ -417,7 +417,7 @@ function PrivateSection({ privateData }: { privateData: any }) {
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">介接體育署 API + Ragic 名單，進行資格驗證</p>
+              <p className="text-xs text-muted-foreground mt-0.5">介接體育署 API + Ragic 名單，進行資格驗證</p>
               <div className="bg-amber-50/80 dark:bg-amber-950/20 rounded-md p-2 mt-2 border border-amber-100/50 dark:border-amber-900/30" data-testid="guide-interview">
                 <p className="text-[11px] text-amber-600/80 dark:text-amber-400/80 leading-relaxed"><span className="font-semibold">嚴格觸發指令：</span>輸入「面試+身分證字號」（不含括號且無空格）</p>
               </div>
@@ -448,7 +448,7 @@ function CopyableId({ id }: { id: string }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); handleCopy(); }}
-      className="flex items-center gap-1 text-[10px] text-gray-300 dark:text-zinc-600 font-mono hover:text-gray-500 dark:hover:text-zinc-400 transition-colors cursor-pointer group"
+      className="flex items-center gap-1 text-[10px] text-muted-foreground/60 font-mono hover:text-gray-500 dark:hover:text-muted-foreground transition-colors cursor-pointer group"
       data-testid={`button-copy-${id}`}
       title="點擊複製 Group ID"
     >
@@ -491,16 +491,16 @@ function TaskTicket({ task, isCompleted }: { task: HistoryTask; isCompleted: boo
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-100 dark:border-zinc-700 p-4 hover:shadow-md transition-shadow"
+      className="vercel-card p-4 hover:shadow-sm transition-shadow"
       data-testid={`card-task-${taskNum}`}
     >
-      <p className="text-xs font-mono text-gray-400 dark:text-zinc-500 mb-1.5" data-testid={`text-task-id-${taskNum}`}>
+      <p className="text-xs font-mono text-muted-foreground mb-1.5" data-testid={`text-task-id-${taskNum}`}>
         #{taskNum}
       </p>
-      <p className="text-sm font-semibold text-gray-800 dark:text-zinc-100 leading-snug mb-3" data-testid={`text-task-desc-${taskNum}`}>
+      <p className="text-sm font-semibold text-foreground leading-snug mb-3" data-testid={`text-task-desc-${taskNum}`}>
         {desc}
       </p>
-      <div className="space-y-1.5 text-xs text-gray-500 dark:text-zinc-400">
+      <div className="space-y-1.5 text-xs text-muted-foreground">
         {task.reporter && (
           <div className="flex items-center gap-1.5" data-testid={`text-task-reporter-${taskNum}`}>
             <User className="h-3 w-3 shrink-0" />
@@ -560,7 +560,7 @@ function TaskSwimlaneContent({ groupId }: { groupId: string }) {
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-loading">
       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      <p className="text-sm text-gray-400 dark:text-zinc-500">載入任務歷史中...</p>
+      <p className="text-sm text-muted-foreground">載入任務歷史中...</p>
     </div>
   );
 
@@ -573,8 +573,8 @@ function TaskSwimlaneContent({ groupId }: { groupId: string }) {
 
   if (tasks.length === 0) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="drawer-empty">
-      <Inbox className="h-12 w-12 text-gray-300 dark:text-zinc-600" />
-      <p className="text-sm text-gray-400 dark:text-zinc-500">尚無歷史交辦任務紀錄</p>
+      <Inbox className="h-12 w-12 text-muted-foreground/60" />
+      <p className="text-sm text-muted-foreground">尚無歷史交辦任務紀錄</p>
     </div>
   );
 
@@ -585,10 +585,10 @@ function TaskSwimlaneContent({ groupId }: { groupId: string }) {
           <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900/40">
             <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
           </span>
-          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-open-title">待處理 ({openTasks.length})</h3>
+          <h3 className="text-sm font-semibold text-foreground" data-testid="text-lane-open-title">待處理 ({openTasks.length})</h3>
         </div>
         {openTasks.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
+          <div className="rounded-xl border-2 border-dashed border p-8 text-center">
             <p className="text-xs text-muted-foreground">目前無待處理任務</p>
           </div>
         ) : (
@@ -600,11 +600,11 @@ function TaskSwimlaneContent({ groupId }: { groupId: string }) {
           <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-emerald-100 dark:bg-emerald-900/40">
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
           </span>
-          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-200" data-testid="text-lane-completed-title">已完成 ({completedTasks.length})</h3>
+          <h3 className="text-sm font-semibold text-foreground" data-testid="text-lane-completed-title">已完成 ({completedTasks.length})</h3>
         </div>
         {completedTasks.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 p-8 text-center">
-            <p className="text-xs text-gray-400 dark:text-zinc-500">尚無已完成的任務</p>
+          <div className="rounded-xl border-2 border-dashed border p-8 text-center">
+            <p className="text-xs text-muted-foreground">尚無已完成的任務</p>
           </div>
         ) : (
           <div className="space-y-3">{completedTasks.map((t) => <TaskTicket key={t.id || t.taskId} task={t} isCompleted={true} />)}</div>
@@ -617,11 +617,11 @@ function TaskSwimlaneContent({ groupId }: { groupId: string }) {
 function WeatherPanel() {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4" data-testid="panel-weather">
-      <div className="h-16 w-16 rounded-2xl bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+      <div className="h-16 w-16 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
         <Cloud className="h-8 w-8 text-sky-500" />
       </div>
       <div className="text-center">
-        <p className="text-lg font-bold text-foreground">天氣 / 風力預報</p>
+        <p className="text-lg font-semibold text-foreground">天氣 / 風力預報</p>
         <p className="text-sm text-muted-foreground mt-2">待氣象 API 接入後即時顯示天氣與風力數據</p>
         <p className="text-xs text-muted-foreground/60 mt-1">LINE Bot 將在排定時間自動推送天氣資訊至群組</p>
       </div>
@@ -632,11 +632,11 @@ function WeatherPanel() {
 function WaterQualityPanel() {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4" data-testid="panel-water-quality">
-      <div className="h-16 w-16 rounded-2xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+      <div className="h-16 w-16 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
         <Droplets className="h-8 w-8 text-cyan-500" />
       </div>
       <div className="text-center">
-        <p className="text-lg font-bold text-foreground">水質監控</p>
+        <p className="text-lg font-semibold text-foreground">水質監控</p>
         <p className="text-sm text-muted-foreground mt-2">待水質感測 API 接入後即時顯示水質數據</p>
         <p className="text-xs text-muted-foreground/60 mt-1">系統將自動辨識群組內水質數據格式並記錄</p>
       </div>
@@ -647,24 +647,24 @@ function WaterQualityPanel() {
 function GptChatPanel() {
   return (
     <div className="space-y-4" data-testid="panel-gpt">
-      <div className="bg-gradient-to-r from-rose-500 to-pink-600 rounded-2xl p-5 text-white shadow-lg">
+      <div className="bg-gradient-to-r from-rose-500 to-pink-600 rounded-lg p-5 text-white shadow-lg">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
             <MessageCircle className="h-5 w-5" />
           </div>
           <div>
-            <p className="font-bold">GPT 小助理</p>
+            <p className="font-semibold">GPT 小助理</p>
             <p className="text-xs opacity-80">駿斯專屬 AI 對話助手 · 即時回覆</p>
           </div>
         </div>
       </div>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden">
+      <div className="bg-card rounded-lg border border overflow-hidden">
         <div className="p-8 flex flex-col items-center justify-center text-center">
-          <div className="h-12 w-12 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-3">
-            <Inbox className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
+          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+            <Inbox className="h-5 w-5 text-muted-foreground" />
           </div>
-          <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">尚無對話紀錄</p>
-          <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">GPT 小助理的對話紀錄將在此顯示</p>
+          <p className="text-sm font-medium text-muted-foreground">尚無對話紀錄</p>
+          <p className="text-xs text-muted-foreground mt-1">GPT 小助理的對話紀錄將在此顯示</p>
         </div>
       </div>
     </div>
@@ -676,13 +676,13 @@ function GenericFeaturePanel({ featureName }: { featureName: string }) {
   const FIcon = featureSpec?.icon || Layers;
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4" data-testid="panel-generic">
-      <div className={`h-16 w-16 rounded-2xl flex items-center justify-center ${featureSpec?.enabledBg || "bg-gray-100 dark:bg-zinc-800"}`}>
+      <div className={`h-16 w-16 rounded-lg flex items-center justify-center ${featureSpec?.enabledBg || "bg-muted"}`}>
         <FIcon className={`h-8 w-8 ${featureSpec?.color || "text-gray-400"}`} />
       </div>
       <div className="text-center">
-        <p className="text-lg font-bold text-foreground">{featureName}</p>
-        <p className="text-sm text-gray-400 dark:text-zinc-500 mt-2">模組詳細數據建置中...</p>
-        <p className="text-xs text-gray-300 dark:text-zinc-600 mt-1">後端 API 開發完成後將自動串接真實資料</p>
+        <p className="text-lg font-semibold text-foreground">{featureName}</p>
+        <p className="text-sm text-muted-foreground mt-2">模組詳細數據建置中...</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">後端 API 開發完成後將自動串接真實資料</p>
       </div>
     </div>
   );
@@ -723,18 +723,18 @@ function FeatureDetailDrawer({
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed top-0 right-0 z-[51] h-full w-full max-w-3xl bg-gray-50 dark:bg-zinc-950 shadow-2xl overflow-y-auto"
+        className="fixed top-0 right-0 z-[51] h-full w-full max-w-3xl bg-background shadow-2xl overflow-y-auto"
         data-testid="drawer-task-history"
       >
-        <div className="sticky top-0 z-10 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-md border-b border px-6 py-4 flex items-center justify-between">
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-zinc-100 truncate" data-testid="text-drawer-title">
+            <h2 className="text-lg font-semibold text-foreground truncate" data-testid="text-drawer-title">
               {venueName}
             </h2>
-            <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">{drawerTitle}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{drawerTitle}</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors" data-testid="button-close-drawer">
-            <X className="h-5 w-5 text-gray-500 dark:text-zinc-400" />
+            <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
 
@@ -786,23 +786,23 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="min-w-[300px] max-w-[300px] bg-slate-50/80 dark:bg-zinc-900/60 rounded-2xl p-4 flex flex-col shrink-0 snap-start shadow-inner border border-slate-200 dark:border-zinc-800"
+              className="min-w-[300px] max-w-[300px] bg-muted/60 rounded-lg p-4 flex flex-col shrink-0 snap-start shadow-inner border border"
               data-testid={`row-venue-${i}`}
             >
               <div className="pb-3 mb-3 border-b border-slate-200 dark:border-zinc-700">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-slate-200 dark:border-zinc-700 flex items-center justify-center shrink-0">
-                    <Building2 className="h-4 w-4 text-slate-500 dark:text-zinc-400" />
+                  <div className="h-8 w-8 rounded-lg bg-card vercel-ring flex items-center justify-center shrink-0">
+                    <Building2 className="h-4 w-4 text-slate-500 dark:text-muted-foreground" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-800 dark:text-zinc-100 truncate" data-testid={`text-venue-name-${i}`}>
+                    <p className="text-sm font-semibold text-foreground truncate" data-testid={`text-venue-name-${i}`}>
                       {displayName}
                     </p>
                     {group.groupId && <CopyableId id={group.groupId} />}
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 dark:text-zinc-500">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
                     <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                     {enabledCount} / {VENUE_FEATURES.length} 項啟用
                   </span>
@@ -811,7 +811,7 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
 
               <div className="flex flex-col gap-2.5 flex-1">
                 {activeFeatures.length === 0 ? (
-                  <p className="text-xs text-gray-400 dark:text-zinc-500 italic py-6 text-center" data-testid={`text-venue-empty-${i}`}>
+                  <p className="text-xs text-muted-foreground italic py-6 text-center" data-testid={`text-venue-empty-${i}`}>
                     尚無啟用功能
                   </p>
                 ) : (
@@ -823,7 +823,7 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
                           key={fi}
                           whileHover={{ scale: 1.02, y: -1 }}
                           whileTap={{ scale: 0.98 }}
-                          className="bg-white dark:bg-zinc-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-zinc-700 flex flex-col gap-1 hover:shadow-md transition-shadow cursor-pointer"
+                          className="vercel-card p-3-slate-200 dark:border-zinc-700 flex flex-col gap-1 hover:shadow-sm transition-shadow cursor-pointer"
                           data-testid={`badge-venue-${i}-${spec.label}-on`}
                           onClick={() => {
                             if (group.groupId) onFeatureClick(group.groupId, displayName, spec.label);
@@ -833,9 +833,9 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
                             <div className={`h-6 w-6 rounded-lg flex items-center justify-center ${spec.enabledBg}`}>
                               <FIcon className={`h-3.5 w-3.5 ${spec.color}`} />
                             </div>
-                            <span className="text-xs font-semibold text-gray-700 dark:text-zinc-200">{spec.label}</span>
+                            <span className="text-xs font-semibold text-foreground">{spec.label}</span>
                           </div>
-                          <p className="text-[10px] leading-tight text-gray-400 dark:text-zinc-500 ml-8">
+                          <p className="text-[10px] leading-tight text-muted-foreground ml-8">
                             {spec.instruction}
                           </p>
                         </motion.div>
@@ -852,8 +852,8 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
                           <Timer className="h-3.5 w-3.5 text-amber-500" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-gray-700 dark:text-zinc-200 truncate">{s.name || s.label}</p>
-                          <p className="text-[10px] text-gray-400 dark:text-zinc-500">{s.time || s.cron}</p>
+                          <p className="text-xs font-semibold text-foreground truncate">{s.name || s.label}</p>
+                          <p className="text-[10px] text-muted-foreground">{s.time || s.cron}</p>
                         </div>
                       </div>
                     ))}
@@ -863,7 +863,7 @@ function VenueSwimlane({ groups, venueData, onFeatureClick }: { groups: GroupDat
 
               {group.groupId && (
                 <button
-                  className="mt-4 w-full py-2.5 bg-white dark:bg-zinc-800 border border-slate-300 dark:border-zinc-600 rounded-xl text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors shadow-sm flex justify-center items-center gap-2"
+                  className="mt-4 w-full py-2.5 bg-card border border-slate-300 dark:border-zinc-600 rounded-xl text-sm font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors shadow-sm flex justify-center items-center gap-2"
                   data-testid={`button-venue-history-${i}`}
                   onClick={() => onFeatureClick(group.groupId!, displayName, "交辦任務")}
                 >
@@ -923,10 +923,10 @@ function MicroservicesSection({ healthData }: { healthData: any }) {
   }
 
   return (
-    <motion.div variants={fadeIn} className="bg-card rounded-2xl shadow-sm border p-6" data-testid="section-microservices">
+    <motion.div variants={fadeIn} className="vercel-card p-6" data-testid="section-microservices">
       <div className="flex items-center gap-2 mb-4">
         <Layers className="h-4 w-4 text-muted-foreground" />
-        <p className="text-sm font-bold text-foreground">系統微服務架構</p>
+        <p className="text-sm font-semibold text-foreground">系統微服務架構</p>
       </div>
       {services.length === 0 ? (
         <div className="text-center py-6">
@@ -969,7 +969,7 @@ function LoadingSkeleton() {
       <div className="flex flex-wrap gap-5">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="flex-1 min-w-[200px]">
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-zinc-800">
+            <div className="vercel-card p-5">
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-2"><Skeleton className="h-3 w-16" /><Skeleton className="h-7 w-14" /></div>
                 <Skeleton className="h-10 w-10 rounded-lg" />
@@ -983,7 +983,7 @@ function LoadingSkeleton() {
           <div><Skeleton className="h-5 w-40 mb-1" /><Skeleton className="h-3 w-64" /></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[0, 1].map((c) => (
-              <div key={c} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-zinc-800 space-y-3">
+              <div key={c} className="vercel-card p-5 space-y-3">
                 <Skeleton className="h-10 w-10 rounded-xl" />
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-3 w-full" />
@@ -999,15 +999,15 @@ function LoadingSkeleton() {
 function ErrorBlock({ message, onRetry, isRetrying }: { message: string; onRetry: () => void; isRetrying: boolean }) {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="flex flex-col items-center justify-center py-20">
-      <div className="rounded-2xl bg-white dark:bg-zinc-900 shadow-sm border border-gray-100 dark:border-zinc-800 p-10 max-w-lg w-full text-center space-y-5">
+      <div className="vercel-card p-10 max-w-lg w-full text-center space-y-5">
         <div className="flex justify-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/30">
             <AlertCircle className="h-7 w-7 text-red-500" />
           </div>
         </div>
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-zinc-100" data-testid="text-error-title">無法連線至真實伺服器</h2>
-        <p className="text-sm text-gray-500 dark:text-zinc-400" data-testid="text-error-message">{message}</p>
-        <p className="text-xs text-gray-400 dark:text-zinc-500">請確認後端伺服器已啟動，並檢查網路連線狀態。</p>
+        <h2 className="text-lg font-semibold text-foreground" data-testid="text-error-title">無法連線至真實伺服器</h2>
+        <p className="text-sm text-muted-foreground" data-testid="text-error-message">{message}</p>
+        <p className="text-xs text-muted-foreground">請確認後端伺服器已啟動，並檢查網路連線狀態。</p>
         <Button variant="outline" onClick={onRetry} disabled={isRetrying} data-testid="button-retry">
           <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? "animate-spin" : ""}`} />
           {isRetrying ? "重新連線中..." : "重新連線"}
@@ -1055,7 +1055,7 @@ function AnomalySummaryWidget() {
   return (
     <motion.div variants={fadeIn}>
       <div
-        className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800 p-5 cursor-pointer hover:shadow-md transition-shadow"
+        className="vercel-card p-5 cursor-pointer hover:shadow-sm transition-shadow"
         onClick={() => navigate("/anomaly-reports")}
         data-testid="widget-anomaly-summary"
       >
@@ -1065,34 +1065,34 @@ function AnomalySummaryWidget() {
               <AlertTriangle className="h-4 w-4 text-white" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-gray-800 dark:text-zinc-100">打卡異常監控</h3>
-              <p className="text-[10px] text-gray-400 dark:text-zinc-500">即時異常紀錄摘要</p>
+              <h3 className="text-sm font-semibold text-foreground">打卡異常監控</h3>
+              <p className="text-[10px] text-muted-foreground">即時異常紀錄摘要</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {pending.length > 0 && (
-              <span className="flex items-center gap-1 text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 rounded-full px-2.5 py-1" data-testid="badge-anomaly-pending">
+              <span className="flex items-center gap-1 text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 rounded-full px-2.5 py-1" data-testid="badge-anomaly-pending">
                 <CircleDot className="h-3 w-3" />
                 {pending.length} 待解決
               </span>
             )}
             {today.length > 0 && (
-              <span className="flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-full px-2.5 py-1" data-testid="badge-anomaly-today">
+              <span className="flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-full px-2.5 py-1" data-testid="badge-anomaly-today">
                 <AlertTriangle className="h-3 w-3" />
                 今日 {today.length}
               </span>
             )}
-            <ChevronRight className="h-4 w-4 text-gray-400 dark:text-zinc-500" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
         </div>
 
         {!hasReports && (
           <div className="flex flex-col items-center justify-center py-4 text-center">
-            <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-2">
-              <Inbox className="h-4 w-4 text-gray-400 dark:text-zinc-500" />
+            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-2">
+              <Inbox className="h-4 w-4 text-muted-foreground" />
             </div>
-            <p className="text-xs font-medium text-gray-500 dark:text-zinc-400">目前沒有異常紀錄</p>
-            <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5">當打卡系統偵測到異常時將自動顯示</p>
+            <p className="text-xs font-medium text-muted-foreground">目前沒有異常紀錄</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">當打卡系統偵測到異常時將自動顯示</p>
           </div>
         )}
 
@@ -1116,12 +1116,12 @@ function AnomalySummaryWidget() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-gray-700 dark:text-zinc-200 truncate">{r.employeeName || "未知"}</span>
-                      <span className={`text-[9px] font-bold rounded-full px-1.5 py-0.5 ${isResolved ? "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-300" : "bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-300"}`}>
+                      <span className="text-xs font-semibold text-foreground truncate">{r.employeeName || "未知"}</span>
+                      <span className={`text-[9px] font-semibold rounded-full px-1.5 py-0.5 ${isResolved ? "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-300" : "bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-300"}`}>
                         {isResolved ? "已處理" : "待解決"}
                       </span>
                     </div>
-                    <p className="text-[10px] text-gray-400 dark:text-zinc-500 truncate mt-0.5">
+                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                       {r.venueName || "—"} · {r.failReason || "異常"} · {formatTime(r.createdAt)}
                     </p>
                   </div>
@@ -1264,16 +1264,13 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50/80 dark:bg-zinc-950">
-      <div className="p-6 lg:p-8 max-w-[1440px] mx-auto space-y-10">
+    <div className="h-full overflow-y-auto bg-background">
+      <div className="p-6 lg:p-8 max-w-[1400px] mx-auto space-y-10">
 
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <div className="flex items-center gap-2.5 mb-1">
-              <CircleDot className="h-5 w-5 text-blue-500" />
-              <h1 className="text-xl font-bold tracking-tight text-gray-800 dark:text-zinc-100" data-testid="text-page-title">LINE Bot 系統全局藍圖</h1>
-            </div>
-            <p className="text-sm text-gray-400 dark:text-zinc-500">三大核心模組的運作狀態與權限分佈一覽</p>
+            <h1 className="text-xl font-semibold tracking-heading text-foreground" data-testid="text-page-title">LINE Bot 系統全局藍圖</h1>
+            <p className="text-[13px] text-muted-foreground mt-1">三大核心模組的運作狀態與權限分佈一覽</p>
           </div>
           {hasData && (
             <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading} data-testid="button-refresh" className="shrink-0">
@@ -1354,7 +1351,7 @@ export default function Dashboard() {
                   icon={Building2}
                   title="實體場館自動化矩陣"
                   subtitle="各實體場館群組的專屬觸發指令與定時推播"
-                  color="text-slate-700 dark:text-zinc-200"
+                  color="text-slate-700 dark:text-foreground"
                 />
                 <VenueSwimlane groups={groups} venueData={venueAutomations} onFeatureClick={handleFeatureClick} />
               </section>
