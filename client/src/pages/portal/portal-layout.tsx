@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import {
   Home,
   Search,
@@ -22,23 +22,33 @@ interface PortalLayoutProps {
 }
 
 const sidebarNavItems = [
-  { label: "首頁", icon: Home, path: "" },
-  { label: "公告 / SOP", icon: FileText, path: "/announcements" },
-  { label: "值班人員", icon: Users, path: "/on-duty" },
-  { label: "櫃台交接", icon: ClipboardList, path: "/handover" },
-  { label: "活動公告", icon: Megaphone, path: "/campaigns" },
+  { label: "首頁", icon: Home, sectionId: "" },
+  { label: "公告 / SOP", icon: FileText, sectionId: "section-must-read" },
+  { label: "值班人員", icon: Users, sectionId: "section-schedule" },
+  { label: "櫃台交接", icon: ClipboardList, sectionId: "section-handover" },
+  { label: "活動公告", icon: Megaphone, sectionId: "section-campaigns" },
 ];
+
+function scrollToSection(sectionId: string) {
+  if (!sectionId) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  const el = document.querySelector(`[data-testid="${sectionId}"]`);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
 
 export default function PortalLayout({ children, facilityKey }: PortalLayoutProps) {
   const { auth, logout } = usePortalAuth();
   const [, navigate] = useLocation();
-  const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeSection, setActiveSection] = useState("");
 
   const config = facilityKey ? getFacilityConfig(facilityKey) : null;
-  const basePath = facilityKey ? `/portal/${facilityKey}` : "/portal";
 
   const handleLogout = () => {
     logout();
@@ -82,23 +92,21 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
 
         <nav className="hidden md:flex items-center gap-1">
           {sidebarNavItems.slice(0, 4).map((item) => {
-            const fullPath = basePath + item.path;
-            const isActive = item.path === ""
-              ? location === basePath || location === basePath + "/"
-              : location.startsWith(fullPath);
+            const isActive = activeSection === item.sectionId;
             return (
-              <Link key={item.label} href={fullPath}>
-                <span
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-all cursor-pointer ${
-                    isActive
-                      ? "text-[#1CB4A3] border-b-2 border-[#1CB4A3]"
-                      : "text-slate-300 hover:text-white"
-                  }`}
-                  data-testid={`link-portal-nav-${item.label}`}
-                >
-                  {item.label}
-                </span>
-              </Link>
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => { setActiveSection(item.sectionId); scrollToSection(item.sectionId); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-widest uppercase transition-all cursor-pointer ${
+                  isActive
+                    ? "text-[#1CB4A3] border-b-2 border-[#1CB4A3]"
+                    : "text-slate-300 hover:text-white"
+                }`}
+                data-testid={`link-portal-nav-${item.label}`}
+              >
+                {item.label}
+              </button>
             );
           })}
         </nav>
@@ -205,32 +213,30 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
 
         <nav className="flex-1 space-y-0.5 px-2">
           {sidebarNavItems.map((item) => {
-            const fullPath = basePath + item.path;
-            const isActive = item.path === ""
-              ? location === basePath || location === basePath + "/"
-              : location.startsWith(fullPath);
+            const isActive = activeSection === item.sectionId;
             return (
-              <Link key={item.label} href={fullPath}>
-                <span
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200 cursor-pointer ${
-                    isActive
-                      ? "text-white font-semibold shadow-lg"
-                      : "text-slate-300 hover:text-[#1CB4A3] hover:bg-white/10"
-                  }`}
-                  style={
-                    isActive
-                      ? {
-                          background: "linear-gradient(135deg, #1CB4A3, #8DC63F)",
-                          boxShadow: "0 4px 16px rgba(28,180,163,0.25)",
-                        }
-                      : {}
-                  }
-                  data-testid={`link-sidebar-${item.label}`}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </span>
-              </Link>
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => { setActiveSection(item.sectionId); scrollToSection(item.sectionId); }}
+                className={`flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm transition-all duration-200 cursor-pointer ${
+                  isActive
+                    ? "text-white font-semibold shadow-lg"
+                    : "text-slate-300 hover:text-[#1CB4A3] hover:bg-white/10"
+                }`}
+                style={
+                  isActive
+                    ? {
+                        background: "linear-gradient(135deg, #1CB4A3, #8DC63F)",
+                        boxShadow: "0 4px 16px rgba(28,180,163,0.25)",
+                      }
+                    : {}
+                }
+                data-testid={`link-sidebar-${item.label}`}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </button>
             );
           })}
         </nav>
@@ -278,30 +284,27 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
             }}
           >
             {sidebarNavItems.map((item) => {
-              const fullPath = basePath + item.path;
-              const isActive = item.path === ""
-                ? location === basePath || location === basePath + "/"
-                : location.startsWith(fullPath);
+              const isActive = activeSection === item.sectionId;
               return (
-                <Link key={item.label} href={fullPath}>
-                  <span
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all cursor-pointer ${
-                      isActive
-                        ? "text-white font-semibold"
-                        : "text-slate-300"
-                    }`}
-                    style={
-                      isActive
-                        ? { background: "linear-gradient(135deg, #1CB4A3, #8DC63F)" }
-                        : {}
-                    }
-                    onClick={() => setMobileMenuOpen(false)}
-                    data-testid={`link-mobile-${item.label}`}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </span>
-                </Link>
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => { setActiveSection(item.sectionId); scrollToSection(item.sectionId); setMobileMenuOpen(false); }}
+                  className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm transition-all cursor-pointer ${
+                    isActive
+                      ? "text-white font-semibold"
+                      : "text-slate-300"
+                  }`}
+                  style={
+                    isActive
+                      ? { background: "linear-gradient(135deg, #1CB4A3, #8DC63F)" }
+                      : {}
+                  }
+                  data-testid={`link-mobile-${item.label}`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </button>
               );
             })}
           </div>
@@ -322,22 +325,20 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
         data-testid="portal-bottom-nav"
       >
         {sidebarNavItems.slice(0, 4).map((item) => {
-          const fullPath = basePath + item.path;
-          const isActive = item.path === ""
-            ? location === basePath || location === basePath + "/"
-            : location.startsWith(fullPath);
+          const isActive = activeSection === item.sectionId;
           return (
-            <Link key={item.label} href={fullPath}>
-              <span
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 cursor-pointer ${
-                  isActive ? "text-[#1CB4A3]" : "text-slate-400"
-                }`}
-                data-testid={`link-bottom-${item.label}`}
-              >
-                <item.icon className="h-4 w-4" />
-                <span className="text-[9px] font-medium">{item.label}</span>
-              </span>
-            </Link>
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => { setActiveSection(item.sectionId); scrollToSection(item.sectionId); }}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 cursor-pointer ${
+                isActive ? "text-[#1CB4A3]" : "text-slate-400"
+              }`}
+              data-testid={`link-bottom-${item.label}`}
+            >
+              <item.icon className="h-4 w-4" />
+              <span className="text-[9px] font-medium">{item.label}</span>
+            </button>
           );
         })}
       </nav>
