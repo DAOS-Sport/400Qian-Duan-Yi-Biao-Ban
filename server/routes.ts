@@ -522,7 +522,7 @@ export async function registerRoutes(
 
   app.post("/api/auth/ragic-login", async (req, res) => {
     try {
-      const { employeeNumber, phone } = req.body || {};
+      const { employeeNumber, phone } = (req.body || {}) as { employeeNumber?: string; phone?: string };
       if (!employeeNumber || !phone) {
         return res.status(400).json({ message: "請提供員工編號和手機號碼" });
       }
@@ -532,7 +532,7 @@ export async function registerRoutes(
       const ragicSheetPath = process.env.RAGIC_EMPLOYEE_SHEET || "/default/1";
 
       if (!ragicApiKey) {
-        console.log("[ragic-login] RAGIC_API_KEY not set, using fallback validation");
+        console.log("[ragic-login] RAGIC_API_KEY not set");
         return res.status(503).json({
           message: "Ragic API 尚未設定，請聯繫管理員設定 RAGIC_API_KEY",
         });
@@ -553,14 +553,14 @@ export async function registerRoutes(
         return res.status(502).json({ message: "無法連線至 Ragic，請稍後再試" });
       }
 
-      const data = await upstream.json();
-      const entries = Object.values(data) as any[];
+      const data = (await upstream.json()) as Record<string, Record<string, string>>;
+      const entries = Object.values(data);
 
       if (entries.length === 0) {
         return res.status(401).json({ message: "查無此員工編號" });
       }
 
-      const employee = entries[0] as Record<string, any>;
+      const employee = entries[0];
 
       const storedPhone = String(employee["1001"] || "").trim().replace(/[-\s]/g, "");
       const inputPhone = phone.trim().replace(/[-\s]/g, "");
@@ -575,9 +575,10 @@ export async function registerRoutes(
         role: employee["1003"] || undefined,
         facility: employee["1004"] || undefined,
       });
-    } catch (err: any) {
-      console.error("[ragic-login] Error:", err.message);
-      res.status(500).json({ message: err.message || "登入驗證失敗" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "登入驗證失敗";
+      console.error("[ragic-login] Error:", message);
+      res.status(500).json({ message });
     }
   });
 

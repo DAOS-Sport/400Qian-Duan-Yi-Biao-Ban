@@ -17,6 +17,7 @@ import NotFound from "@/pages/not-found";
 import PortalLogin from "@/pages/portal/portal-login";
 import PortalLayout from "@/pages/portal/portal-layout";
 import PortalHome from "@/pages/portal/portal-home";
+import PortalSetup from "@/pages/portal/portal-setup";
 import { usePortalAuth } from "@/hooks/use-bound-facility";
 
 const PAGE_TITLES: Record<string, string> = {
@@ -58,18 +59,27 @@ function PortalFacilityPage({ params }: { params: { facilityKey: string } }) {
   return (
     <PortalAuthGuard>
       <PortalLayout facilityKey={params.facilityKey}>
-        <PortalHome facilityKey={params.facilityKey} />
+        {(searchTerm: string) => (
+          <PortalHome facilityKey={params.facilityKey} searchTerm={searchTerm} />
+        )}
       </PortalLayout>
     </PortalAuthGuard>
   );
 }
 
 function PortalIndexPage() {
+  const { isLoggedIn } = usePortalAuth();
   const facilityKey = localStorage.getItem("facilityKey");
+
+  if (!isLoggedIn) {
+    return <Redirect to="/portal/login" />;
+  }
+
   if (facilityKey) {
     return <Redirect to={`/portal/${facilityKey}`} />;
   }
-  return <Redirect to="/portal/login" />;
+
+  return <PortalSetup />;
 }
 
 function PortalRouter() {

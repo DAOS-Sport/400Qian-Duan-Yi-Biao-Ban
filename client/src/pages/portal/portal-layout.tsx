@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useRoute } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Home,
   Search,
@@ -12,14 +12,12 @@ import {
   Users,
   ClipboardList,
   Megaphone,
-  ChevronRight,
 } from "lucide-react";
-import { usePortalAuth, useBoundFacility } from "@/hooks/use-bound-facility";
-import { getFacilityConfig, getAllActiveFacilities } from "@/config/facility-configs";
-import type { FacilityConfig } from "@/types/portal";
+import { usePortalAuth } from "@/hooks/use-bound-facility";
+import { getFacilityConfig } from "@/config/facility-configs";
 
 interface PortalLayoutProps {
-  children: React.ReactNode;
+  children: (searchTerm: string) => React.ReactNode;
   facilityKey?: string;
 }
 
@@ -75,7 +73,6 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
             </div>
             <span
               className="text-white font-bold text-base tracking-tight hidden sm:block"
-              style={{ fontFamily: "'Manrope', sans-serif" }}
               data-testid="text-portal-brand"
             >
               {config?.shortName || "駿斯"}
@@ -97,7 +94,6 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
                       ? "text-[#1CB4A3] border-b-2 border-[#1CB4A3]"
                       : "text-slate-300 hover:text-white"
                   }`}
-                  style={{ fontFamily: "'Inter', sans-serif" }}
                   data-testid={`link-portal-nav-${item.label}`}
                 >
                   {item.label}
@@ -163,7 +159,6 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
               style={{
                 background: "rgba(255,255,255,0.08)",
                 border: "1px solid rgba(255,255,255,0.12)",
-                fontFamily: "'Inter', sans-serif",
               }}
               data-testid="input-portal-search"
             />
@@ -179,9 +174,7 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
       )}
 
       <aside
-        className={`hidden md:flex flex-col fixed left-0 top-0 w-60 h-screen pt-20 z-30 ${
-          mobileMenuOpen ? "" : ""
-        }`}
+        className="hidden md:flex flex-col fixed left-0 top-0 w-60 h-screen pt-20 z-30"
         style={{
           background: "rgba(25,51,90,0.92)",
           backdropFilter: "blur(20px)",
@@ -200,11 +193,10 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
               <Building2 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <div className="text-white font-bold text-sm" style={{ fontFamily: "'Manrope', sans-serif" }}>
+              <div className="text-white font-bold text-sm">
                 {config?.facilityName || "選擇場館"}
               </div>
-              <div className="text-[#8DC63F] text-[10px] font-semibold tracking-widest uppercase"
-                style={{ fontFamily: "'Inter', sans-serif" }}>
+              <div className="text-[#8DC63F] text-[10px] font-semibold tracking-widest uppercase">
                 值班中
               </div>
             </div>
@@ -230,9 +222,8 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
                       ? {
                           background: "linear-gradient(135deg, #1CB4A3, #8DC63F)",
                           boxShadow: "0 4px 16px rgba(28,180,163,0.25)",
-                          fontFamily: "'Inter', sans-serif",
                         }
-                      : { fontFamily: "'Inter', sans-serif" }
+                      : {}
                   }
                   data-testid={`link-sidebar-${item.label}`}
                 >
@@ -263,7 +254,6 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 w-full px-4 py-2 rounded-lg text-slate-300 hover:text-red-400 hover:bg-white/5 text-sm transition-colors"
-              style={{ fontFamily: "'Inter', sans-serif" }}
               data-testid="button-sidebar-logout"
             >
               <LogOut className="h-4 w-4" />
@@ -319,7 +309,7 @@ export default function PortalLayout({ children, facilityKey }: PortalLayoutProp
       )}
 
       <main className="md:ml-60 pt-16 min-h-screen">
-        {children}
+        {children(searchTerm)}
       </main>
 
       <nav

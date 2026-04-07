@@ -170,6 +170,59 @@
   }
 }
 
+.portal {
+  --portal-primary: #001d42;
+  --portal-primary-container: #19335a;
+  --portal-secondary: #006b60;
+  --portal-accent: #1CB4A3;
+  --portal-green: #8DC63F;
+  --portal-bg: #f7f9fb;
+  --portal-surface: #ffffff;
+  --portal-surface-container: #eceef0;
+  --portal-surface-container-low: #f2f4f6;
+  --portal-on-surface: #191c1e;
+  --portal-on-surface-variant: #44474e;
+  --portal-outline: #74777f;
+  --portal-outline-variant: #c4c6cf;
+  --portal-font-headline: 'Manrope', sans-serif;
+  --portal-font-body: 'Inter', sans-serif;
+  --portal-ambient-shadow: 0 30px 40px -20px rgba(25,28,30,0.06);
+  --portal-gradient-accent: linear-gradient(135deg, #1CB4A3, #8DC63F);
+}
+
+.portal * {
+  font-family: var(--portal-font-body);
+}
+
+.portal h1,
+.portal h2,
+.portal h3 {
+  font-family: var(--portal-font-headline);
+  letter-spacing: -0.02em;
+}
+
+.portal .portal-card {
+  background: var(--portal-surface);
+  border-radius: 0.75rem;
+  box-shadow: var(--portal-ambient-shadow);
+  transition: box-shadow 0.2s ease;
+}
+
+.portal .portal-card:hover {
+  box-shadow: 0 30px 50px -15px rgba(25,28,30,0.1);
+}
+
+.portal .portal-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--portal-font-body);
+  letter-spacing: 0.02em;
+}
+
 @layer utilities {
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;

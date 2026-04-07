@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   FileText,
@@ -13,7 +14,16 @@ import {
   Shield,
   Calendar,
   MapPin,
+  X,
+  User,
+  Ticket,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { getFacilityConfig } from "@/config/facility-configs";
 import { usePortalAuth } from "@/hooks/use-bound-facility";
 import type { AnnouncementCandidate, AnnouncementCandidatesResponse } from "@/types/announcement";
@@ -53,6 +63,15 @@ function formatDate(dateStr: string | undefined) {
   }
 }
 
+function formatFullDate(dateStr: string | undefined) {
+  if (!dateStr) return "-";
+  try {
+    return new Date(dateStr).toLocaleString("zh-TW", { timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return dateStr;
+  }
+}
+
 function SectionCard({
   icon: Icon,
   title,
@@ -70,8 +89,7 @@ function SectionCard({
 }) {
   return (
     <div
-      className={`bg-white rounded-xl p-6 relative overflow-hidden group ${className}`}
-      style={{ boxShadow: "0 30px 40px -20px rgba(25,28,30,0.06)" }}
+      className={`portal-card p-6 relative overflow-hidden group ${className}`}
       data-testid={testId}
     >
       <div
@@ -80,10 +98,7 @@ function SectionCard({
       />
       <div className="flex items-center gap-2.5 mb-4">
         <Icon className="h-5 w-5" style={{ color: accentColor }} />
-        <h2
-          className="text-lg font-bold tracking-tight"
-          style={{ fontFamily: "'Manrope', sans-serif", color: "#001d42" }}
-        >
+        <h2 className="text-lg font-bold tracking-tight" style={{ color: "#001d42" }}>
           {title}
         </h2>
       </div>
@@ -92,12 +107,20 @@ function SectionCard({
   );
 }
 
-function AnnouncementItem({ item }: { item: AnnouncementCandidate }) {
+function AnnouncementItem({
+  item,
+  onClick,
+}: {
+  item: AnnouncementCandidate;
+  onClick: () => void;
+}) {
   const priority = derivePriority(item);
   const ps = PRIORITY_STYLES[priority];
   return (
-    <div
-      className={`${ps.bg} border ${ps.border} rounded-lg p-3 transition-all hover:shadow-sm cursor-pointer`}
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full text-left ${ps.bg} border ${ps.border} rounded-lg p-3 transition-all hover:shadow-sm cursor-pointer`}
       data-testid={`portal-announcement-${item.id}`}
     >
       <div className="flex items-start gap-2.5">
@@ -107,7 +130,7 @@ function AnnouncementItem({ item }: { item: AnnouncementCandidate }) {
             <p className="text-sm font-semibold truncate" style={{ color: "#001d42" }}>
               {item.title || "(無標題)"}
             </p>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white/60" style={{ color: "#006b60" }}>
+            <span className="portal-pill" style={{ color: "#006b60", background: "rgba(28,180,163,0.1)" }}>
               {TYPE_LABELS[item.candidateType] || item.candidateType}
             </span>
           </div>
@@ -124,7 +147,7 @@ function AnnouncementItem({ item }: { item: AnnouncementCandidate }) {
                 {priority === "critical" ? (
                   <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
                 ) : (
-                  <Users className="h-3 w-3" />
+                  <User className="h-3 w-3" />
                 )}
                 {item.displayName}
               </span>
@@ -133,27 +156,171 @@ function AnnouncementItem({ item }: { item: AnnouncementCandidate }) {
         </div>
         <ChevronRight className="h-4 w-4 text-gray-300 shrink-0 mt-1" />
       </div>
-    </div>
+    </button>
   );
 }
 
-function MustReadSection({ facilityName }: { facilityName: string }) {
-  const { data, isLoading, isError } = useQuery<AnnouncementCandidatesResponse>({
-    queryKey: ["/api/announcement-candidates", { status: "approved", facilityName, candidateType: "rule", pageSize: 5 }],
+function AnnouncementDetailSheet({
+  candidate,
+  open,
+  onClose,
+}: {
+  candidate: AnnouncementCandidate | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  if (!candidate) return null;
+  const priority = derivePriority(candidate);
+  const ps = PRIORITY_STYLES[priority];
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <SheetContent
+        className="portal w-full sm:max-w-lg overflow-y-auto"
+        style={{ background: "var(--portal-bg, #f7f9fb)" }}
+        data-testid="sheet-announcement-detail"
+      >
+        <SheetHeader>
+          <SheetTitle className="text-lg font-bold pr-6" style={{ color: "#001d42" }} data-testid="text-sheet-title">
+            {candidate.title || "(無標題)"}
+          </SheetTitle>
+        </SheetHeader>
+
+        <div className="mt-4 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <span className={`portal-pill ${ps.bg} ${ps.border} border`}>
+              <span className={`w-1.5 h-1.5 rounded-full mr-1 ${ps.dot}`} />
+              {ps.label}
+            </span>
+            <span className="portal-pill" style={{ color: "#006b60", background: "rgba(28,180,163,0.1)" }}>
+              {TYPE_LABELS[candidate.candidateType] || candidate.candidateType}
+            </span>
+            {candidate.scopeType && (
+              <span className="portal-pill bg-blue-50 text-blue-700">
+                <Shield className="h-3 w-3 mr-0.5" />
+                {candidate.scopeType}
+              </span>
+            )}
+          </div>
+
+          <div className="rounded-lg p-3 border" style={{ background: "#eceef0", borderColor: "#c4c6cf" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="h-4 w-4" style={{ color: "#1CB4A3" }} />
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#44474e" }}>來源</span>
+            </div>
+            <p className="text-sm font-semibold" style={{ color: "#001d42" }}>{candidate.facilityName || "未知場館"}</p>
+            {candidate.displayName && (
+              <p className="text-xs mt-1" style={{ color: "#44474e" }}>
+                發送者: {candidate.displayName}
+              </p>
+            )}
+            <p className="text-[10px] mt-1" style={{ color: "#74777f" }}>
+              {formatFullDate(candidate.detectedAt)}
+            </p>
+          </div>
+
+          {candidate.summary && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#74777f" }}>摘要</p>
+              <p className="text-sm leading-relaxed" style={{ color: "#191c1e" }}>{candidate.summary}</p>
+            </div>
+          )}
+
+          {candidate.recommendedAction && (
+            <div className="rounded-lg p-3 border border-blue-200 bg-blue-50">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 mb-1">建議動作</p>
+              <p className="text-sm" style={{ color: "#191c1e" }}>{candidate.recommendedAction}</p>
+            </div>
+          )}
+
+          {candidate.badExample && (
+            <div className="rounded-lg p-3 border border-red-200 bg-red-50">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-red-600 mb-1">不當範例</p>
+              <p className="text-sm" style={{ color: "#191c1e" }}>{candidate.badExample}</p>
+            </div>
+          )}
+
+          {candidate.recommendedReply && (
+            <div className="rounded-lg p-3 border border-emerald-200 bg-emerald-50">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 mb-1">建議回覆</p>
+              <p className="text-sm" style={{ color: "#191c1e" }}>{candidate.recommendedReply}</p>
+            </div>
+          )}
+
+          {candidate.originalText && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#74777f" }}>原始訊息</p>
+              <div className="rounded-lg p-3 border" style={{ background: "#f2f4f6", borderColor: "#c4c6cf" }}>
+                <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: "#191c1e" }}>{candidate.originalText}</p>
+              </div>
+            </div>
+          )}
+
+          {candidate.reasoningTags && candidate.reasoningTags.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#74777f" }}>標籤</p>
+              <div className="flex flex-wrap gap-1">
+                {candidate.reasoningTags.map((tag, i) => (
+                  <span key={i} className="portal-pill bg-gray-100 text-gray-600">{tag}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function useFilteredAnnouncements(
+  facilityName: string,
+  candidateTypes: string[],
+  pageSize: number,
+  searchTerm: string,
+) {
+  const params: Record<string, string> = {
+    status: "approved",
+    facilityName,
+    pageSize: String(pageSize),
+  };
+  if (candidateTypes.length === 1) {
+    params.candidateType = candidateTypes[0];
+  }
+  if (searchTerm) {
+    params.keyword = searchTerm;
+  }
+
+  const query = useQuery<AnnouncementCandidatesResponse>({
+    queryKey: ["/api/announcement-candidates", params],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        status: "approved",
-        facilityName,
-        candidateType: "rule",
-        pageSize: "5",
-      });
-      const res = await fetch(`/api/announcement-candidates?${params}`);
+      const sp = new URLSearchParams(params);
+      const res = await fetch(`/api/announcement-candidates?${sp}`);
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
     },
   });
 
-  const items = data?.candidates || data?.items || [];
+  let items = query.data?.candidates || query.data?.items || [];
+
+  if (candidateTypes.length > 1) {
+    items = items.filter((c) => candidateTypes.includes(c.candidateType));
+  }
+
+  return { ...query, items };
+}
+
+function MustReadSection({
+  facilityName,
+  searchTerm,
+  onSelect,
+}: {
+  facilityName: string;
+  searchTerm: string;
+  onSelect: (c: AnnouncementCandidate) => void;
+}) {
+  const { items, isLoading, isError } = useFilteredAnnouncements(
+    facilityName, ["rule", "notice", "script"], 10, searchTerm,
+  );
 
   return (
     <SectionCard icon={Shield} title="必讀公告 / SOP" accentColor="#e53e3e" testId="section-must-read">
@@ -172,30 +339,26 @@ function MustReadSection({ facilityName }: { facilityName: string }) {
         <p className="text-sm text-gray-400 py-4">目前沒有待讀公告</p>
       )}
       <div className="space-y-2">
-        {items.map((item) => (
-          <AnnouncementItem key={item.id} item={item} />
+        {items.slice(0, 5).map((item) => (
+          <AnnouncementItem key={item.id} item={item} onClick={() => onSelect(item)} />
         ))}
       </div>
     </SectionCard>
   );
 }
 
-function GroupAnnouncementsSection({ facilityName }: { facilityName: string }) {
-  const { data, isLoading, isError } = useQuery<AnnouncementCandidatesResponse>({
-    queryKey: ["/api/announcement-candidates", { status: "approved", facilityName, pageSize: 6 }],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        status: "approved",
-        facilityName,
-        pageSize: "6",
-      });
-      const res = await fetch(`/api/announcement-candidates?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
-    },
-  });
-
-  const items = data?.candidates || data?.items || [];
+function GroupAnnouncementsSection({
+  facilityName,
+  searchTerm,
+  onSelect,
+}: {
+  facilityName: string;
+  searchTerm: string;
+  onSelect: (c: AnnouncementCandidate) => void;
+}) {
+  const { items, isLoading, isError } = useFilteredAnnouncements(
+    facilityName, ["rule", "notice", "script"], 10, searchTerm,
+  );
 
   return (
     <SectionCard icon={Megaphone} title="群組重要公告" accentColor="#1CB4A3" testId="section-group-announcements">
@@ -214,31 +377,26 @@ function GroupAnnouncementsSection({ facilityName }: { facilityName: string }) {
         <p className="text-sm text-gray-400 py-4">目前沒有群組公告</p>
       )}
       <div className="space-y-2">
-        {items.map((item) => (
-          <AnnouncementItem key={item.id} item={item} />
+        {items.slice(0, 6).map((item) => (
+          <AnnouncementItem key={item.id} item={item} onClick={() => onSelect(item)} />
         ))}
       </div>
     </SectionCard>
   );
 }
 
-function CampaignsSection({ facilityName }: { facilityName: string }) {
-  const { data, isLoading, isError } = useQuery<AnnouncementCandidatesResponse>({
-    queryKey: ["/api/announcement-candidates", { status: "approved", facilityName, candidateType: "campaign", pageSize: 4 }],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        status: "approved",
-        facilityName,
-        candidateType: "campaign",
-        pageSize: "4",
-      });
-      const res = await fetch(`/api/announcement-candidates?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
-    },
-  });
-
-  const items = data?.candidates || data?.items || [];
+function CampaignsSection({
+  facilityName,
+  searchTerm,
+  onSelect,
+}: {
+  facilityName: string;
+  searchTerm: string;
+  onSelect: (c: AnnouncementCandidate) => void;
+}) {
+  const { items, isLoading, isError } = useFilteredAnnouncements(
+    facilityName, ["campaign", "discount"], 6, searchTerm,
+  );
 
   return (
     <SectionCard icon={Megaphone} title="活動 / 優惠" accentColor="#8DC63F" testId="section-campaigns">
@@ -257,8 +415,8 @@ function CampaignsSection({ facilityName }: { facilityName: string }) {
         <p className="text-sm text-gray-400 py-4">目前沒有活動或優惠</p>
       )}
       <div className="space-y-2">
-        {items.map((item) => (
-          <AnnouncementItem key={item.id} item={item} />
+        {items.slice(0, 4).map((item) => (
+          <AnnouncementItem key={item.id} item={item} onClick={() => onSelect(item)} />
         ))}
       </div>
     </SectionCard>
@@ -290,7 +448,8 @@ function ContactsSection({ config }: { config: FacilityConfig }) {
             {cp.phone && (
               <a
                 href={`tel:${cp.phone}`}
-                className="text-xs font-mono text-[#006b60] hover:underline"
+                className="text-xs font-mono hover:underline"
+                style={{ color: "#006b60" }}
                 data-testid={`link-phone-${cp.type}`}
               >
                 {cp.phone}
@@ -323,13 +482,25 @@ function HandoverSection() {
   );
 }
 
-interface PortalHomeProps {
-  facilityKey: string;
+function RentalSection() {
+  return (
+    <SectionCard icon={Ticket} title="場租管理" accentColor="#006b60" testId="section-rental">
+      <p className="text-sm text-gray-400 py-4 italic">
+        場租資訊串接後自動顯示
+      </p>
+    </SectionCard>
+  );
 }
 
-export default function PortalHome({ facilityKey }: PortalHomeProps) {
+interface PortalHomeProps {
+  facilityKey: string;
+  searchTerm?: string;
+}
+
+export default function PortalHome({ facilityKey, searchTerm = "" }: PortalHomeProps) {
   const config = getFacilityConfig(facilityKey);
   const { auth } = usePortalAuth();
+  const [selectedCandidate, setSelectedCandidate] = useState<AnnouncementCandidate | null>(null);
 
   if (!config) {
     return (
@@ -343,23 +514,26 @@ export default function PortalHome({ facilityKey }: PortalHomeProps) {
     );
   }
 
+  const handleSelect = (c: AnnouncementCandidate) => setSelectedCandidate(c);
+  const handleCloseSheet = () => setSelectedCandidate(null);
+
   return (
     <div className="px-4 md:px-8 py-6 pb-20 md:pb-8">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
           <MapPin className="h-4 w-4" style={{ color: "#1CB4A3" }} />
-          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#1CB4A3", fontFamily: "'Inter', sans-serif" }}>
+          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#1CB4A3" }}>
             {config.shortName}
           </span>
         </div>
         <h1
           className="text-2xl md:text-3xl font-black leading-tight mb-1"
-          style={{ fontFamily: "'Manrope', sans-serif", color: "#001d42" }}
+          style={{ color: "#001d42" }}
           data-testid="text-portal-home-title"
         >
           {auth ? `${auth.name}，你好` : "歡迎"}
         </h1>
-        <p className="text-sm text-gray-500" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <p className="text-sm text-gray-500">
           {config.facilityName} — 值班資訊總覽
         </p>
       </div>
@@ -367,22 +541,29 @@ export default function PortalHome({ facilityKey }: PortalHomeProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8 space-y-6">
           {config.sections.mustRead && (
-            <MustReadSection facilityName={config.facilityName} />
+            <MustReadSection facilityName={config.facilityName} searchTerm={searchTerm} onSelect={handleSelect} />
           )}
           {config.sections.groupAnnouncements && (
-            <GroupAnnouncementsSection facilityName={config.facilityName} />
+            <GroupAnnouncementsSection facilityName={config.facilityName} searchTerm={searchTerm} onSelect={handleSelect} />
           )}
           {config.sections.handover && <HandoverSection />}
         </div>
 
         <div className="lg:col-span-4 space-y-6">
           {config.sections.campaigns && (
-            <CampaignsSection facilityName={config.facilityName} />
+            <CampaignsSection facilityName={config.facilityName} searchTerm={searchTerm} onSelect={handleSelect} />
           )}
           {config.sections.onDutyStaff && <OnDutySection />}
           {config.sections.contacts && <ContactsSection config={config} />}
+          {config.sections.rental && <RentalSection />}
         </div>
       </div>
+
+      <AnnouncementDetailSheet
+        candidate={selectedCandidate}
+        open={!!selectedCandidate}
+        onClose={handleCloseSheet}
+      />
     </div>
   );
 }

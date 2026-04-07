@@ -7,6 +7,13 @@ import { getAllActiveFacilities } from "@/config/facility-configs";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+interface RagicLoginResponse {
+  employeeNumber: string;
+  name: string;
+  role?: string;
+  facility?: string;
+}
+
 export default function PortalLogin() {
   const [employeeNumber, setEmployeeNumber] = useState("");
   const [phone, setPhone] = useState("");
@@ -17,14 +24,14 @@ export default function PortalLogin() {
   const facilities = getAllActiveFacilities();
 
   const loginMut = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<RagicLoginResponse> => {
       const res = await apiRequest("POST", "/api/auth/ragic-login", {
         employeeNumber: employeeNumber.trim(),
         phone: phone.trim(),
       });
-      return res.json();
+      return res.json() as Promise<RagicLoginResponse>;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: RagicLoginResponse) => {
       login({
         employeeNumber: data.employeeNumber || employeeNumber.trim(),
         name: data.name || employeeNumber.trim(),
@@ -73,12 +80,10 @@ export default function PortalLogin() {
             <Building2 className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight"
-            style={{ fontFamily: "'Manrope', sans-serif" }}
             data-testid="text-portal-login-title">
             員工值班入口
           </h1>
-          <p className="text-slate-300 text-sm mt-1"
-            style={{ fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-slate-300 text-sm mt-1">
             駿斯運動事業 — 員工專屬系統
           </p>
         </div>
@@ -94,8 +99,7 @@ export default function PortalLogin() {
           }}
         >
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-widest"
-              style={{ fontFamily: "'Inter', sans-serif" }}>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-widest">
               員工編號
             </label>
             <div className="relative">
@@ -109,7 +113,6 @@ export default function PortalLogin() {
                 style={{
                   background: "rgba(255,255,255,0.08)",
                   border: "1px solid rgba(255,255,255,0.12)",
-                  fontFamily: "'Inter', sans-serif",
                 }}
                 data-testid="input-employee-number"
               />
@@ -117,8 +120,7 @@ export default function PortalLogin() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-widest"
-              style={{ fontFamily: "'Inter', sans-serif" }}>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-widest">
               手機號碼（密碼）
             </label>
             <div className="relative">
@@ -132,7 +134,6 @@ export default function PortalLogin() {
                 style={{
                   background: "rgba(255,255,255,0.08)",
                   border: "1px solid rgba(255,255,255,0.12)",
-                  fontFamily: "'Inter', sans-serif",
                 }}
                 data-testid="input-phone"
               />
@@ -140,8 +141,7 @@ export default function PortalLogin() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-widest"
-              style={{ fontFamily: "'Inter', sans-serif" }}>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-widest">
               選擇場館
             </label>
             <select
@@ -151,7 +151,6 @@ export default function PortalLogin() {
               style={{
                 background: "rgba(255,255,255,0.08)",
                 border: "1px solid rgba(255,255,255,0.12)",
-                fontFamily: "'Inter', sans-serif",
               }}
               data-testid="select-facility"
             >
@@ -170,7 +169,6 @@ export default function PortalLogin() {
             className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50"
             style={{
               background: "linear-gradient(135deg, #1CB4A3, #8DC63F)",
-              fontFamily: "'Manrope', sans-serif",
               boxShadow: "0 4px 16px rgba(28,180,163,0.3)",
             }}
             data-testid="button-login"
@@ -184,8 +182,7 @@ export default function PortalLogin() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-slate-400 mt-6"
-          style={{ fontFamily: "'Inter', sans-serif" }}>
+        <p className="text-center text-xs text-slate-400 mt-6">
           如有登入問題，請聯繫您的場館主管
         </p>
       </div>
