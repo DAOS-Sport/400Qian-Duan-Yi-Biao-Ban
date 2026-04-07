@@ -19,6 +19,7 @@ import PortalLayout from "@/pages/portal/portal-layout";
 import PortalHome from "@/pages/portal/portal-home";
 import PortalSetup from "@/pages/portal/portal-setup";
 import { usePortalAuth } from "@/hooks/use-bound-facility";
+import { getFacilityConfig } from "@/config/facility-configs";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "營運戰情總覽",
@@ -70,12 +71,13 @@ function PortalFacilityPage({ params }: { params: { facilityKey: string } }) {
 function PortalIndexPage() {
   const { isLoggedIn } = usePortalAuth();
   const facilityKey = localStorage.getItem("facilityKey");
+  const validFacility = facilityKey ? getFacilityConfig(facilityKey) : null;
 
   if (!isLoggedIn) {
     return <Redirect to="/portal/login" />;
   }
 
-  if (facilityKey) {
+  if (validFacility && facilityKey) {
     return <Redirect to={`/portal/${facilityKey}`} />;
   }
 

@@ -24,7 +24,7 @@ interface PortalLayoutProps {
 const sidebarNavItems = [
   { label: "首頁", icon: Home, sectionId: "" },
   { label: "公告 / SOP", icon: FileText, sectionId: "section-must-read" },
-  { label: "值班人員", icon: Users, sectionId: "section-schedule" },
+  { label: "值班人員", icon: Users, sectionId: "section-on-duty" },
   { label: "櫃台交接", icon: ClipboardList, sectionId: "section-handover" },
   { label: "活動公告", icon: Megaphone, sectionId: "section-campaigns" },
 ];
