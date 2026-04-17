@@ -521,22 +521,24 @@ export async function registerRoutes(
   });
 
   // Ragic 員工資料表 (xinsheng/ragicforms4/13)
-  // 欄位 ID:
-  //   3000935 = 工號 (employee number)
-  //   3001424 = 手機 (work mobile, primary)
-  //   3000941 = 手機 (personal mobile, fallback)
+  // where 查詢用 numeric FID，response 用中文 caption key
+  // FID 對照：
+  //   3000935 = 員工編號 (主鍵)
+  //   3001424 = 手機（主表唯一手機欄位）
   //   3000933 = 姓名
-  //   3000937 = 部門
+  //   3000937 = 部門 (回傳 string[])
   //   3000939 = 職稱
   //   3000945 = 在職狀態
-  const RAGIC_FIELDS = {
+  const RAGIC_QUERY_FID = {
     employeeNumber: "3000935",
-    workMobile: "3001424",
-    personalMobile: "3000941",
-    name: "3000933",
-    department: "3000937",
-    title: "3000939",
-    status: "3000945",
+  } as const;
+  const RAGIC_KEY = {
+    employeeNumber: "員工編號",
+    name: "姓名",
+    mobile: "手機",
+    department: "部門",
+    title: "職稱",
+    status: "在職狀態",
   } as const;
 
   function normalizePhone(p: string | undefined): string {
@@ -562,7 +564,7 @@ export async function registerRoutes(
         });
       }
 
-      const ragicUrl = `https://${ragicHost}/${ragicAccountPath}${ragicSheetPath}?api&where=${RAGIC_FIELDS.employeeNumber},eq,${encodeURIComponent(employeeNumber.trim())}`;
+      const ragicUrl = `https://${ragicHost}/${ragicAccountPath}${ragicSheetPath}?api&where=${RAGIC_QUERY_FID.employeeNumber},eq,${encodeURIComponent(employeeNumber.trim())}`;
 
       const upstream = await fetch(ragicUrl, {
         headers: {
@@ -585,25 +587,27 @@ export async function registerRoutes(
         return res.status(401).json({ message: "查無此員工編號" });
       }
 
-      const employee = entries[0];
+      const employee = entries[0] as Record<string, unknown>;
       const inputPhone = normalizePhone(phone);
-      const workMobile = normalizePhone(employee[RAGIC_FIELDS.workMobile]);
-      const personalMobile = normalizePhone(employee[RAGIC_FIELDS.personalMobile]);
+      const storedMobile = normalizePhone(employee[RAGIC_KEY.mobile] as string | undefined);
 
-      if (inputPhone !== workMobile && inputPhone !== personalMobile) {
+      if (!storedMobile || inputPhone !== storedMobile) {
         return res.status(401).json({ message: "手機號碼不正確" });
       }
 
-      const status = String(employee[RAGIC_FIELDS.status] || "").trim();
-      if (status && /離職|停職|退休/.test(status)) {
+      const status = String(employee[RAGIC_KEY.status] || "").trim();
+      if (status && status !== "在職") {
         return res.status(403).json({ message: `員工狀態為「${status}」，無法登入` });
       }
 
+      const department = employee[RAGIC_KEY.department];
+      const departmentStr = Array.isArray(department) ? department.join(", ") : (department as string | undefined);
+
       res.json({
-        employeeNumber: employee[RAGIC_FIELDS.employeeNumber] || employeeNumber,
-        name: employee[RAGIC_FIELDS.name] || employeeNumber,
-        role: employee[RAGIC_FIELDS.title] || undefined,
-        department: employee[RAGIC_FIELDS.department] || undefined,
+        employeeNumber: String(employee[RAGIC_KEY.employeeNumber] || employeeNumber),
+        name: String(employee[RAGIC_KEY.name] || employeeNumber),
+        role: (employee[RAGIC_KEY.title] as string) || undefined,
+        department: departmentStr || undefined,
         status: status || undefined,
       });
     } catch (err: unknown) {
