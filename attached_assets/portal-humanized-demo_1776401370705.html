@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>駿斯 Kinetic Ops · 值班首頁 Demo</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#001d42',
+        'primary-container': '#19335a',
+        secondary: '#006b60',
+        'on-secondary-container': '#007166',
+        'tertiary-fixed-dim': '#9dd84f',
+        surface: '#f7f9fb',
+        'surface-container-low': '#f2f4f6',
+        'surface-container-lowest': '#ffffff',
+        'surface-container-high': '#e6e8ea',
+        'on-surface': '#191c1e',
+        'on-surface-variant': '#44474e',
+        'outline-variant': '#c4c6cf',
+        cream: '#fef7f0',
+        peach: '#fde6cc',
+        amber: {
+          50: '#fef8ec',
+          100: '#fef3e6',
+          400: '#f0b84e',
+        },
+      },
+      fontFamily: {
+        headline: ['Manrope', 'Noto Sans TC', 'sans-serif'],
+        body: ['Inter', 'Noto Sans TC', 'sans-serif'],
+      },
+    },
+  },
+};
+</script>
+<style>
+  html, body {
+    font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    background: #f7f9fb;
+    color: #191c1e;
+    font-feature-settings: "liga", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    user-select: none;
+  }
+  .fill-icon { font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24; }
+
+  /* Ambient shadow — no drop shadow */
+  .ambient {
+    box-shadow: 0 30px 40px -20px rgba(25, 28, 30, 0.06),
+                0 4px 12px -4px rgba(25, 28, 30, 0.03);
+  }
+  .ambient-hover:hover {
+    box-shadow: 0 36px 50px -20px rgba(25, 28, 30, 0.1),
+                0 4px 12px -4px rgba(25, 28, 30, 0.04);
+  }
+
+  /* Warm glow — humanization accent */
+  .warm-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 100% 0%, #fde6cc 0%, transparent 55%);
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  /* Lime pulse dot */
+  .pulse-dot {
+    box-shadow: 0 0 0 0 rgba(157, 216, 79, 0.8);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(157, 216, 79, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(157, 216, 79, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(157, 216, 79, 0); }
+  }
+
+  /* Glassmorphism */
+  .glass-navy {
+    background: linear-gradient(135deg, rgba(25, 51, 90, 0.92), rgba(0, 29, 66, 0.88));
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  /* Shift clock ring */
+  .shift-ring {
+    background: conic-gradient(#9dd84f 0% 37.5%, rgba(255,255,255,0.12) 37.5% 100%);
+  }
+
+  /* Handover sticky tilt */
+  .sticky-note { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .sticky-note:hover { transform: translateY(-2px) rotate(-0.3deg); }
+
+  /* Avatar color palette — warm & assigned */
+  .avatar-peach { background: linear-gradient(135deg, #fde6cc, #f4a261); color: #7a3e1c; }
+  .avatar-teal  { background: linear-gradient(135deg, #c8f7eb, #006b60); color: #ffffff; }
+  .avatar-lime  { background: linear-gradient(135deg, #d4f0a8, #5c8c1a); color: #ffffff; }
+  .avatar-navy  { background: linear-gradient(135deg, #b2c8e8, #19335a); color: #ffffff; }
+  .avatar-rose  { background: linear-gradient(135deg, #fde0e4, #b66275); color: #ffffff; }
+  .avatar-sand  { background: linear-gradient(135deg, #fef3e6, #c89b6b); color: #4a2e15; }
+
+  /* Fade-in stagger */
+  .fade-in { opacity: 0; transform: translateY(12px); animation: fadeIn 0.6s ease-out forwards; }
+  @keyframes fadeIn { to { opacity: 1; transform: none; } }
+
+  /* Scrollbar (minimal) */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,29,66,0.15); border-radius: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* Headline kerning */
+  .h-display {
+    font-family: 'Manrope', 'Noto Sans TC', sans-serif;
+    letter-spacing: -0.04em;
+    font-weight: 800;
+  }
+  .h-display-tc {
+    font-family: 'Noto Sans TC', 'Manrope', sans-serif;
+    letter-spacing: -0.02em;
+    font-weight: 900;
+  }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ──────────── TopBar ──────────── -->
+<header class="glass-navy fixed top-0 z-50 w-full flex justify-between items-center px-8 py-3.5">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #006b60, #9dd84f);">
+      <span class="material-symbols-outlined fill-icon text-white text-[20px]">pool</span>
+    </div>
+    <div class="h-display text-white text-xl">駿斯 <span class="text-tertiary-fixed-dim">Kinetic</span> Ops</div>
+  </div>
+  <nav class="hidden md:flex items-center gap-9">
+    <a class="text-tertiary-fixed-dim border-b-2 border-tertiary-fixed-dim pb-1 font-semibold tracking-[0.08em] uppercase text-[11px]" href="#">首頁</a>
+    <a class="text-slate-300 hover:text-white transition-colors font-semibold tracking-[0.08em] uppercase text-[11px]" href="#">公告</a>
+    <a class="text-slate-300 hover:text-white transition-colors font-semibold tracking-[0.08em] uppercase text-[11px]" href="#">班表</a>
+    <a class="text-slate-300 hover:text-white transition-colors font-semibold tracking-[0.08em] uppercase text-[11px]" href="#">工具</a>
+  </nav>
+  <div class="flex items-center gap-4">
+    <div class="relative hidden lg:block">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+      <input class="bg-white/10 border-none rounded-full pl-10 pr-4 py-2 text-sm text-white placeholder-slate-400 focus:ring-2 focus:ring-tertiary-fixed-dim focus:bg-white/15 w-64 outline-none" placeholder="找公告、找人、找表單…" type="text">
+    </div>
+    <button class="relative text-slate-300 hover:text-white p-2 rounded-full hover:bg-white/10 transition">
+      <span class="material-symbols-outlined text-[22px]">notifications</span>
+      <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-tertiary-fixed-dim rounded-full pulse-dot"></span>
+    </button>
+    <button class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full hover:bg-white/10 transition">
+      <div class="w-7 h-7 rounded-full avatar-peach flex items-center justify-center text-xs font-bold">嘉</div>
+      <span class="text-white text-sm font-medium hidden md:inline">嘉郡</span>
+      <span class="material-symbols-outlined text-slate-300 text-[18px]">expand_more</span>
+    </button>
+  </div>
+</header>
+
+<!-- ──────────── SideBar ──────────── -->
+<aside class="hidden md:flex flex-col fixed left-0 top-0 w-64 h-screen glass-navy rounded-r-[1.5rem] py-7 pt-24 z-40 ambient">
+  <!-- Facility badge -->
+  <div class="px-5 mb-7">
+    <div class="rounded-2xl p-4" style="background: rgba(255,255,255,0.06);">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="w-2 h-2 rounded-full bg-tertiary-fixed-dim pulse-dot"></span>
+        <span class="text-tertiary-fixed-dim text-[10px] font-bold uppercase tracking-[0.12em]">當班中</span>
+      </div>
+      <div class="h-display-tc text-white text-lg leading-tight">三民館<br>游泳池</div>
+      <div class="text-slate-400 text-[11px] mt-1.5 font-mono">A 層級 · 2025/11/15</div>
+    </div>
+  </div>
+
+  <!-- Menu -->
+  <nav class="flex-grow flex flex-col gap-0.5 px-3">
+    <a class="flex items-center gap-3 px-4 py-3 rounded-full text-white font-semibold text-sm" style="background: linear-gradient(90deg, #006b60, #9dd84f); box-shadow: 0 8px 20px -8px rgba(28,180,163,0.5);" href="#">
+      <span class="material-symbols-outlined fill-icon text-[20px]">home</span>
+      <span>首頁</span>
+    </a>
+    <a class="flex items-center gap-3 px-4 py-3 rounded-full text-slate-300 hover:text-white hover:bg-white/10 text-sm transition" href="#">
+      <span class="material-symbols-outlined text-[20px]">sticky_note_2</span>
+      <span>今日交接</span>
+      <span class="ml-auto text-[10px] bg-amber-400/20 text-amber-400 px-2 py-0.5 rounded-full font-bold">3</span>
+    </a>
+    <a class="flex items-center gap-3 px-4 py-3 rounded-full text-slate-300 hover:text-white hover:bg-white/10 text-sm transition" href="#">
+      <span class="material-symbols-outlined text-[20px]">campaign</span>
+      <span>群組公告</span>
+      <span class="ml-auto text-[10px] bg-tertiary-fixed-dim/20 text-tertiary-fixed-dim px-2 py-0.5 rounded-full font-bold">7</span>
+    </a>
+    <a class="flex items-center gap-3 px-4 py-3 rounded-full text-slate-300 hover:text-white hover:bg-white/10 text-sm transition" href="#">
+      <span class="material-symbols-outlined text-[20px]">local_activity</span>
+      <span>活動與優惠</span>
+    </a>
+    <a class="flex items-center gap-3 px-4 py-3 rounded-full text-slate-300 hover:text-white hover:bg-white/10 text-sm transition" href="#">
+      <span class="material-symbols-outlined text-[20px]">event_note</span>
+      <span>我的班表</span>
+    </a>
+  </nav>
+
+  <!-- CTA -->
+  <div class="px-4 pb-5 pt-3">
+    <button class="w-full bg-white/10 hover:bg-white/20 text-white rounded-full py-2.5 flex items-center justify-center gap-2 text-sm font-semibold transition">
+      <span class="material-symbols-outlined text-[18px]">report_problem</span>
+      異常回報
+    </button>
+  </div>
+
+  <!-- Footer -->
+  <div class="border-t border-white/5 pt-4 px-3">
+    <a class="flex items-center gap-3 px-4 py-2.5 rounded-full text-slate-400 hover:text-white text-sm transition" href="#">
+      <span class="material-symbols-outlined text-[18px]">help</span><span>協助</span>
+    </a>
+    <a class="flex items-center gap-3 px-4 py-2.5 rounded-full text-slate-400 hover:text-red-300 text-sm transition" href="#">
+      <span class="material-symbols-outlined text-[18px]">logout</span><span>登出</span>
+    </a>
+  </div>
+</aside>
+
+<!-- ──────────── Main Canvas ──────────── -->
+<main class="md:ml-64 pt-28 px-8 pb-16 max-w-[1440px] mx-auto">
+
+  <!-- ━━━ Hero Greeting ━━━ -->
+  <section class="mb-10 fade-in" style="animation-delay: 0.05s;">
+    <div class="flex items-start justify-between gap-8 flex-wrap">
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-[11px] font-bold tracking-[0.2em] text-secondary uppercase">2025 · 11 · 15 · 星期六</span>
+          <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+          <span class="text-[11px] font-bold tracking-[0.2em] text-on-surface-variant uppercase">早班</span>
+        </div>
+        <h1 class="h-display-tc text-primary text-[56px] leading-[1.05] mb-2">
+          嗨嘉郡，<span class="text-secondary">早安</span>。
+        </h1>
+        <p class="text-on-surface-variant text-lg leading-snug max-w-xl">
+          三民館游泳池 · 09:00 – 17:00 · 
+          <span class="inline-flex items-center gap-1 text-on-secondary-container font-semibold">
+            <span class="material-symbols-outlined fill-icon text-tertiary-fixed-dim text-[16px]">check_circle</span>
+            已打卡 09:02
+          </span>
+        </p>
+        <p class="text-on-surface-variant text-sm mt-1">今天跟 <span class="font-semibold text-primary">柏彥</span>（救生員）、<span class="font-semibold text-primary">嘉容</span>（11:00 接替）同班。</p>
+      </div>
+
+      <!-- Right pills: weather + shift countdown -->
+      <div class="flex items-center gap-3">
+        <div class="bg-surface-container-lowest ambient rounded-2xl px-5 py-4 flex items-center gap-3">
+          <span class="material-symbols-outlined fill-icon text-amber-400 text-[28px]">wb_sunny</span>
+          <div>
+            <div class="text-[11px] font-bold tracking-[0.1em] text-on-surface-variant uppercase">新北 · 板橋</div>
+            <div class="h-display text-primary text-xl">24° <span class="text-on-surface-variant text-xs font-normal">晴 · 紫外線 7</span></div>
+          </div>
+        </div>
+        <div class="bg-primary rounded-2xl px-5 py-4 text-white flex items-center gap-3">
+          <div class="w-10 h-10 shift-ring rounded-full flex items-center justify-center">
+            <div class="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+              <span class="material-symbols-outlined text-tertiary-fixed-dim text-[16px]">schedule</span>
+            </div>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold tracking-[0.1em] text-tertiary-fixed-dim uppercase">下班倒數</div>
+            <div class="h-display text-white text-xl">5 小時 <span class="text-slate-400 text-xs font-normal">13 分</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ━━━ Bento Grid ━━━ -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- (1) Handover — col-span-8 -->
+    <section class="lg:col-span-8 bg-surface-container-lowest ambient rounded-[20px] p-7 relative overflow-hidden warm-glow fade-in" style="animation-delay: 0.15s;">
+      <div class="flex items-center justify-between mb-6 relative">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="material-symbols-outlined fill-icon text-amber-400 text-[20px]">sticky_note_2</span>
+            <span class="text-[11px] font-bold tracking-[0.15em] text-on-surface-variant uppercase">昨晚留給你的</span>
+          </div>
+          <h2 class="h-display-tc text-primary text-2xl">櫃台交接 <span class="text-on-surface-variant text-sm font-medium">· 共 4 件</span></h2>
+        </div>
+        <button class="text-sm font-semibold text-secondary hover:text-primary flex items-center gap-1 group">
+          全部交接 <span class="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition">arrow_forward</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+        <!-- Handover item 1 -->
+        <article class="sticky-note bg-surface-container-low rounded-2xl p-5 flex gap-4 cursor-pointer">
+          <div class="w-10 h-10 rounded-full avatar-lime flex items-center justify-center text-sm font-bold flex-shrink-0">鈺</div>
+          <div class="flex-grow min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-semibold text-primary text-sm">鈺婷</span>
+              <span class="text-on-surface-variant text-xs">· 昨晚 22:30</span>
+            </div>
+            <p class="text-on-surface text-sm leading-relaxed mb-3">冷水機剛修好，早上應該正常。麻煩你 10:00 看一下儀表板藍燈有沒有亮，如果閃紅馬上叫技師。</p>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-tertiary-fixed-dim/20 text-on-secondary-container tracking-wider">已排除</span>
+              <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-400 tracking-wider">需回報</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Handover item 2 -->
+        <article class="sticky-note bg-surface-container-low rounded-2xl p-5 flex gap-4 cursor-pointer">
+          <div class="w-10 h-10 rounded-full avatar-teal flex items-center justify-center text-sm font-bold flex-shrink-0">柏</div>
+          <div class="flex-grow min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-semibold text-primary text-sm">柏榮</span>
+              <span class="text-on-surface-variant text-xs">· 昨晚 20:45</span>
+            </div>
+            <p class="text-on-surface text-sm leading-relaxed mb-3">14:00 有一位新會員陳小姐要報到，請收她身份證影本 + 填好入會表。她說會帶先生一起。</p>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-primary/10 text-primary tracking-wider">待處理</span>
+              <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant tracking-wider">14:00</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Handover item 3 -->
+        <article class="sticky-note bg-surface-container-low rounded-2xl p-5 flex gap-4 cursor-pointer">
+          <div class="w-10 h-10 rounded-full avatar-rose flex items-center justify-center text-sm font-bold flex-shrink-0">凱</div>
+          <div class="flex-grow min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-semibold text-primary text-sm">凱莉</span>
+              <span class="text-on-surface-variant text-xs">· 今早 07:10</span>
+            </div>
+            <p class="text-on-surface text-sm leading-relaxed mb-3">氯值昨晚測 0.8，偏低。請你 11:00 再測一次，<span class="font-semibold">低於 0.5 就加氯錠一顆</span>。</p>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-500 tracking-wider">注意</span>
+              <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant tracking-wider">11:00 檢測</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Handover item 4 -->
+        <article class="sticky-note bg-surface-container-low rounded-2xl p-5 flex gap-4 cursor-pointer">
+          <div class="w-10 h-10 rounded-full avatar-sand flex items-center justify-center text-sm font-bold flex-shrink-0">容</div>
+          <div class="flex-grow min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-semibold text-primary text-sm">嘉容</span>
+              <span class="text-on-surface-variant text-xs">· 昨晚 18:20</span>
+            </div>
+            <p class="text-on-surface text-sm leading-relaxed mb-3">有客人問冬季會員卡的優惠，我跟他說了下週一上線。他會再打回來，請優先接。</p>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-tertiary-fixed-dim/20 text-on-secondary-container tracking-wider">已處理</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- (2) Supervisor Announcements — col-span-4, glass navy -->
+    <section class="lg:col-span-4 glass-navy ambient rounded-[20px] p-7 text-white fade-in" style="animation-delay: 0.2s;">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-2 h-2 rounded-full bg-tertiary-fixed-dim pulse-dot"></span>
+            <span class="text-[11px] font-bold tracking-[0.15em] text-tertiary-fixed-dim uppercase">主管交代</span>
+          </div>
+          <h2 class="h-display-tc text-white text-2xl">今天必看</h2>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <!-- rule -->
+        <article class="cursor-pointer group">
+          <div class="flex items-start gap-3">
+            <span class="w-1.5 h-1.5 mt-2 rounded-full bg-tertiary-fixed-dim flex-shrink-0 pulse-dot"></span>
+            <div class="flex-grow min-w-0">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-400/20 text-red-300 tracking-widest">必讀</span>
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-slate-300 tracking-widest">規則</span>
+              </div>
+              <h3 class="font-bold text-white text-sm leading-snug mb-1 group-hover:text-tertiary-fixed-dim transition">即日起退費不收 30 天內報名</h3>
+              <p class="text-slate-400 text-xs">碩仁主管 · 昨天 14:23</p>
+            </div>
+          </div>
+        </article>
+
+        <div class="h-px bg-white/5"></div>
+
+        <!-- script -->
+        <article class="cursor-pointer group">
+          <div class="flex items-start gap-3">
+            <span class="w-1.5 h-1.5 mt-2 rounded-full bg-amber-400 flex-shrink-0"></span>
+            <div class="flex-grow min-w-0">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 tracking-widest">高</span>
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-slate-300 tracking-widest">話術</span>
+              </div>
+              <h3 class="font-bold text-white text-sm leading-snug mb-1 group-hover:text-tertiary-fixed-dim transition">不要說月費含毛巾，請改說現場租用</h3>
+              <p class="text-slate-400 text-xs">凱莉主管 · 今早 08:15</p>
+            </div>
+          </div>
+        </article>
+
+        <div class="h-px bg-white/5"></div>
+
+        <!-- campaign -->
+        <article class="cursor-pointer group">
+          <div class="flex items-start gap-3">
+            <span class="w-1.5 h-1.5 mt-2 rounded-full bg-white/40 flex-shrink-0"></span>
+            <div class="flex-grow min-w-0">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-slate-300 tracking-widest">一般</span>
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-tertiary-fixed-dim/20 text-tertiary-fixed-dim tracking-widest">活動</span>
+              </div>
+              <h3 class="font-bold text-white text-sm leading-snug mb-1 group-hover:text-tertiary-fixed-dim transition">12/1 冬季入會折 $500 開賣</h3>
+              <p class="text-slate-400 text-xs">碩仁主管 · 昨天 19:48</p>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="mt-6 pt-5 border-t border-white/10 flex items-center justify-between text-xs">
+        <span class="text-slate-400">一共 <span class="text-white font-bold">7 則</span> · 最後更新 2 分鐘前</span>
+        <button class="text-tertiary-fixed-dim font-semibold hover:underline flex items-center gap-1">看全部 <span class="material-symbols-outlined text-[16px]">arrow_forward</span></button>
+      </div>
+    </section>
+
+    <!-- (3) Contacts — col-span-8 -->
+    <section class="lg:col-span-8 bg-surface-container-lowest ambient rounded-[20px] p-7 fade-in" style="animation-delay: 0.3s;">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="material-symbols-outlined fill-icon text-secondary text-[20px]">groups</span>
+            <span class="text-[11px] font-bold tracking-[0.15em] text-on-surface-variant uppercase">需要時可以找他們</span>
+          </div>
+          <h2 class="h-display-tc text-primary text-2xl">今天可聯絡</h2>
+        </div>
+        <div class="flex gap-2">
+          <button class="text-xs font-semibold text-secondary px-3 py-1.5 rounded-full bg-secondary/10 hover:bg-secondary/15 transition">主管</button>
+          <button class="text-xs font-semibold text-on-surface-variant px-3 py-1.5 rounded-full hover:bg-surface-container-high transition">同事</button>
+          <button class="text-xs font-semibold text-on-surface-variant px-3 py-1.5 rounded-full hover:bg-surface-container-high transition">外援</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Contact 1 -->
+        <article class="group bg-surface-container-low hover:bg-white rounded-2xl p-5 transition-all cursor-pointer ambient-hover">
+          <div class="flex items-start gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full avatar-navy flex items-center justify-center text-base font-bold">蔣</div>
+            <div class="flex-grow min-w-0">
+              <h3 class="font-bold text-primary text-sm leading-tight">蔣碩仁</h3>
+              <p class="text-[10px] font-bold tracking-[0.1em] text-on-secondary-container uppercase mt-0.5">館主管</p>
+              <div class="flex items-center gap-1 mt-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed-dim pulse-dot"></span>
+                <span class="text-[11px] text-on-surface-variant">在館 · 到 18:00</span>
+              </div>
+            </div>
+          </div>
+          <div class="pt-3 flex items-center justify-between" style="border-top: 1px solid rgba(196, 198, 207, 0.2);">
+            <span class="text-xs font-mono text-on-surface-variant">0912-345-678</span>
+            <div class="flex gap-1">
+              <button class="p-1.5 rounded-lg hover:bg-surface-container transition text-secondary"><span class="material-symbols-outlined text-[18px]">call</span></button>
+              <button class="p-1.5 rounded-lg hover:bg-surface-container transition text-secondary"><span class="material-symbols-outlined text-[18px]">chat</span></button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Contact 2 -->
+        <article class="group bg-surface-container-low hover:bg-white rounded-2xl p-5 transition-all cursor-pointer ambient-hover">
+          <div class="flex items-start gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full avatar-rose flex items-center justify-center text-base font-bold">夏</div>
+            <div class="flex-grow min-w-0">
+              <h3 class="font-bold text-primary text-sm leading-tight">夏凱莉</h3>
+              <p class="text-[10px] font-bold tracking-[0.1em] text-on-secondary-container uppercase mt-0.5">運營經理</p>
+              <div class="flex items-center gap-1 mt-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                <span class="text-[11px] text-on-surface-variant">會議中 · 11:00 回覆</span>
+              </div>
+            </div>
+          </div>
+          <div class="pt-3 flex items-center justify-between" style="border-top: 1px solid rgba(196, 198, 207, 0.2);">
+            <span class="text-xs font-mono text-on-surface-variant">0922-112-233</span>
+            <div class="flex gap-1">
+              <button class="p-1.5 rounded-lg hover:bg-surface-container transition text-secondary"><span class="material-symbols-outlined text-[18px]">call</span></button>
+              <button class="p-1.5 rounded-lg hover:bg-surface-container transition text-secondary"><span class="material-symbols-outlined text-[18px]">chat</span></button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Contact 3 -->
+        <article class="group bg-surface-container-low hover:bg-white rounded-2xl p-5 transition-all cursor-pointer ambient-hover">
+          <div class="flex items-start gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full avatar-teal flex items-center justify-center text-base font-bold">陳</div>
+            <div class="flex-grow min-w-0">
+              <h3 class="font-bold text-primary text-sm leading-tight">陳柏榮</h3>
+              <p class="text-[10px] font-bold tracking-[0.1em] text-on-secondary-container uppercase mt-0.5">行政支援</p>
+              <div class="flex items-center gap-1 mt-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed-dim pulse-dot"></span>
+                <span class="text-[11px] text-on-surface-variant">在辦公室</span>
+              </div>
+            </div>
+          </div>
+          <div class="pt-3 flex items-center justify-between" style="border-top: 1px solid rgba(196, 198, 207, 0.2);">
+            <span class="text-xs font-mono text-on-surface-variant">分機 8401</span>
+            <div class="flex gap-1">
+              <button class="p-1.5 rounded-lg hover:bg-surface-container transition text-secondary"><span class="material-symbols-outlined text-[18px]">call</span></button>
+              <button class="p-1.5 rounded-lg hover:bg-surface-container transition text-secondary"><span class="material-symbols-outlined text-[18px]">chat</span></button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- (4) Today's Shift — col-span-4 -->
+    <section class="lg:col-span-4 bg-surface-container-lowest ambient rounded-[20px] p-7 fade-in" style="animation-delay: 0.35s;">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="material-symbols-outlined fill-icon text-secondary text-[20px]">schedule</span>
+        <span class="text-[11px] font-bold tracking-[0.15em] text-on-surface-variant uppercase">今天的班</span>
+      </div>
+      <h2 class="h-display-tc text-primary text-2xl mb-5">一起上班的人</h2>
+
+      <!-- Your clock-in status -->
+      <div class="bg-gradient-to-br from-secondary to-secondary/70 rounded-2xl p-4 mb-4 text-white">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-bold tracking-[0.15em] uppercase text-tertiary-fixed-dim">你已打卡</span>
+          <span class="material-symbols-outlined fill-icon text-tertiary-fixed-dim text-[18px]">check_circle</span>
+        </div>
+        <div class="h-display text-3xl leading-none">09:02</div>
+        <div class="text-white/70 text-xs mt-1">距離下班還有 5 小時 13 分</div>
+      </div>
+
+      <!-- Coworkers -->
+      <div class="space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full avatar-lime flex items-center justify-center text-sm font-bold">柏</div>
+          <div class="flex-grow">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-primary text-sm">莊柏彥</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed-dim pulse-dot"></span>
+            </div>
+            <p class="text-[11px] text-on-surface-variant">救生員 · 值班中</p>
+          </div>
+          <span class="text-[10px] font-bold text-on-surface-variant font-mono">09:00-17:00</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full avatar-sand flex items-center justify-center text-sm font-bold">容</div>
+          <div class="flex-grow">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-primary text-sm">莊嘉容</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            </div>
+            <p class="text-[11px] text-on-surface-variant">櫃台 · 11:00 接替</p>
+          </div>
+          <span class="text-[10px] font-bold text-on-surface-variant font-mono">11:00-19:00</span>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="mt-5 pt-5 grid grid-cols-3 gap-2" style="border-top: 1px solid rgba(196, 198, 207, 0.2);">
+        <button class="flex flex-col items-center gap-1 py-3 rounded-xl hover:bg-surface-container-low transition group">
+          <span class="material-symbols-outlined text-secondary text-[22px] group-hover:scale-110 transition">note_add</span>
+          <span class="text-[11px] font-semibold text-on-surface-variant">寫交接</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 py-3 rounded-xl hover:bg-surface-container-low transition group">
+          <span class="material-symbols-outlined text-secondary text-[22px] group-hover:scale-110 transition">report</span>
+          <span class="text-[11px] font-semibold text-on-surface-variant">回報</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 py-3 rounded-xl hover:bg-surface-container-low transition group">
+          <span class="material-symbols-outlined text-secondary text-[22px] group-hover:scale-110 transition">logout</span>
+          <span class="text-[11px] font-semibold text-on-surface-variant">下班</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- (5) Upcoming — col-span-8 -->
+    <section class="lg:col-span-8 rounded-[20px] overflow-hidden ambient relative fade-in" style="animation-delay: 0.45s; background: linear-gradient(135deg, #001d42 0%, #19335a 50%, #2a4d7a 100%); min-height: 240px;">
+      <!-- Decorative swim-lane lines -->
+      <svg class="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 800 240" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="g1" x1="0" x2="1">
+            <stop offset="0" stop-color="#9dd84f" stop-opacity="0"/>
+            <stop offset="1" stop-color="#9dd84f" stop-opacity="0.6"/>
+          </linearGradient>
+        </defs>
+        <path d="M -50 180 Q 200 160, 400 180 T 850 170" stroke="url(#g1)" stroke-width="2" fill="none"/>
+        <path d="M -50 200 Q 200 180, 400 200 T 850 190" stroke="url(#g1)" stroke-width="1.5" fill="none"/>
+        <path d="M -50 220 Q 200 200, 400 220 T 850 210" stroke="url(#g1)" stroke-width="1" fill="none"/>
+      </svg>
+
+      <div class="relative flex flex-col md:flex-row gap-6 p-7 h-full">
+        <div class="flex-grow">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="material-symbols-outlined fill-icon text-tertiary-fixed-dim text-[20px]">celebration</span>
+            <span class="text-[11px] font-bold tracking-[0.2em] text-tertiary-fixed-dim uppercase">這週要追</span>
+          </div>
+          <h2 class="h-display-tc text-white text-3xl leading-tight mb-2">三民館 <span class="text-tertiary-fixed-dim">社區游泳日</span></h2>
+          <p class="text-slate-300 text-sm mb-5 max-w-md">11/22（六）早上 9:00 開始，免費體驗、家庭入會享 7 折。負責窗口：凱莉主管。</p>
+
+          <!-- Countdown chips -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm">
+              <span class="text-[10px] text-slate-400 tracking-widest uppercase mr-2">倒數</span>
+              <span class="h-display text-tertiary-fixed-dim text-lg">7 天</span>
+            </div>
+            <div class="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm">
+              <span class="text-[10px] text-slate-400 tracking-widest uppercase mr-2">已報名</span>
+              <span class="h-display text-white text-lg">34 人</span>
+            </div>
+            <div class="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm">
+              <span class="text-[10px] text-slate-400 tracking-widest uppercase mr-2">目標</span>
+              <span class="h-display text-white text-lg">60 人</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col justify-between md:items-end gap-3 md:min-w-[180px]">
+          <!-- Progress ring (simplified) -->
+          <div class="relative w-24 h-24">
+            <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
+              <path class="stroke-white/10" d="M18 2 a 16 16 0 0 1 0 32 a 16 16 0 0 1 0 -32" fill="none" stroke-width="3"/>
+              <path class="stroke-tertiary-fixed-dim" d="M18 2 a 16 16 0 0 1 0 32 a 16 16 0 0 1 0 -32" fill="none" stroke-width="3" stroke-dasharray="56 100" stroke-linecap="round"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="h-display text-tertiary-fixed-dim text-xl">56%</span>
+              <span class="text-[9px] text-slate-400 tracking-widest uppercase">達成</span>
+            </div>
+          </div>
+          <button class="px-6 py-2.5 rounded-full bg-tertiary-fixed-dim text-primary font-bold text-sm hover:bg-white transition flex items-center gap-2 shadow-lg shadow-tertiary-fixed-dim/20">
+            看活動詳情 <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- (6) Quick notes — col-span-4 -->
+    <section class="lg:col-span-4 rounded-[20px] p-7 ambient fade-in" style="animation-delay: 0.5s; background: linear-gradient(135deg, #fef7f0 0%, #fde6cc 100%);">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="material-symbols-outlined fill-icon text-[#7a3e1c] text-[20px]">auto_stories</span>
+        <span class="text-[11px] font-bold tracking-[0.15em] uppercase" style="color: #7a3e1c;">今天可能會被問到</span>
+      </div>
+      <h2 class="h-display-tc text-[#4a2e15] text-2xl mb-5">快速話術</h2>
+      <div class="space-y-3">
+        <div class="bg-white/60 rounded-xl p-3.5 backdrop-blur-sm cursor-pointer hover:bg-white transition">
+          <p class="text-[11px] font-bold text-[#7a3e1c] mb-0.5">Q: 月費含毛巾嗎？</p>
+          <p class="text-sm text-[#4a2e15] leading-snug">現場有毛巾租用 $30 / 次，也可以自備。</p>
+        </div>
+        <div class="bg-white/60 rounded-xl p-3.5 backdrop-blur-sm cursor-pointer hover:bg-white transition">
+          <p class="text-[11px] font-bold text-[#7a3e1c] mb-0.5">Q: 有冬季優惠嗎？</p>
+          <p class="text-sm text-[#4a2e15] leading-snug">12/1 開跑，入會折 $500。目前可先登記候補。</p>
+        </div>
+        <div class="bg-white/60 rounded-xl p-3.5 backdrop-blur-sm cursor-pointer hover:bg-white transition">
+          <p class="text-[11px] font-bold text-[#7a3e1c] mb-0.5">Q: 可以當天退費嗎？</p>
+          <p class="text-sm text-[#4a2e15] leading-snug">即日起 30 天內恕不受理退費，可以轉讓他人。</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-16 pt-8 flex items-center justify-between text-xs text-on-surface-variant" style="border-top: 1px solid rgba(196, 198, 207, 0.2);">
+    <p>© 2025 駿斯運動事業 · Kinetic Ops 值班入口</p>
+    <div class="flex gap-6">
+      <a href="#" class="hover:text-primary transition">隱私權</a>
+      <a href="#" class="hover:text-primary transition">使用規範</a>
+      <a href="#" class="hover:text-primary transition">聯絡支援</a>
+    </div>
+  </footer>
+
+</main>
+
+</body>
+</html>

@@ -21,10 +21,19 @@ export interface FacilityConfig {
   facilityLineGroupId: string;
   facilityName: string;
   shortName: string;
+  area?: string;
   portalPath: string;
   isActive: boolean;
   sections: FacilitySectionToggle;
   contactPoints: FacilityContactPoint[];
+}
+
+export interface RagicFacility {
+  facilityKey: string;
+  facilityName: string;
+  shortName: string;
+  area?: string;
+  ragicId?: string;
 }
 
 export interface PortalAnnouncement {

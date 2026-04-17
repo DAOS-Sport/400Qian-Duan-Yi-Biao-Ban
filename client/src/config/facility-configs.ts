@@ -6,6 +6,7 @@ export const facilityConfigs: Record<string, FacilityConfig> = {
     facilityLineGroupId: "C66a4b3bb3fbc3dcf52d42626ec512484",
     facilityName: "新北高中游泳池&運動中心",
     shortName: "新北",
+    area: "新北",
     portalPath: "/portal/xinbei_pool",
     isActive: true,
     sections: {
