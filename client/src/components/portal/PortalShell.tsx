@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { usePortalAuth } from "@/hooks/use-bound-facility";
 import { getFacilityConfig } from "@/config/facility-configs";
 import { trackPortalEvent } from "@/hooks/usePortalData";
+import companyLogo from "@assets/logo_(1)_1776402178727.jpg";
 
 interface PortalShellProps {
   children: (ctx: { searchTerm: string }) => React.ReactNode;
@@ -24,6 +25,7 @@ const SIDE_NAV: NavItem[] = [
   { label: "活動檔期", icon: "event", path: "/campaigns" },
   { label: "班表入口", icon: "badge", path: "/shift" },
   { label: "點擊熱力", icon: "leaderboard", path: "/analytics", supervisorOnly: true },
+  { label: "公告審核", icon: "fact_check", path: "/review", supervisorOnly: true },
   { label: "後台管理", icon: "admin_panel_settings", path: "/manage", supervisorOnly: true },
 ];
 
@@ -95,17 +97,17 @@ export default function PortalShell({ children, facilityKey, pageTitle }: Portal
             <MaterialIcon name={mobileOpen ? "close" : "menu"} />
           </button>
           <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #006b60, #9dd84f)" }}
-            >
-              <MaterialIcon name="bolt" className="text-white" />
-            </div>
+            <img
+              src={companyLogo}
+              alt="駿斯運動事業 Logo"
+              className="w-9 h-9 rounded-xl object-cover"
+              data-testid="img-portal-logo"
+            />
             <span
               className="text-white font-headline text-xl md:text-2xl font-black tracking-tight"
               data-testid="text-portal-brand"
             >
-              駿斯 Kinetic Ops
+              駿斯 <span className="text-stitch-tertiary">Kinetic</span> Ops
             </span>
           </div>
         </div>
@@ -186,20 +188,24 @@ export default function PortalShell({ children, facilityKey, pageTitle }: Portal
         data-testid="portal-sidebar"
       >
         <div className="px-5 mb-6">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "linear-gradient(135deg, #006b60, #9dd84f)" }}
-            >
-              <MaterialIcon name="pool" className="text-white" />
+          <div className="rounded-2xl p-4 warm-glow" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 rounded-full pulse-dot" style={{ background: "#9dd84f" }} />
+              <span className="text-stitch-tertiary text-[10px] font-bold tracking-[0.12em] uppercase">當班中</span>
             </div>
-            <div className="min-w-0">
-              <div className="text-white font-semibold text-sm truncate" data-testid="text-facility-name">
-                {config?.facilityName || "未設定館別"}
-              </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="pulse-lime" />
-                <span className="text-stitch-tertiary text-[10px] font-bold tracking-widest uppercase">Active Duty</span>
+            <div className="flex items-center gap-3">
+              <img
+                src={companyLogo}
+                alt="logo"
+                className="w-10 h-10 rounded-xl object-cover shrink-0"
+              />
+              <div className="min-w-0">
+                <div className="h-display-tc text-white text-base leading-tight truncate" data-testid="text-facility-name">
+                  {config?.facilityName || "未設定館別"}
+                </div>
+                {config?.area && (
+                  <div className="text-slate-300 text-[11px] mt-0.5">{config.area}</div>
+                )}
               </div>
             </div>
           </div>

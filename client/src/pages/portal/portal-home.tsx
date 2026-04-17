@@ -134,8 +134,58 @@ export default function PortalHome({ facilityKey }: PortalHomeProps) {
                 />
               </div>
 
+              {/* (Quick Links — moved here, directly below handover) */}
+              <div className="md:col-span-12">
+                <BentoCard testId="section-quick-links" variant="white">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <span className="portal-label text-stitch-secondary">SHORTCUTS</span>
+                      <h2 className="font-headline text-xl font-bold text-stitch-primary mt-1">常用網址</h2>
+                    </div>
+                    {auth?.isSupervisor && (
+                      <Link href={`${basePath}/manage`}>
+                        <span className="portal-label text-stitch-secondary cursor-pointer hover:underline" data-testid="link-manage-quicklinks-top">
+                          管理 →
+                        </span>
+                      </Link>
+                    )}
+                  </div>
+                  {linksQ.isLoading ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2" data-testid="state-links-loading-top">
+                      {[1, 2, 3, 4, 5, 6].map((i) => (<div key={i} className="h-16 rounded-xl bg-stitch-surface-low animate-pulse" />))}
+                    </div>
+                  ) : quickLinks.length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-6" data-testid="state-links-empty-top">尚未設定常用網址</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2" data-testid="state-links-list-top">
+                      {quickLinks.map((l) => (
+                        <a
+                          key={l.id}
+                          href={l.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleLinkClick(l)}
+                          className="bg-stitch-surface-low rounded-xl p-3 hover:bg-white ambient-hover transition-all group"
+                          data-testid={`quicklink-top-${l.id}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #006b60, #9dd84f)" }}>
+                              <MaterialIcon name={l.icon || "link"} className="text-white text-[16px]" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-stitch-primary truncate">{l.title}</p>
+                              {l.description && <p className="text-[10px] text-slate-500 truncate">{l.description}</p>}
+                            </div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </BentoCard>
+              </div>
+
               {/* (3) On-Duty + Quick Actions - col-span-4 */}
-              <div className="md:col-span-4 md:col-start-9">
+              <div className="md:col-span-4">
                 <BentoCard testId="section-on-duty" variant="white">
                   <div className="flex items-start justify-between mb-5">
                     <div>
@@ -298,55 +348,6 @@ export default function PortalHome({ facilityKey }: PortalHomeProps) {
                 </BentoCard>
               </div>
 
-              {/* (7) Quick Links - col-span-6 */}
-              <div className="md:col-span-6">
-                <BentoCard testId="section-quick-links" variant="white">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <span className="portal-label text-stitch-secondary">SHORTCUTS</span>
-                      <h2 className="font-headline text-xl font-bold text-stitch-primary mt-1">常用網址</h2>
-                    </div>
-                    {auth?.isSupervisor && (
-                      <Link href={`${basePath}/manage`}>
-                        <span className="portal-label text-stitch-secondary cursor-pointer hover:underline" data-testid="link-manage-quicklinks">
-                          管理 →
-                        </span>
-                      </Link>
-                    )}
-                  </div>
-                  {linksQ.isLoading ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" data-testid="state-links-loading">
-                      {[1, 2, 3, 4].map((i) => (<div key={i} className="h-16 rounded-xl bg-stitch-surface-low animate-pulse" />))}
-                    </div>
-                  ) : quickLinks.length === 0 ? (
-                    <p className="text-sm text-slate-400 text-center py-6" data-testid="state-links-empty">尚未設定常用網址</p>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" data-testid="state-links-list">
-                      {quickLinks.map((l) => (
-                        <a
-                          key={l.id}
-                          href={l.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => handleLinkClick(l)}
-                          className="bg-stitch-surface-low rounded-xl p-3 hover:bg-white hover:shadow-ambient transition-all group"
-                          data-testid={`quicklink-${l.id}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #006b60, #9dd84f)" }}>
-                              <MaterialIcon name={l.icon || "link"} className="text-white text-[16px]" />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-semibold text-stitch-primary truncate">{l.title}</p>
-                              {l.description && <p className="text-[10px] text-slate-500 truncate">{l.description}</p>}
-                            </div>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </BentoCard>
-              </div>
             </div>
 
             <AnnouncementDrawer
