@@ -1,0 +1,241 @@
+00前端儀表板（櫃台 / 員工端 Portal 升級）
+
+把下面這整塊複製到 400前端儀表板 這個 Replit 的 Agent。
+複製前把 mockup 的 screen.png 和 DESIGN.md 兩個檔案先放進專案 /design-refs/ 供 agent 讀。
+
+# 目標
+把既有 /portal/:facilityKey 員工值班入口，升級成 Stitch Dreams 的
+「Kinetic Luminary」設計系統，並把五個核心區塊接到真實 API
+（/api/facility-home/:groupId/home 與相關端點），零假資料。
+這個 Portal 會被部署為各館電腦的瀏覽器首頁。
+
+# 背景
+- 這是 400前端儀表板 Replit，React + Vite + TS + Tailwind + shadcn/ui + Wouter。
+- Admin 端已經有 8 個頁面（Dashboard/Analytics/Operations/HR Audit/
+  System Health/Anomaly Reports/Announcements/Announcement Summary），
+  那些頁面完全不要動。
+- Portal 已經有骨架：/portal/login 用 Ragic 登入、
+  /portal/:facilityKey 有 4 館 config（xinbei_pool, salu_counter,
+  songshan_pool, sanmin_pool），localStorage 存 portalAuth / facilityKey。
+- 後端 API（不同域）：
+  * 上游 https://line-bot-assistant-ronchen2.replit.app
+  * 已開 /api/facility-home/:groupId/home
+        /api/facility-home/:groupId/announcements
+        /api/facility-home/:groupId/announcements/:id
+  * 既有 proxy 端點都走 server/routes.ts。
+
+# 設計系統強制規範（讀 /design-refs/DESIGN.md）
+- Palette：primary #001d42、primary_container #19335a、
+  secondary #006b60、tertiary_fixed_dim #9dd84f、
+  surface #f7f9fb、surface_container_low #f2f4f6、
+  surface_container_lowest #ffffff
+- Fonts：Manrope（headline/display）、Inter（body/label）
+  從 Google Fonts 載入，啟用 "liga"。
+- 絕對規則：
+  * 禁用 1px solid border 做分隔。靠背景色階 (surface_container_low
+    on surface) 表達邊界。
+  * 不用 drop-shadow。用 ambient shadow：
+    box-shadow: 0 30px 40px -20px rgba(25,28,30,0.06)
+  * Glassmorphism：Drawer / Modal / 重點卡片用
+    bg-[#19335a]/85 + backdrop-blur-xl，white text，高對比。
+  * 圓角：xl (1.5rem) 或 lg (1rem)，不要銳角卡片。
+  * Primary CTA：teal #006b60 背景、全圓 pill、白字。
+  * Live 指標（營業中/當班中）用 lime #9dd84f。
+  * 不用 pure #000 文字，用 #001d42 或 on-surface #191c1e。
+- 圖示：Material Symbols Outlined（沿用 mockup）或 lucide-react 皆可，
+  但同頁只能選一套。Portal 用 Material Symbols。
+
+# 路由（整理後）
+/portal/login                           — 登入
+/portal/:facilityKey                    — 值班首頁（主角）
+/portal/:facilityKey/announcements      — 全部公告（搜尋 + 篩選）
+/portal/:facilityKey/announcements/:id  — 單筆詳情 drawer（glass）
+/portal/:facilityKey/handover           — 櫃台交接詳細頁
+/portal/:facilityKey/campaigns          — 活動優惠列表
+/portal/:facilityKey/shift              — 值班 / 打卡狀態
+（Ragic 登入檔保留，只換皮，不改 auth 邏輯）
+
+# 佈局（對齊 /design-refs/screen.png）
+所有頁面共用一個 PortalShell：
+- TopNavBar：fixed、bg-[#001d42]/80、backdrop-blur-xl、z-50
+  左：「駿斯 Kinetic Ops」(text-2xl font-black tracking-tighter)
+  中：DASHBOARD / ACTIVITY / DIRECTORY（label-sm tracking-widest uppercase，
+      active 項 teal 底線）
+  右：搜尋框（pill、bg-white/5）、通知、設定、頭像
+- SideNavBar：fixed、w-64、bg-[#19335a]/85、backdrop-blur-2xl、
+  rounded-r-[1.5rem]、高度撐滿
+  頂部：館別徽章（gradient teal→lime square + 館名 + "Active Duty" 綠字）
+  導覽：首頁 / 櫃台交接 / 群組公告 / 活動檔期 / 班表入口 /
+        Analytics / Quick Report
+  active 項：rounded-full、bg-gradient-to-r from-teal to-lime、
+             shadow-teal/20
+  其他：text-slate-300 hover:text-teal hover:bg-white/10
+  底部：Support / Logout
+- Main：md:ml-64 pt-24 px-8 pb-12
+
+# 值班首頁（/portal/:facilityKey）Bento 版型
+對齊 mockup（12 欄）：
+
+┌──────────────────────────────┬─────────────────┐
+│ Header: 首頁大標題 + 日期 + 今日館別 + 當班人                     │
+├──────────────────────────────┬─────────────────┤
+│ (1) 櫃台交接  col-span-8      │ (2) 群組重要公告/規範 col-span-4  │
+│ white bento, ambient shadow  │ navy glass card，lime pulse 狀態  │
+│ grid 2x2 of handover items   │ list of must-read rules (top 3)  │
+│ → View All → /handover       │ → /announcements?type=rule        │
+│                              │                                   │
+│                              ├─────────────────┤
+│                              │ (3) 值班人員打卡 col-span-4       │
+│                              │ white bento, list with arrows     │
+│                              │ 今日班表 / 點名 / 回報異常入口     │
+├──────────────────────────────┼─────────────────┤
+│ (4) 公司重要公告 col-span-8   │ (5) 最近大活動 col-span-4        │
+│ grid 1x3 of announcement     │ navy gradient card + photo       │
+│ 人物/聯絡窗口 cards            │ + campaign countdown             │
+│ → View All → /announcements  │ + LEARN MORE CTA                 │
+└──────────────────────────────┴─────────────────┘
+
+## 區塊資料來源（零 mock）
+
+### (1) 櫃台交接 — col-span-8
+GET /api/facility-home/:groupId/home
+→ 取 response.handover[] 或 quickDocs[]（後端若只回 announcements 就先
+用 announcements.filter(a => a.type === 'handover' || a.priority === 'must_read')
+暫時替代，並在 TODO 註記等後端補 handover API）
+- 每張小卡 pattern：icon + 標題 + 副資訊（日期 / 檔名 / 共享狀態）
+- hover 顯示右側下載 / 開新頁按鈕（opacity 0 → 100）
+- 空狀態：大字「尚未設定交接事項」+ 聯絡主管連結
+
+### (2) 群組重要公告 / 規範 — col-span-4
+GET /api/facility-home/:groupId/home
+→ response.mustRead 包 + response.announcements.filter(type='rule')
+- glass navy card (bg-[#19335a]/85, backdrop-blur-xl)
+- 每條：lime pulse 點 (shadow 8px lime) + 標題 + status pill
+  (OPERATIONAL=lime container, DEGRADED=amber/40)
+- 底部灰字「Last check: X mins ago」（從 response.lastRefreshedAt）
+- 點整張卡：開 glass drawer 顯示該群組所有 rule 類公告
+
+### (3) 值班人員打卡 — col-span-4
+GET /api/facility-home/:groupId/today-shift
+（沒有此端點就先用 mock-empty state，UI 別掛掉）
+列出：Payroll Portal / Facility Bookings / Equipment Ordering /
+Marketing Assets — 每項右側 → icon，點擊分別導向對應系統
+
+### (4) 公司重要公告 — col-span-8
+GET /api/facility-home/:groupId/announcements?scope=facility,global&limit=3
+- 3 欄人物卡（灰階頭像，hover 轉彩色）
+- 頭像 / 姓名 / 職位 label（on-secondary-container teal 文字）
+- 分隔用 pt-2 border-t border-outline-variant/20 （唯一允許的 hairline，
+  僅 20% opacity）
+- 電話 font-mono、複製按鈕
+- 右上角 filter / sort 按鈕 → 開 facet drawer
+
+### (5) 最近大活動 — col-span-4
+GET /api/facility-home/:groupId/announcements?type=campaign&limit=1
+&sort=startAt_asc&status=active
+- navy bento with 大圖片背景 (h-48) + gradient mask from-primary via-primary/60
+- lime "最近大活動" label tracking-widest
+- 活動名大字 + 日期 + 地點
+- LEARN MORE teal pill 按鈕
+- 點擊 → /portal/:facilityKey/announcements/:id
+
+# 登入頁（/portal/login）改皮
+- 背景：整頁 bg-surface + 一個從右下角飄上來的
+  radial gradient (lime → transparent 25%)
+- 中央 bento：w-[420px]、rounded-xl、bg-surface-container-lowest、
+  ambient shadow、p-8
+- 頂部 gradient square logo（teal→lime）+ 「駿斯 Kinetic Ops」
+- 員工編號 / 手機末四碼（維持 Ragic 既有邏輯，不改 POST 路徑）
+- 登入 CTA：bg-secondary teal full pill
+- 錯誤訊息用 surface-container-low 輕量帶（不要紅色 alert）
+
+# 公告詳情 Drawer
+- 從右側滑入，w-[480px]，bg-[#19335a]/85 backdrop-blur-2xl white text
+- 內容：title（display-md Manrope）→ type badge lime
+  → summary → recommendedAction → recommendedReply（綠框 quote 區）
+  → badExample（琥珀框 quote 區）→ 原文（mono text, slate-400）
+  → scopeType + 影響角色 chips（tertiary_container）
+- 底部（必讀公告）：CTA「我已讀」→ POST 
+  /api/facility-home/:groupId/announcements/:id/ack
+
+# 路由串接
+client/src/App.tsx 或 router 設定：
+- /portal/* 路徑用 PortalShell 包
+- 其他 admin 路徑維持 AdminShell（app-sidebar + TopBar）
+- /portal/:facilityKey/announcements 的 useQuery key = 
+  ['facility-home', facilityKey, 'announcements', filters]
+- 所有 fetch 走 apiClient helper，base URL 從 VITE_LINE_BOT_BASE 讀，
+  失敗回 null，頁面秀 skeleton。
+
+# 既有檔案要動的
+- client/src/pages/portal/portal-login.tsx            — 換皮
+- client/src/pages/portal/portal-layout.tsx           — 改成 PortalShell
+- client/src/pages/portal/portal-home.tsx             — 換成 Bento 版型
+- client/src/config/facility-configs.ts               — 新增 lineGroupId 欄位
+  對應到 400LINE 小幫手 Group ID Reference（8 個 groupId 都寫進去，
+  但 portal 只曝露 A 層級館別）
+- client/src/types/portal.ts                          — 增 Announcement, 
+  MustRead, Campaign, Handover 型別
+- server/routes.ts                                    — 新增 6 支 portal 
+  proxy（對應上述 GET 端點），錯誤回 503 + message
+
+# 新增檔案
+- client/src/pages/portal/portal-announcements.tsx    — 列表
+- client/src/pages/portal/portal-announcement-detail.tsx — drawer
+- client/src/pages/portal/portal-handover.tsx
+- client/src/pages/portal/portal-campaigns.tsx
+- client/src/pages/portal/portal-shift.tsx
+- client/src/components/portal/PortalShell.tsx
+- client/src/components/portal/BentoCard.tsx          — 統一卡片樣式
+- client/src/components/portal/GlassCard.tsx          — navy glass 樣式
+- client/src/components/portal/MustReadList.tsx
+- client/src/components/portal/CampaignHero.tsx
+- client/src/components/portal/HandoverGrid.tsx
+- client/src/components/portal/AnnouncementDrawer.tsx
+- client/src/hooks/usePortalHome.ts
+- client/src/hooks/useFacilityAnnouncements.ts
+- client/src/lib/portalApi.ts                          — fetch wrapper
+- tailwind.config.ts                                   — 加入 Stitch palette
+
+# Tailwind config 要加的 colors
+primary: '#001d42'
+primary-container: '#19335a'
+secondary: '#006b60'
+tertiary-fixed-dim: '#9dd84f'
+surface: '#f7f9fb'
+surface-container-low: '#f2f4f6'
+surface-container-lowest: '#ffffff'
+on-secondary-container: '#007166'
+outline-variant: '#c4c6cf'
+（其餘 token 參照 /design-refs/code.html 的 tailwind.config）
+fontFamily:
+  headline: ['Manrope', 'sans-serif']
+  body: ['Inter', 'sans-serif']
+  label: ['Inter', 'sans-serif']
+
+# 驗收條件（跑 npm run dev 後）
+1. /portal/login → 新版登入，Ragic 登入流程不壞
+2. 登入後導到 /portal/:facilityKey，版面長得像 /design-refs/screen.png
+   （TopBar + SideBar + 5 區塊 bento）
+3. 5 個區塊都有資料（真 API）或 skeleton 或「尚未設定」空狀態，
+   不得出現任何 lorem ipsum / 假名字 / Marcus Chen / Main Branch 字樣
+4. 點 (2) 任一公告會從右側滑出 glass drawer
+5. 手機寬度（< 768px）自動把 sidebar 轉底部 tab bar，bento 改 col-span-12
+6. 黑夜模式延用 admin 端的 class toggle（localStorage key 共用）
+7. 不要新增假路由；/portal 開頭以外的路徑不變
+8. build 沒 TS error
+
+# 不要做的事
+- 不要動 /dashboard, /analytics, /operations, /hr-audit, /system-health,
+  /anomaly-reports, /announcements, /announcements/summary 這 8 頁
+- 不要改 server/storage.ts 或 shared/schema.ts 裡既有表
+- 不要改 anomaly-report 通知或 Gmail 相關
+- 不要塞 mock/fake 資料進任何區塊
+- 不要把管理端 app-sidebar 直接搬來用，Portal 和 Admin 的 Shell 要分開
+
+# 完成後請回報
+1. 實際改 / 加了哪些檔案
+2. 跑 /portal/:facilityKey 截圖或 DOM 結構摘要
+3. 哪些 API 已接通、哪些還是空狀態
+4. Mobile RWD 有沒有跑通（< 768px）
+5. 提醒我 VITE_LINE_BOT_BASE 等環境變數要不要新增

@@ -54,3 +54,66 @@ export interface PortalUser {
   name: string;
   role?: string;
 }
+
+export interface FacilityHandoverItem {
+  id: number | string;
+  title: string;
+  type?: "doc" | "task" | "note" | string;
+  fileName?: string;
+  sharedWith?: string;
+  updatedAt?: string;
+  url?: string;
+  description?: string;
+}
+
+export interface FacilityMustReadItem {
+  id: number | string;
+  title: string;
+  status?: "OPERATIONAL" | "DEGRADED" | "ALERT" | string;
+  candidateType?: string;
+  summary?: string;
+  recommendedAction?: string;
+  recommendedReply?: string;
+  badExample?: string;
+  originalText?: string;
+  scopeType?: string;
+  needsAck?: boolean;
+  reasoningTags?: string[];
+  effectiveStartAt?: string;
+  effectiveEndAt?: string;
+  detectedAt?: string;
+  groupName?: string;
+  groupId?: string;
+  displayName?: string;
+}
+
+export interface FacilityCampaign {
+  id: number | string;
+  title: string;
+  summary?: string;
+  imageUrl?: string;
+  startAt?: string;
+  endAt?: string;
+  location?: string;
+  candidateType?: string;
+  detectedAt?: string;
+}
+
+export interface FacilityShiftEntry {
+  id: number | string;
+  name: string;
+  role?: string;
+  startAt?: string;
+  endAt?: string;
+  status?: "on_duty" | "checked_in" | "absent" | string;
+}
+
+export interface FacilityHomeResponse {
+  facility?: { groupId: string; name: string };
+  handover?: FacilityHandoverItem[];
+  mustRead?: FacilityMustReadItem[];
+  announcements?: FacilityMustReadItem[];
+  campaigns?: FacilityCampaign[];
+  shift?: FacilityShiftEntry[];
+  lastRefreshedAt?: string;
+}

@@ -663,6 +663,49 @@ export async function registerRoutes(
     proxyGet(`${LINE_BOT_BASE}/api/announcement-reports/weekly`, res, "週報")
   );
 
+  // ===== Portal facility-home proxies =====
+  app.get("/api/facility-home/:groupId/home", (req, res) =>
+    proxyGet(`${LINE_BOT_BASE}/api/facility-home/${encodeURIComponent(req.params.groupId)}/home`, res, "場館首頁資料")
+  );
+
+  app.get("/api/facility-home/:groupId/announcements", (req, res) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(req.query)) {
+      if (v != null && v !== "") qs.set(k, String(v));
+    }
+    const qsStr = qs.toString();
+    proxyGet(
+      `${LINE_BOT_BASE}/api/facility-home/${encodeURIComponent(req.params.groupId)}/announcements${qsStr ? "?" + qsStr : ""}`,
+      res,
+      "場館公告列表",
+    );
+  });
+
+  app.get("/api/facility-home/:groupId/announcements/:id", (req, res) =>
+    proxyGet(
+      `${LINE_BOT_BASE}/api/facility-home/${encodeURIComponent(req.params.groupId)}/announcements/${encodeURIComponent(req.params.id)}`,
+      res,
+      "場館公告詳情",
+    )
+  );
+
+  app.get("/api/facility-home/:groupId/today-shift", (req, res) =>
+    proxyGet(`${LINE_BOT_BASE}/api/facility-home/${encodeURIComponent(req.params.groupId)}/today-shift`, res, "今日班表")
+  );
+
+  app.get("/api/facility-home/:groupId/handover", (req, res) =>
+    proxyGet(`${LINE_BOT_BASE}/api/facility-home/${encodeURIComponent(req.params.groupId)}/handover`, res, "櫃台交接")
+  );
+
+  app.post("/api/facility-home/:groupId/announcements/:id/ack", (req, res) =>
+    proxyPost(
+      `${LINE_BOT_BASE}/api/facility-home/${encodeURIComponent(req.params.groupId)}/announcements/${encodeURIComponent(req.params.id)}/ack`,
+      req.body,
+      res,
+      "回報已讀",
+    )
+  );
+
   const EXPORT_DIR = path.join(process.cwd(), "exports");
   if (!fs.existsSync(EXPORT_DIR)) {
     fs.mkdirSync(EXPORT_DIR, { recursive: true });

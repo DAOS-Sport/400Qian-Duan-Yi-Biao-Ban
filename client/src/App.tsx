@@ -15,9 +15,13 @@ import Announcements from "@/pages/announcements";
 import AnnouncementSummary from "@/pages/announcement-summary";
 import NotFound from "@/pages/not-found";
 import PortalLogin from "@/pages/portal/portal-login";
-import PortalLayout from "@/pages/portal/portal-layout";
 import PortalHome from "@/pages/portal/portal-home";
 import PortalSetup from "@/pages/portal/portal-setup";
+import PortalAnnouncements from "@/pages/portal/portal-announcements";
+import PortalHandover from "@/pages/portal/portal-handover";
+import PortalCampaigns from "@/pages/portal/portal-campaigns";
+import PortalShift from "@/pages/portal/portal-shift";
+import PortalAnnouncementDetail from "@/pages/portal/portal-announcement-detail";
 import { usePortalAuth } from "@/hooks/use-bound-facility";
 import { getFacilityConfig } from "@/config/facility-configs";
 
@@ -56,16 +60,8 @@ function PortalAuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function PortalFacilityPage({ params }: { params: { facilityKey: string } }) {
-  return (
-    <PortalAuthGuard>
-      <PortalLayout facilityKey={params.facilityKey}>
-        {(searchTerm: string) => (
-          <PortalHome facilityKey={params.facilityKey} searchTerm={searchTerm} />
-        )}
-      </PortalLayout>
-    </PortalAuthGuard>
-  );
+function GuardedPortalPage({ children }: { children: React.ReactNode }) {
+  return <PortalAuthGuard>{children}</PortalAuthGuard>;
 }
 
 function PortalIndexPage() {
@@ -88,8 +84,47 @@ function PortalRouter() {
   return (
     <Switch>
       <Route path="/portal/login" component={PortalLogin} />
+      <Route path="/portal/:facilityKey/announcements/:id">
+        {(params) => (
+          <GuardedPortalPage>
+            <PortalAnnouncementDetail facilityKey={params.facilityKey} announcementId={params.id} />
+          </GuardedPortalPage>
+        )}
+      </Route>
+      <Route path="/portal/:facilityKey/announcements">
+        {(params) => (
+          <GuardedPortalPage>
+            <PortalAnnouncements facilityKey={params.facilityKey} />
+          </GuardedPortalPage>
+        )}
+      </Route>
+      <Route path="/portal/:facilityKey/handover">
+        {(params) => (
+          <GuardedPortalPage>
+            <PortalHandover facilityKey={params.facilityKey} />
+          </GuardedPortalPage>
+        )}
+      </Route>
+      <Route path="/portal/:facilityKey/campaigns">
+        {(params) => (
+          <GuardedPortalPage>
+            <PortalCampaigns facilityKey={params.facilityKey} />
+          </GuardedPortalPage>
+        )}
+      </Route>
+      <Route path="/portal/:facilityKey/shift">
+        {(params) => (
+          <GuardedPortalPage>
+            <PortalShift facilityKey={params.facilityKey} />
+          </GuardedPortalPage>
+        )}
+      </Route>
       <Route path="/portal/:facilityKey">
-        {(params) => <PortalFacilityPage params={params} />}
+        {(params) => (
+          <GuardedPortalPage>
+            <PortalHome facilityKey={params.facilityKey} />
+          </GuardedPortalPage>
+        )}
       </Route>
       <Route path="/portal" component={PortalIndexPage} />
     </Switch>
