@@ -8,6 +8,8 @@ import CampaignHero from "@/components/portal/CampaignHero";
 import AnnouncementDrawer from "@/components/portal/AnnouncementDrawer";
 import { getFacilityConfig } from "@/config/facility-configs";
 import { usePortalHome, useTodayShift } from "@/hooks/usePortalHome";
+import { useQuickLinks, useSystemAnnouncements, trackPortalEvent } from "@/hooks/usePortalData";
+import { usePortalAuth } from "@/hooks/use-bound-facility";
 import type { FacilityMustReadItem } from "@/types/portal";
 
 function MaterialIcon({ name, className = "" }: { name: string; className?: string }) {
@@ -32,8 +34,21 @@ export default function PortalHome({ facilityKey }: PortalHomeProps) {
 
   const homeQ = usePortalHome(groupId, facilityName);
   const shiftQ = useTodayShift(groupId);
+  const linksQ = useQuickLinks(facilityKey);
+  const sysAnnQ = useSystemAnnouncements(facilityKey);
+  const { auth } = usePortalAuth();
 
   const [drawerItem, setDrawerItem] = useState<FacilityMustReadItem | null>(null);
+
+  const handleLinkClick = (link: { id: number; title: string; url: string }) => {
+    trackPortalEvent(
+      { eventType: "link_click", target: String(link.id), targetLabel: link.title, metadata: link.url },
+      { employeeNumber: auth?.employeeNumber, employeeName: auth?.name, facilityKey },
+    );
+  };
+
+  const quickLinks = linksQ.data?.items || [];
+  const sysAnnouncements = sysAnnQ.data?.items || [];
 
   const data = homeQ.data;
   const filterTerm = ""; // search handled inside shell, but home shows summary
@@ -236,6 +251,101 @@ export default function PortalHome({ facilityKey }: PortalHomeProps) {
                   isLoading={homeQ.isLoading}
                   detailHref={campaign ? `${basePath}/campaigns` : undefined}
                 />
+              </div>
+
+              {/* (6) System Announcements - col-span-6 */}
+              <div className="md:col-span-6">
+                <BentoCard testId="section-system-announcements" variant="white">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <span className="portal-label text-stitch-secondary">SYSTEM</span>
+                      <h2 className="font-headline text-xl font-bold text-stitch-primary mt-1">系統公告</h2>
+                    </div>
+                    {auth?.isSupervisor && (
+                      <Link href={`${basePath}/manage`}>
+                        <span className="portal-label text-stitch-secondary cursor-pointer hover:underline" data-testid="link-manage-sys-ann">
+                          管理 →
+                        </span>
+                      </Link>
+                    )}
+                  </div>
+                  {sysAnnQ.isLoading ? (
+                    <div className="space-y-2" data-testid="state-sysann-loading">
+                      {[1, 2].map((i) => (<div key={i} className="h-14 rounded-xl bg-stitch-surface-low animate-pulse" />))}
+                    </div>
+                  ) : sysAnnouncements.length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-6" data-testid="state-sysann-empty">目前沒有系統公告</p>
+                  ) : (
+                    <div className="space-y-2" data-testid="state-sysann-list">
+                      {sysAnnouncements.slice(0, 4).map((s) => {
+                        const sevColor = s.severity === "critical" ? "border-red-400 bg-red-50" : s.severity === "warning" ? "border-amber-400 bg-amber-50" : "border-stitch-secondary/30 bg-stitch-surface-low";
+                        const sevIcon = s.severity === "critical" ? "error" : s.severity === "warning" ? "warning" : "info";
+                        const sevText = s.severity === "critical" ? "text-red-600" : s.severity === "warning" ? "text-amber-600" : "text-stitch-secondary";
+                        return (
+                          <div key={s.id} className={`rounded-xl p-3 border-l-4 ${sevColor}`} data-testid={`sysann-${s.id}`}>
+                            <div className="flex items-start gap-2">
+                              <MaterialIcon name={sevIcon} className={`text-[18px] ${sevText} mt-0.5`} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-stitch-primary">{s.title}</p>
+                                <p className="text-xs text-slate-600 mt-0.5 line-clamp-2">{s.content}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </BentoCard>
+              </div>
+
+              {/* (7) Quick Links - col-span-6 */}
+              <div className="md:col-span-6">
+                <BentoCard testId="section-quick-links" variant="white">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <span className="portal-label text-stitch-secondary">SHORTCUTS</span>
+                      <h2 className="font-headline text-xl font-bold text-stitch-primary mt-1">常用網址</h2>
+                    </div>
+                    {auth?.isSupervisor && (
+                      <Link href={`${basePath}/manage`}>
+                        <span className="portal-label text-stitch-secondary cursor-pointer hover:underline" data-testid="link-manage-quicklinks">
+                          管理 →
+                        </span>
+                      </Link>
+                    )}
+                  </div>
+                  {linksQ.isLoading ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" data-testid="state-links-loading">
+                      {[1, 2, 3, 4].map((i) => (<div key={i} className="h-16 rounded-xl bg-stitch-surface-low animate-pulse" />))}
+                    </div>
+                  ) : quickLinks.length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-6" data-testid="state-links-empty">尚未設定常用網址</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" data-testid="state-links-list">
+                      {quickLinks.map((l) => (
+                        <a
+                          key={l.id}
+                          href={l.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleLinkClick(l)}
+                          className="bg-stitch-surface-low rounded-xl p-3 hover:bg-white hover:shadow-ambient transition-all group"
+                          data-testid={`quicklink-${l.id}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #006b60, #9dd84f)" }}>
+                              <MaterialIcon name={l.icon || "link"} className="text-white text-[16px]" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-stitch-primary truncate">{l.title}</p>
+                              {l.description && <p className="text-[10px] text-slate-500 truncate">{l.description}</p>}
+                            </div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </BentoCard>
               </div>
             </div>
 

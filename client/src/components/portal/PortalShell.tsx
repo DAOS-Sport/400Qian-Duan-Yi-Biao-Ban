@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { usePortalAuth } from "@/hooks/use-bound-facility";
 import { getFacilityConfig } from "@/config/facility-configs";
+import { trackPortalEvent } from "@/hooks/usePortalData";
 
 interface PortalShellProps {
   children: (ctx: { searchTerm: string }) => React.ReactNode;
@@ -13,6 +14,7 @@ interface NavItem {
   label: string;
   icon: string;
   path: string;
+  supervisorOnly?: boolean;
 }
 
 const SIDE_NAV: NavItem[] = [
@@ -21,6 +23,8 @@ const SIDE_NAV: NavItem[] = [
   { label: "群組公告", icon: "campaign", path: "/announcements" },
   { label: "活動檔期", icon: "event", path: "/campaigns" },
   { label: "班表入口", icon: "badge", path: "/shift" },
+  { label: "點擊熱力", icon: "leaderboard", path: "/analytics", supervisorOnly: true },
+  { label: "後台管理", icon: "admin_panel_settings", path: "/manage", supervisorOnly: true },
 ];
 
 const TOP_NAV: { label: string; key: string }[] = [
@@ -48,6 +52,18 @@ export default function PortalShell({ children, facilityKey, pageTitle }: Portal
   useEffect(() => {
     setMobileOpen(false);
   }, [location]);
+
+  // 自動 pageview 追蹤
+  useEffect(() => {
+    if (!auth) return;
+    const subPath = location.replace(basePath, "") || "/";
+    trackPortalEvent(
+      { eventType: "pageview", target: subPath, targetLabel: pageTitle },
+      { employeeNumber: auth.employeeNumber, employeeName: auth.name, facilityKey },
+    );
+  }, [location, basePath, auth, facilityKey, pageTitle]);
+
+  const visibleSideNav = SIDE_NAV.filter((it) => !it.supervisorOnly || auth?.isSupervisor);
 
   const handleLogout = () => {
     logout();
@@ -190,7 +206,7 @@ export default function PortalShell({ children, facilityKey, pageTitle }: Portal
         </div>
 
         <nav className="flex-1 px-3 space-y-1">
-          {SIDE_NAV.map((it) => {
+          {visibleSideNav.map((it) => {
             const active = isPathActive(it.path);
             return (
               <Link key={it.label} href={basePath + it.path}>
@@ -256,7 +272,7 @@ export default function PortalShell({ children, facilityKey, pageTitle }: Portal
             className="md:hidden fixed left-0 top-16 bottom-0 w-64 z-50 p-3 space-y-1 overflow-y-auto"
             style={{ background: "rgba(25,51,90,0.98)", borderTopRightRadius: "1.5rem", borderBottomRightRadius: "1.5rem" }}
           >
-            {SIDE_NAV.map((it) => {
+            {visibleSideNav.map((it) => {
               const active = isPathActive(it.path);
               return (
                 <Link key={it.label} href={basePath + it.path}>
@@ -296,7 +312,7 @@ export default function PortalShell({ children, facilityKey, pageTitle }: Portal
         style={{ background: "rgba(0,29,66,0.95)", backdropFilter: "blur(20px)" }}
         data-testid="portal-bottom-nav"
       >
-        {SIDE_NAV.slice(0, 5).map((it) => {
+        {visibleSideNav.slice(0, 5).map((it) => {
           const active = isPathActive(it.path);
           return (
             <Link key={it.label} href={basePath + it.path}>

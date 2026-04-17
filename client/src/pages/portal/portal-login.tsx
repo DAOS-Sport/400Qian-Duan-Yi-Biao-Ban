@@ -11,6 +11,8 @@ interface RagicLoginResponse {
   name: string;
   role?: string;
   facility?: string;
+  department?: string;
+  isSupervisor?: boolean;
 }
 
 function MaterialIcon({ name, className = "" }: { name: string; className?: string }) {
@@ -39,6 +41,8 @@ export default function PortalLogin() {
         employeeNumber: data.employeeNumber || employeeNumber.trim(),
         name: data.name || employeeNumber.trim(),
         role: data.role,
+        department: data.department,
+        isSupervisor: data.isSupervisor,
         loggedInAt: new Date().toISOString(),
       });
       if (selectedFacility) localStorage.setItem("facilityKey", selectedFacility);

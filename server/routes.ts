@@ -545,6 +545,84 @@ export async function registerRoutes(
     return String(p || "").trim().replace(/[-\s()]/g, "");
   }
 
+  // ---- Ragic employee lookup with 5-min cache (used by login + supervisor authz) ----
+  type EmployeeProfile = { employeeNumber: string; name: string; title: string; department?: string; status: string; mobile: string; isSupervisor: boolean };
+  const employeeCache = new Map<string, { value: EmployeeProfile | null; expiresAt: number }>();
+  const EMPLOYEE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+  async function lookupEmployee(employeeNumber: string): Promise<EmployeeProfile | null> {
+    const key = employeeNumber.trim();
+    if (!key) return null;
+    const cached = employeeCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+    const ragicApiKey = process.env.RAGIC_API_KEY;
+    const ragicHost = process.env.RAGIC_HOST || "ap7.ragic.com";
+    const ragicAccountPath = process.env.RAGIC_ACCOUNT_PATH || "xinsheng";
+    const ragicSheetPath = process.env.RAGIC_EMPLOYEE_SHEET || "/ragicforms4/13";
+    if (!ragicApiKey) return null;
+
+    const url = `https://${ragicHost}/${ragicAccountPath}${ragicSheetPath}?api&where=${RAGIC_QUERY_FID.employeeNumber},eq,${encodeURIComponent(key)}`;
+    try {
+      const upstream = await fetch(url, {
+        headers: { Authorization: `Basic ${ragicApiKey}`, Accept: "application/json" },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!upstream.ok) return null;
+      const data = (await upstream.json()) as Record<string, Record<string, string>>;
+      const entries = Object.values(data || {});
+      if (entries.length === 0) {
+        employeeCache.set(key, { value: null, expiresAt: Date.now() + EMPLOYEE_CACHE_TTL_MS });
+        return null;
+      }
+      const e = entries[0] as Record<string, unknown>;
+      const department = e[RAGIC_KEY.department];
+      const departmentStr = Array.isArray(department) ? department.join(", ") : (department as string | undefined);
+      const title = String(e[RAGIC_KEY.title] || "");
+      const profile: EmployeeProfile = {
+        employeeNumber: String(e[RAGIC_KEY.employeeNumber] || key),
+        name: String(e[RAGIC_KEY.name] || key),
+        title,
+        department: departmentStr || undefined,
+        status: String(e[RAGIC_KEY.status] || "").trim(),
+        mobile: normalizePhone(e[RAGIC_KEY.mobile] as string | undefined),
+        isSupervisor: /主管|經理|組長|店長|館長|總監|協理|副理|副總/.test(title),
+      };
+      employeeCache.set(key, { value: profile, expiresAt: Date.now() + EMPLOYEE_CACHE_TTL_MS });
+      return profile;
+    } catch (err) {
+      console.error("[lookupEmployee] error:", err instanceof Error ? err.message : err);
+      return null;
+    }
+  }
+
+  async function resolveCaller(req: import("express").Request): Promise<EmployeeProfile | null> {
+    const empNum = (req.headers["x-employee-number"] as string) || "";
+    if (!empNum) return null;
+    return await lookupEmployee(empNum);
+  }
+
+  function requireSupervisor(): import("express").RequestHandler {
+    return async (req, res, next) => {
+      const caller = await resolveCaller(req);
+      if (!caller) return res.status(401).json({ message: "未授權：請重新登入" });
+      if (caller.status && caller.status !== "在職") return res.status(403).json({ message: "員工已離職" });
+      if (!caller.isSupervisor) return res.status(403).json({ message: "需主管權限" });
+      (req as unknown as { caller: EmployeeProfile }).caller = caller;
+      next();
+    };
+  }
+
+  function requireEmployee(): import("express").RequestHandler {
+    return async (req, res, next) => {
+      const caller = await resolveCaller(req);
+      if (!caller) return res.status(401).json({ message: "未授權：請重新登入" });
+      if (caller.status && caller.status !== "在職") return res.status(403).json({ message: "員工已離職" });
+      (req as unknown as { caller: EmployeeProfile }).caller = caller;
+      next();
+    };
+  }
+
   app.post("/api/auth/ragic-login", async (req, res) => {
     try {
       const { employeeNumber, phone } = (req.body || {}) as { employeeNumber?: string; phone?: string };
@@ -564,51 +642,29 @@ export async function registerRoutes(
         });
       }
 
-      const ragicUrl = `https://${ragicHost}/${ragicAccountPath}${ragicSheetPath}?api&where=${RAGIC_QUERY_FID.employeeNumber},eq,${encodeURIComponent(employeeNumber.trim())}`;
-
-      const upstream = await fetch(ragicUrl, {
-        headers: {
-          Authorization: `Basic ${ragicApiKey}`,
-          Accept: "application/json",
-        },
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (!upstream.ok) {
-        const body = await upstream.text().catch(() => "");
-        console.error("[ragic-login] Ragic API error:", upstream.status, body.slice(0, 200));
-        return res.status(502).json({ message: "無法連線至 Ragic，請稍後再試" });
+      // Force fresh lookup (skip cache) for login
+      employeeCache.delete(employeeNumber.trim());
+      const profile = await lookupEmployee(employeeNumber.trim());
+      if (!profile) {
+        return res.status(401).json({ message: "查無此員工編號或無法連線 Ragic" });
       }
 
-      const data = (await upstream.json()) as Record<string, Record<string, string>>;
-      const entries = Object.values(data || {});
-
-      if (entries.length === 0) {
-        return res.status(401).json({ message: "查無此員工編號" });
-      }
-
-      const employee = entries[0] as Record<string, unknown>;
       const inputPhone = normalizePhone(phone);
-      const storedMobile = normalizePhone(employee[RAGIC_KEY.mobile] as string | undefined);
-
-      if (!storedMobile || inputPhone !== storedMobile) {
+      if (!profile.mobile || inputPhone !== profile.mobile) {
         return res.status(401).json({ message: "手機號碼不正確" });
       }
 
-      const status = String(employee[RAGIC_KEY.status] || "").trim();
-      if (status && status !== "在職") {
-        return res.status(403).json({ message: `員工狀態為「${status}」，無法登入` });
+      if (profile.status && profile.status !== "在職") {
+        return res.status(403).json({ message: `員工狀態為「${profile.status}」，無法登入` });
       }
 
-      const department = employee[RAGIC_KEY.department];
-      const departmentStr = Array.isArray(department) ? department.join(", ") : (department as string | undefined);
-
       res.json({
-        employeeNumber: String(employee[RAGIC_KEY.employeeNumber] || employeeNumber),
-        name: String(employee[RAGIC_KEY.name] || employeeNumber),
-        role: (employee[RAGIC_KEY.title] as string) || undefined,
-        department: departmentStr || undefined,
-        status: status || undefined,
+        employeeNumber: profile.employeeNumber,
+        name: profile.name,
+        role: profile.title || undefined,
+        department: profile.department,
+        status: profile.status || undefined,
+        isSupervisor: profile.isSupervisor,
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "登入驗證失敗";
@@ -839,6 +895,222 @@ export async function registerRoutes(
   app.get("/api/admin/interview-users", (_req, res) =>
     proxyGet(`${SMART_SCHEDULE_BASE}/api/admin/interview-users`, res, "面試授權用戶")
   );
+
+  // -------- Portal: Handover (員工 KEY) --------
+  app.get("/api/portal/handovers", async (req, res) => {
+    try {
+      const facilityKey = String(req.query.facilityKey || "");
+      if (!facilityKey) return res.status(400).json({ message: "缺少 facilityKey" });
+      const limit = Math.min(Number(req.query.limit) || 50, 200);
+      const items = await storage.listHandovers(facilityKey, limit);
+      res.json({ items });
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "查詢失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.post("/api/portal/handovers", requireEmployee(), async (req, res) => {
+    try {
+      const caller = (req as unknown as { caller: EmployeeProfile }).caller;
+      const { insertHandoverEntrySchema } = await import("@shared/schema");
+      // Force author identity from authenticated caller (do not trust body)
+      const parsed = insertHandoverEntrySchema.safeParse({
+        ...(req.body || {}),
+        authorEmployeeNumber: caller.employeeNumber,
+        authorName: caller.name,
+      });
+      if (!parsed.success) {
+        return res.status(400).json({ message: "資料格式錯誤", errors: parsed.error.flatten() });
+      }
+      const created = await storage.createHandover(parsed.data);
+      // 也順便記一筆 portal event
+      await storage.recordPortalEvent({
+        employeeNumber: parsed.data.authorEmployeeNumber || null,
+        employeeName: parsed.data.authorName || null,
+        facilityKey: parsed.data.facilityKey,
+        eventType: "handover_create",
+        target: String(created.id),
+        targetLabel: parsed.data.content.slice(0, 50),
+        metadata: null,
+      });
+      res.status(201).json(created);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "建立失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.delete("/api/portal/handovers/:id", requireEmployee(), async (req, res) => {
+    try {
+      const caller = (req as unknown as { caller: EmployeeProfile }).caller;
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: "無效 ID" });
+      const entry = await storage.getHandoverById(id);
+      if (!entry) return res.status(404).json({ message: "找不到資料" });
+      if (!caller.isSupervisor && entry.authorEmployeeNumber !== caller.employeeNumber) {
+        return res.status(403).json({ message: "僅作者或主管可刪除" });
+      }
+      const ok = await storage.deleteHandover(id);
+      if (!ok) return res.status(404).json({ message: "找不到資料" });
+      res.json({ ok: true });
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "刪除失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  // -------- Portal: Quick Links (主管維護) --------
+  app.get("/api/portal/quick-links", async (req, res) => {
+    try {
+      const facilityKey = req.query.facilityKey ? String(req.query.facilityKey) : undefined;
+      const includeInactive = req.query.includeInactive === "true";
+      const items = await storage.listQuickLinks(facilityKey, includeInactive);
+      res.json({ items });
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "查詢失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.post("/api/portal/quick-links", requireSupervisor(), async (req, res) => {
+    try {
+      const { insertQuickLinkSchema } = await import("@shared/schema");
+      const parsed = insertQuickLinkSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "資料格式錯誤", errors: parsed.error.flatten() });
+      }
+      const created = await storage.createQuickLink(parsed.data);
+      res.status(201).json(created);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "建立失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.patch("/api/portal/quick-links/:id", requireSupervisor(), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: "無效 ID" });
+      const updated = await storage.updateQuickLink(id, req.body || {});
+      if (!updated) return res.status(404).json({ message: "找不到資料" });
+      res.json(updated);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "更新失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.delete("/api/portal/quick-links/:id", requireSupervisor(), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: "無效 ID" });
+      const ok = await storage.deleteQuickLink(id);
+      if (!ok) return res.status(404).json({ message: "找不到資料" });
+      res.json({ ok: true });
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "刪除失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  // -------- Portal: System Announcements (主管維護) --------
+  app.get("/api/portal/system-announcements", async (req, res) => {
+    try {
+      const facilityKey = req.query.facilityKey ? String(req.query.facilityKey) : undefined;
+      const includeInactive = req.query.includeInactive === "true";
+      const items = await storage.listSystemAnnouncements(facilityKey, includeInactive);
+      res.json({ items });
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "查詢失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.post("/api/portal/system-announcements", requireSupervisor(), async (req, res) => {
+    try {
+      const { insertSystemAnnouncementSchema } = await import("@shared/schema");
+      const parsed = insertSystemAnnouncementSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "資料格式錯誤", errors: parsed.error.flatten() });
+      }
+      const created = await storage.createSystemAnnouncement(parsed.data);
+      res.status(201).json(created);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "建立失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.patch("/api/portal/system-announcements/:id", requireSupervisor(), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: "無效 ID" });
+      const updated = await storage.updateSystemAnnouncement(id, req.body || {});
+      if (!updated) return res.status(404).json({ message: "找不到資料" });
+      res.json(updated);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "更新失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.delete("/api/portal/system-announcements/:id", requireSupervisor(), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: "無效 ID" });
+      const ok = await storage.deleteSystemAnnouncement(id);
+      if (!ok) return res.status(404).json({ message: "找不到資料" });
+      res.json({ ok: true });
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "刪除失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  // -------- Portal: Analytics 事件追蹤 --------
+  app.post("/api/portal/events", async (req, res) => {
+    try {
+      const employeeNumber = (req.headers["x-employee-number"] as string) || null;
+      const employeeName = decodeURIComponent((req.headers["x-employee-name"] as string) || "") || null;
+      const facilityKey = (req.headers["x-facility-key"] as string) || null;
+
+      const { insertPortalEventSchema } = await import("@shared/schema");
+      const body = req.body || {};
+      const parsed = insertPortalEventSchema.safeParse({
+        employeeNumber,
+        employeeName,
+        facilityKey,
+        eventType: body.eventType,
+        target: body.target,
+        targetLabel: body.targetLabel,
+        metadata: body.metadata,
+      });
+      if (!parsed.success) {
+        return res.status(400).json({ message: "事件格式錯誤", errors: parsed.error.flatten() });
+      }
+      await storage.recordPortalEvent(parsed.data);
+      res.status(204).end();
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "事件記錄失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.get("/api/portal/analytics", async (req, res) => {
+    try {
+      const sinceDays = req.query.sinceDays ? Number(req.query.sinceDays) : 30;
+      const facilityKey = req.query.facilityKey ? String(req.query.facilityKey) : undefined;
+      const stats = await storage.getEventStats({
+        sinceDays: Number.isFinite(sinceDays) ? sinceDays : 30,
+        facilityKey,
+      });
+      res.json(stats);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "查詢失敗";
+      res.status(500).json({ message: m });
+    }
+  });
 
   return httpServer;
 }

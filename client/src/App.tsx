@@ -22,6 +22,8 @@ import PortalHandover from "@/pages/portal/portal-handover";
 import PortalCampaigns from "@/pages/portal/portal-campaigns";
 import PortalShift from "@/pages/portal/portal-shift";
 import PortalAnnouncementDetail from "@/pages/portal/portal-announcement-detail";
+import PortalManage from "@/pages/portal/portal-manage";
+import PortalAnalytics from "@/pages/portal/portal-analytics";
 import { usePortalAuth } from "@/hooks/use-bound-facility";
 import { getFacilityConfig } from "@/config/facility-configs";
 
@@ -116,6 +118,20 @@ function PortalRouter() {
         {(params) => (
           <GuardedPortalPage>
             <PortalShift facilityKey={params.facilityKey} />
+          </GuardedPortalPage>
+        )}
+      </Route>
+      <Route path="/portal/:facilityKey/manage">
+        {(params) => (
+          <GuardedPortalPage>
+            <PortalManage facilityKey={params.facilityKey} />
+          </GuardedPortalPage>
+        )}
+      </Route>
+      <Route path="/portal/:facilityKey/analytics">
+        {(params) => (
+          <GuardedPortalPage>
+            <PortalAnalytics facilityKey={params.facilityKey} />
           </GuardedPortalPage>
         )}
       </Route>

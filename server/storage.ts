@@ -1,6 +1,16 @@
-import { type User, type InsertUser, type AnomalyReport, type InsertAnomalyReport, type NotificationRecipient, type InsertNotificationRecipient, users, anomalyReports, notificationRecipients } from "@shared/schema";
+import {
+  type User, type InsertUser,
+  type AnomalyReport, type InsertAnomalyReport,
+  type NotificationRecipient, type InsertNotificationRecipient,
+  type HandoverEntry, type InsertHandoverEntry,
+  type QuickLink, type InsertQuickLink,
+  type SystemAnnouncement, type InsertSystemAnnouncement,
+  type PortalEvent, type InsertPortalEvent,
+  users, anomalyReports, notificationRecipients,
+  handoverEntries, quickLinks, systemAnnouncements, portalEvents,
+} from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq, desc, inArray, and, or, isNull, gte, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -17,6 +27,34 @@ export interface IStorage {
   createRecipient(recipient: InsertNotificationRecipient): Promise<NotificationRecipient>;
   updateRecipient(id: number, data: Partial<InsertNotificationRecipient>): Promise<NotificationRecipient | undefined>;
   deleteRecipient(id: number): Promise<boolean>;
+
+  // Handover (員工 KEY)
+  listHandovers(facilityKey: string, limit?: number): Promise<HandoverEntry[]>;
+  getHandoverById(id: number): Promise<HandoverEntry | undefined>;
+  createHandover(entry: InsertHandoverEntry): Promise<HandoverEntry>;
+  deleteHandover(id: number): Promise<boolean>;
+
+  // QuickLinks (主管維護)
+  listQuickLinks(facilityKey?: string, includeInactive?: boolean): Promise<QuickLink[]>;
+  createQuickLink(link: InsertQuickLink): Promise<QuickLink>;
+  updateQuickLink(id: number, data: Partial<InsertQuickLink>): Promise<QuickLink | undefined>;
+  deleteQuickLink(id: number): Promise<boolean>;
+
+  // SystemAnnouncements (主管維護)
+  listSystemAnnouncements(facilityKey?: string, includeInactive?: boolean): Promise<SystemAnnouncement[]>;
+  createSystemAnnouncement(ann: InsertSystemAnnouncement): Promise<SystemAnnouncement>;
+  updateSystemAnnouncement(id: number, data: Partial<InsertSystemAnnouncement>): Promise<SystemAnnouncement | undefined>;
+  deleteSystemAnnouncement(id: number): Promise<boolean>;
+
+  // Portal Events (analytics)
+  recordPortalEvent(event: InsertPortalEvent): Promise<PortalEvent>;
+  getEventStats(opts: { sinceDays?: number; facilityKey?: string }): Promise<{
+    totalEvents: number;
+    byType: Array<{ eventType: string; count: number }>;
+    topEmployees: Array<{ employeeNumber: string | null; employeeName: string | null; count: number }>;
+    topTargets: Array<{ eventType: string; target: string | null; targetLabel: string | null; count: number }>;
+    dailyCounts: Array<{ day: string; count: number }>;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -89,6 +127,151 @@ export class DatabaseStorage implements IStorage {
   async deleteRecipient(id: number): Promise<boolean> {
     const result = await db.delete(notificationRecipients).where(eq(notificationRecipients.id, id)).returning();
     return result.length > 0;
+  }
+
+  async listHandovers(facilityKey: string, limit = 50): Promise<HandoverEntry[]> {
+    return db.select().from(handoverEntries)
+      .where(eq(handoverEntries.facilityKey, facilityKey))
+      .orderBy(desc(handoverEntries.createdAt))
+      .limit(limit);
+  }
+
+  async getHandoverById(id: number): Promise<HandoverEntry | undefined> {
+    const [row] = await db.select().from(handoverEntries).where(eq(handoverEntries.id, id)).limit(1);
+    return row;
+  }
+
+  async createHandover(entry: InsertHandoverEntry): Promise<HandoverEntry> {
+    const [created] = await db.insert(handoverEntries).values(entry).returning();
+    return created;
+  }
+
+  async deleteHandover(id: number): Promise<boolean> {
+    const result = await db.delete(handoverEntries).where(eq(handoverEntries.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async listQuickLinks(facilityKey?: string, includeInactive = false): Promise<QuickLink[]> {
+    const conditions = [];
+    if (!includeInactive) conditions.push(eq(quickLinks.isActive, true));
+    if (facilityKey) {
+      conditions.push(or(eq(quickLinks.facilityKey, facilityKey), isNull(quickLinks.facilityKey))!);
+    }
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const q = where ? db.select().from(quickLinks).where(where) : db.select().from(quickLinks);
+    return q.orderBy(quickLinks.sortOrder, desc(quickLinks.createdAt));
+  }
+
+  async createQuickLink(link: InsertQuickLink): Promise<QuickLink> {
+    const [created] = await db.insert(quickLinks).values(link).returning();
+    return created;
+  }
+
+  async updateQuickLink(id: number, data: Partial<InsertQuickLink>): Promise<QuickLink | undefined> {
+    const [updated] = await db.update(quickLinks).set(data).where(eq(quickLinks.id, id)).returning();
+    return updated;
+  }
+
+  async deleteQuickLink(id: number): Promise<boolean> {
+    const result = await db.delete(quickLinks).where(eq(quickLinks.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async listSystemAnnouncements(facilityKey?: string, includeInactive = false): Promise<SystemAnnouncement[]> {
+    const conditions = [];
+    if (!includeInactive) conditions.push(eq(systemAnnouncements.isActive, true));
+    if (facilityKey) {
+      conditions.push(or(eq(systemAnnouncements.facilityKey, facilityKey), isNull(systemAnnouncements.facilityKey))!);
+    }
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const q = where ? db.select().from(systemAnnouncements).where(where) : db.select().from(systemAnnouncements);
+    return q.orderBy(desc(systemAnnouncements.publishedAt));
+  }
+
+  async createSystemAnnouncement(ann: InsertSystemAnnouncement): Promise<SystemAnnouncement> {
+    const [created] = await db.insert(systemAnnouncements).values(ann).returning();
+    return created;
+  }
+
+  async updateSystemAnnouncement(id: number, data: Partial<InsertSystemAnnouncement>): Promise<SystemAnnouncement | undefined> {
+    const [updated] = await db.update(systemAnnouncements).set(data).where(eq(systemAnnouncements.id, id)).returning();
+    return updated;
+  }
+
+  async deleteSystemAnnouncement(id: number): Promise<boolean> {
+    const result = await db.delete(systemAnnouncements).where(eq(systemAnnouncements.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async recordPortalEvent(event: InsertPortalEvent): Promise<PortalEvent> {
+    const [created] = await db.insert(portalEvents).values(event).returning();
+    return created;
+  }
+
+  async getEventStats(opts: { sinceDays?: number; facilityKey?: string }): Promise<{
+    totalEvents: number;
+    byType: Array<{ eventType: string; count: number }>;
+    topEmployees: Array<{ employeeNumber: string | null; employeeName: string | null; count: number }>;
+    topTargets: Array<{ eventType: string; target: string | null; targetLabel: string | null; count: number }>;
+    dailyCounts: Array<{ day: string; count: number }>;
+  }> {
+    const sinceDays = opts.sinceDays ?? 30;
+    const sinceDate = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
+    const conditions = [gte(portalEvents.createdAt, sinceDate)];
+    if (opts.facilityKey) conditions.push(eq(portalEvents.facilityKey, opts.facilityKey));
+    const where = and(...conditions);
+
+    const [totalRow] = await db.select({ c: sql<number>`count(*)::int` }).from(portalEvents).where(where);
+
+    const byType = await db
+      .select({ eventType: portalEvents.eventType, count: sql<number>`count(*)::int` })
+      .from(portalEvents)
+      .where(where)
+      .groupBy(portalEvents.eventType)
+      .orderBy(desc(sql`count(*)`));
+
+    const topEmployees = await db
+      .select({
+        employeeNumber: portalEvents.employeeNumber,
+        employeeName: portalEvents.employeeName,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(portalEvents)
+      .where(where)
+      .groupBy(portalEvents.employeeNumber, portalEvents.employeeName)
+      .orderBy(desc(sql`count(*)`))
+      .limit(20);
+
+    const topTargets = await db
+      .select({
+        eventType: portalEvents.eventType,
+        target: portalEvents.target,
+        targetLabel: portalEvents.targetLabel,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(portalEvents)
+      .where(where)
+      .groupBy(portalEvents.eventType, portalEvents.target, portalEvents.targetLabel)
+      .orderBy(desc(sql`count(*)`))
+      .limit(50);
+
+    const dailyCounts = await db
+      .select({
+        day: sql<string>`to_char(${portalEvents.createdAt}, 'YYYY-MM-DD')`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(portalEvents)
+      .where(where)
+      .groupBy(sql`to_char(${portalEvents.createdAt}, 'YYYY-MM-DD')`)
+      .orderBy(sql`to_char(${portalEvents.createdAt}, 'YYYY-MM-DD')`);
+
+    return {
+      totalEvents: totalRow?.c ?? 0,
+      byType,
+      topEmployees,
+      topTargets,
+      dailyCounts,
+    };
   }
 }
 

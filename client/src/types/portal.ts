@@ -117,3 +117,51 @@ export interface FacilityHomeResponse {
   shift?: FacilityShiftEntry[];
   lastRefreshedAt?: string;
 }
+
+export interface HandoverEntryDTO {
+  id: number;
+  facilityKey: string;
+  content: string;
+  authorEmployeeNumber: string | null;
+  authorName: string | null;
+  createdAt: string;
+}
+
+export interface QuickLinkDTO {
+  id: number;
+  facilityKey: string | null;
+  title: string;
+  url: string;
+  icon: string | null;
+  description: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface SystemAnnouncementDTO {
+  id: number;
+  title: string;
+  content: string;
+  severity: "info" | "warning" | "critical";
+  facilityKey: string | null;
+  publishedAt: string;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface PortalEventInsert {
+  eventType: "pageview" | "link_click" | "announcement_open" | "handover_create";
+  target?: string;
+  targetLabel?: string;
+  metadata?: string;
+}
+
+export interface PortalEventStats {
+  totalEvents: number;
+  byType: Array<{ eventType: string; count: number }>;
+  topEmployees: Array<{ employeeNumber: string | null; employeeName: string | null; count: number }>;
+  topTargets: Array<{ eventType: string; target: string | null; targetLabel: string | null; count: number }>;
+  dailyCounts: Array<{ day: string; count: number }>;
+}

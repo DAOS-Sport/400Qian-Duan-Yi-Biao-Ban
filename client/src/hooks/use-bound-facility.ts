@@ -36,6 +36,8 @@ export interface PortalAuthState {
   employeeNumber: string;
   name: string;
   role?: string;
+  department?: string;
+  isSupervisor?: boolean;
   loggedInAt: string;
 }
 
