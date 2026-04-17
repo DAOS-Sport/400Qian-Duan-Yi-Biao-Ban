@@ -520,6 +520,29 @@ export async function registerRoutes(
     }
   });
 
+  // Ragic 員工資料表 (xinsheng/ragicforms4/13)
+  // 欄位 ID:
+  //   3000935 = 工號 (employee number)
+  //   3001424 = 手機 (work mobile, primary)
+  //   3000941 = 手機 (personal mobile, fallback)
+  //   3000933 = 姓名
+  //   3000937 = 部門
+  //   3000939 = 職稱
+  //   3000945 = 在職狀態
+  const RAGIC_FIELDS = {
+    employeeNumber: "3000935",
+    workMobile: "3001424",
+    personalMobile: "3000941",
+    name: "3000933",
+    department: "3000937",
+    title: "3000939",
+    status: "3000945",
+  } as const;
+
+  function normalizePhone(p: string | undefined): string {
+    return String(p || "").trim().replace(/[-\s()]/g, "");
+  }
+
   app.post("/api/auth/ragic-login", async (req, res) => {
     try {
       const { employeeNumber, phone } = (req.body || {}) as { employeeNumber?: string; phone?: string };
@@ -528,8 +551,9 @@ export async function registerRoutes(
       }
 
       const ragicApiKey = process.env.RAGIC_API_KEY;
-      const ragicAccountPath = process.env.RAGIC_ACCOUNT_PATH || "daos";
-      const ragicSheetPath = process.env.RAGIC_EMPLOYEE_SHEET || "/default/1";
+      const ragicHost = process.env.RAGIC_HOST || "ap7.ragic.com";
+      const ragicAccountPath = process.env.RAGIC_ACCOUNT_PATH || "xinsheng";
+      const ragicSheetPath = process.env.RAGIC_EMPLOYEE_SHEET || "/ragicforms4/13";
 
       if (!ragicApiKey) {
         console.log("[ragic-login] RAGIC_API_KEY not set");
@@ -538,7 +562,7 @@ export async function registerRoutes(
         });
       }
 
-      const ragicUrl = `https://www.ragic.com/${ragicAccountPath}${ragicSheetPath}?api&where=1000,eq,${encodeURIComponent(employeeNumber)}`;
+      const ragicUrl = `https://${ragicHost}/${ragicAccountPath}${ragicSheetPath}?api&where=${RAGIC_FIELDS.employeeNumber},eq,${encodeURIComponent(employeeNumber.trim())}`;
 
       const upstream = await fetch(ragicUrl, {
         headers: {
@@ -549,31 +573,38 @@ export async function registerRoutes(
       });
 
       if (!upstream.ok) {
-        console.error("[ragic-login] Ragic API error:", upstream.status);
+        const body = await upstream.text().catch(() => "");
+        console.error("[ragic-login] Ragic API error:", upstream.status, body.slice(0, 200));
         return res.status(502).json({ message: "無法連線至 Ragic，請稍後再試" });
       }
 
       const data = (await upstream.json()) as Record<string, Record<string, string>>;
-      const entries = Object.values(data);
+      const entries = Object.values(data || {});
 
       if (entries.length === 0) {
         return res.status(401).json({ message: "查無此員工編號" });
       }
 
       const employee = entries[0];
+      const inputPhone = normalizePhone(phone);
+      const workMobile = normalizePhone(employee[RAGIC_FIELDS.workMobile]);
+      const personalMobile = normalizePhone(employee[RAGIC_FIELDS.personalMobile]);
 
-      const storedPhone = String(employee["1001"] || "").trim().replace(/[-\s]/g, "");
-      const inputPhone = phone.trim().replace(/[-\s]/g, "");
-
-      if (storedPhone !== inputPhone) {
+      if (inputPhone !== workMobile && inputPhone !== personalMobile) {
         return res.status(401).json({ message: "手機號碼不正確" });
       }
 
+      const status = String(employee[RAGIC_FIELDS.status] || "").trim();
+      if (status && /離職|停職|退休/.test(status)) {
+        return res.status(403).json({ message: `員工狀態為「${status}」，無法登入` });
+      }
+
       res.json({
-        employeeNumber: employee["1000"] || employeeNumber,
-        name: employee["1002"] || employee["1000"] || employeeNumber,
-        role: employee["1003"] || undefined,
-        facility: employee["1004"] || undefined,
+        employeeNumber: employee[RAGIC_FIELDS.employeeNumber] || employeeNumber,
+        name: employee[RAGIC_FIELDS.name] || employeeNumber,
+        role: employee[RAGIC_FIELDS.title] || undefined,
+        department: employee[RAGIC_FIELDS.department] || undefined,
+        status: status || undefined,
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "登入驗證失敗";

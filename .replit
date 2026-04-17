@@ -44,3 +44,6 @@ waitForPort = 5000
 [userenv.shared]
 GMAIL_USER = "daos.ragic.system@gmail.com"
 GMAIL_APP_PASSWORD = "rygc hcin ogcy qith"
+RAGIC_HOST = "ap7.ragic.com"
+RAGIC_ACCOUNT_PATH = "xinsheng"
+RAGIC_EMPLOYEE_SHEET = "/ragicforms4/13"
