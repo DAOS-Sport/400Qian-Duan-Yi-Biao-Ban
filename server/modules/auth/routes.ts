@@ -3,7 +3,7 @@ import type { WorkbenchRole } from "@shared/auth/me";
 import type { AppContainer } from "../../app/container";
 import { clearSessionCookie, getSessionIdFromCookie, setSessionCookie } from "./cookie";
 import { attachSession, requireSession } from "./context";
-import { createMockSession, createMemorySessionStore, hasRole } from "./session-store";
+import { createSessionFromAuthUser, createMemorySessionStore, hasRole } from "./session-store";
 
 const workbenchRoles: readonly WorkbenchRole[] = ["employee", "supervisor", "system"];
 
@@ -21,9 +21,7 @@ export const registerAuthRoutes = (app: Express, container: AppContainer) => {
       return res.status(401).json({ message: authResult.meta.fallbackReason, meta: authResult.meta });
     }
 
-    const { sessionId, session } = await sessionStore.create(
-      createMockSession(authResult.data.userId, authResult.data.displayName, authResult.data.isSupervisor ?? true),
-    );
+    const { sessionId, session } = await sessionStore.create(createSessionFromAuthUser(authResult.data));
     setSessionCookie(res, sessionId);
     return res.status(201).json(session);
   });
