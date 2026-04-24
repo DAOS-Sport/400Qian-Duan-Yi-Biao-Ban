@@ -32,6 +32,13 @@ export const env = {
   replitDataBaseUrl: read("REPLIT_DATA_BASE_URL"),
   replitDataApiToken: read("REPLIT_DATA_API_TOKEN"),
   replitDataTimeoutMs: Number(read("REPLIT_DATA_TIMEOUT_MS") || 8000),
+  lineBotBaseUrl: read("LINE_BOT_BASE_URL") || "https://line-bot-assistant-ronchen2.replit.app",
+  smartScheduleBaseUrl: read("SMART_SCHEDULE_BASE_URL") || "https://smart-schedule-manager.replit.app",
+  externalApiTimeoutMs: Number(read("EXTERNAL_API_TIMEOUT_MS") || 10000),
+  ragicApiKey: read("RAGIC_API_KEY"),
+  ragicHost: read("RAGIC_HOST") || "ap7.ragic.com",
+  ragicAccountPath: read("RAGIC_ACCOUNT_PATH") || "xinsheng",
+  ragicEmployeeSheet: read("RAGIC_EMPLOYEE_SHEET") || "/ragicforms4/13",
   sessionCookieName: read("SESSION_COOKIE_NAME") || "workbench_sid",
   sessionTtlSeconds: Number(read("SESSION_TTL_SECONDS") || 60 * 60 * 8),
 } as const;

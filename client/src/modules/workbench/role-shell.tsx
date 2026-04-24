@@ -72,9 +72,6 @@ export function RoleShell({ role, title, subtitle, children }: RoleShellProps) {
               <p className="truncate text-[11px] text-[#b8c8da]">{roleLabel}</p>
             </div>
           </div>
-          <div className="mb-4">
-            <RoleSwitcher compact />
-          </div>
           <nav className="flex flex-1 flex-col gap-1">
             {nav.map(([label, href, Icon], index) => {
               const active = location === href || (href !== "/" && location.startsWith(href));

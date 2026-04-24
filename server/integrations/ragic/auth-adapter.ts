@@ -9,6 +9,10 @@ export interface RagicAuthUser {
   userId: string;
   displayName: string;
   employeeNumber: string;
+  title?: string;
+  department?: string;
+  status?: string;
+  isSupervisor?: boolean;
 }
 
 export interface RagicAuthAdapter {

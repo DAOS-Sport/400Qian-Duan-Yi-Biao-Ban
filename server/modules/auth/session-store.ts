@@ -58,11 +58,15 @@ export const createMemorySessionStore = (): SessionStore => ({
   },
 });
 
-export const createMockSession = (userId: string, displayName: string): Omit<SessionRecord, "issuedAt" | "lastActive"> => ({
+export const createMockSession = (
+  userId: string,
+  displayName: string,
+  isSupervisor = true,
+): Omit<SessionRecord, "issuedAt" | "lastActive"> => ({
   userId,
   displayName,
-  grantedRoles: ["employee", "supervisor", "system"],
-  activeRole: "system",
+  grantedRoles: isSupervisor ? ["employee", "supervisor", "system"] : ["employee"],
+  activeRole: isSupervisor ? "system" : "employee",
   grantedFacilities: ["xinbei-high-school"],
   activeFacility: "xinbei-high-school",
   permissionsSnapshot: [

@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs";
 import { corsMiddleware } from "./app/http/cors";
 import { registerNewArchitectureRoutes } from "./app/http/register-routes";
+import { env } from "./shared/config/env";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "anomaly-reports");
 
@@ -675,8 +676,8 @@ export async function registerRoutes(
     });
   });
 
-  const LINE_BOT_BASE = "https://line-bot-assistant-ronchen2.replit.app";
-  const SMART_SCHEDULE_BASE = "https://smart-schedule-manager.replit.app";
+  const LINE_BOT_BASE = env.lineBotBaseUrl;
+  const SMART_SCHEDULE_BASE = env.smartScheduleBaseUrl;
 
   async function proxyGet(upstreamUrl: string, res: any, label: string) {
     try {

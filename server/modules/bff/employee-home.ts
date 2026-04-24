@@ -1,5 +1,6 @@
 import type { EmployeeHomeDto, SupervisorDashboardDto, SystemOverviewDto } from "@shared/domain/workbench";
-import { ok, stale } from "../../shared/bff/section";
+import { env } from "../../shared/config/env";
+import { ok, stale, unavailable } from "../../shared/bff/section";
 
 const syncTime = new Date().toISOString();
 
@@ -114,3 +115,85 @@ export const getSystemOverviewMock = (): SystemOverviewDto => ({
   ], syncTime),
   auditSummary: ok({ todayEvents: 248, rawInspectorQueries: 0 }, syncTime),
 });
+
+const fetchJson = async <T>(url: string): Promise<T> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), env.externalApiTimeoutMs);
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    return await response.json() as T;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+export const getSupervisorDashboardFromSources = async (): Promise<SupervisorDashboardDto> => {
+  const now = new Date().toISOString();
+  const [announcementSummary, scheduleOverview] = await Promise.allSettled([
+    fetchJson<Record<string, unknown>>(new URL("/api/announcement-dashboard/summary", env.lineBotBaseUrl).toString()),
+    fetchJson<Record<string, unknown>>(new URL("/api/admin/overview", env.smartScheduleBaseUrl).toString()),
+  ]);
+
+  const announcementData = announcementSummary.status === "fulfilled" ? announcementSummary.value : null;
+  const scheduleData = scheduleOverview.status === "fulfilled" ? scheduleOverview.value : null;
+  const pendingReviewCount = Number(announcementData?.pendingReviewCount ?? 0);
+  const activeUsers = Number(scheduleData?.activeUsers ?? scheduleData?.todayActiveUsers ?? 0);
+
+  return {
+    facility: {
+      key: "xinbei_pool",
+      name: "駿斯營運管理",
+      businessDate: new Date().toLocaleDateString("zh-TW"),
+      statusLabel: "即時資料",
+    },
+    staffing: scheduleData
+      ? ok({ active: activeUsers || 0, total: Number(scheduleData.totalUsers ?? activeUsers ?? 0), onShift: activeUsers || 0, absent: 0 }, now)
+      : unavailable("Smart Schedule overview unavailable"),
+    pendingAnomalies: ok([], now),
+    incompleteTasks: ok([], now),
+    announcementAcks: announcementData
+      ? ok({ unconfirmed: pendingReviewCount, totalRequired: Number(announcementData.totalMessagesToday ?? pendingReviewCount) }, now)
+      : unavailable("LINE Bot announcement summary unavailable"),
+    handoverOverview: ok({ open: 0, confirmed: 0 }, now),
+    shifts: ok([], now),
+    campaigns: ok([], now),
+  };
+};
+
+export const getSystemOverviewFromSources = async (): Promise<SystemOverviewDto> => {
+  const now = new Date().toISOString();
+  const checks = await Promise.allSettled([
+    fetchJson<Record<string, unknown>>(new URL("/api/announcement-dashboard/summary", env.lineBotBaseUrl).toString()),
+    fetchJson<Record<string, unknown>>(new URL("/api/admin/overview", env.smartScheduleBaseUrl).toString()),
+  ]);
+  const healthyCount = checks.filter((check) => check.status === "fulfilled").length;
+  const score = Math.round((healthyCount / checks.length) * 1000) / 10;
+  const failures = checks
+    .map((check, index) => ({ check, label: index === 0 ? "LINE Bot Assistant" : "Smart Schedule Manager" }))
+    .filter(({ check }) => check.status === "rejected")
+    .map(({ check, label }, index) => ({
+      id: `integration-${index}`,
+      title: `${label} 連線失敗`,
+      time: now.slice(11, 16),
+      severity: "warning" as const,
+    }));
+
+  return {
+    checkedAt: now,
+    healthScore: ok({ score, statusLabel: score === 100 ? "健康" : "部分異常" }, now),
+    metrics: ok([
+      { label: "外部 API 健康度", value: `${score}%`, status: score === 100 ? "ok" : "warning", helper: "LINE Bot / Smart Schedule" },
+      { label: "LINE Bot Assistant", value: checks[0].status === "fulfilled" ? "正常" : "異常", status: checks[0].status === "fulfilled" ? "ok" : "critical", helper: env.lineBotBaseUrl },
+      { label: "Smart Schedule", value: checks[1].status === "fulfilled" ? "正常" : "異常", status: checks[1].status === "fulfilled" ? "ok" : "critical", helper: env.smartScheduleBaseUrl },
+      { label: "資料庫模式", value: env.databaseProfile, status: env.databaseProfile === "mock" ? "warning" : "ok", helper: "DATABASE_PROFILE" },
+      { label: "資料來源模式", value: env.dataSourceMode, status: env.dataSourceMode === "mock" ? "warning" : "ok", helper: "DATA_SOURCE_MODE" },
+    ], now),
+    incidents: ok(failures, now),
+    integrationFailures: ok(failures, now),
+    auditSummary: ok({ todayEvents: 0, rawInspectorQueries: 0 }, now),
+  };
+};

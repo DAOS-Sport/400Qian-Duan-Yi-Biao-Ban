@@ -107,6 +107,13 @@ External Source -> Adapter -> source_snapshots -> projection tables -> BFF DTO -
 - 若外部來源暫時不可用，adapter 回 `SourceResult.status = unavailable | degraded | stale`，BFF 轉成 section fallback，不讓前端自行猜。
 - Ragic 身份驗證也是 external auth source；登入成功後，本系統只保存 session / role snapshot，不把 Ragic 當成本系統 session store。
 
+正式 / Replit 測試規則：
+
+- `DATA_SOURCE_MODE=mock` 僅限本地無外網或 UI 開發 fallback。
+- `DATA_SOURCE_MODE=test` 可使用正式外部 API，但允許 `DATABASE_PROFILE=mock`，適合 Replit 重連前做 smoke test。
+- `DATA_SOURCE_MODE=real` 必須設定 `DATABASE_URL`，避免正式模式下不小心吃 memory / mock repository。
+- 除 `shared/domain/facilities.ts` 的 LINE 群組 ID 對照表外，不得新增寫死外部資料。
+
 ## 6. Replit Migration Note
 
 Replit pull 後要做：

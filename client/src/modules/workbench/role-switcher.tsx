@@ -27,8 +27,8 @@ export function RoleSwitcher({ compact = false }: { compact?: boolean }) {
   };
 
   return (
-    <div className={cn("flex items-center gap-2", compact ? "max-w-full overflow-x-auto" : "flex-wrap justify-end")}>
-      <div className="flex rounded-[8px] border border-[#dfe7ef] bg-white p-1 shadow-sm">
+    <div className={cn("flex min-w-0 items-center gap-2", compact ? "max-w-full" : "flex-wrap justify-end")}>
+      <div className={cn("flex min-w-0 rounded-[8px] border border-[#dfe7ef] bg-white p-1 shadow-sm", compact && "w-full")}>
         {roleOrder
           .filter((role) => session.grantedRoles.includes(role))
           .map((role) => (
@@ -38,7 +38,8 @@ export function RoleSwitcher({ compact = false }: { compact?: boolean }) {
               onClick={() => goRole(role)}
               disabled={switchRole.isPending}
               className={cn(
-                "min-h-8 whitespace-nowrap rounded-[6px] px-3 text-[12px] font-black transition",
+                "min-h-8 min-w-0 rounded-[6px] px-3 text-[12px] font-black transition",
+                compact && "flex-1 px-2 text-[11px]",
                 session.activeRole === role ? "bg-[#0d2a50] text-white" : "text-[#536175] hover:bg-[#f2f6fa]",
               )}
             >

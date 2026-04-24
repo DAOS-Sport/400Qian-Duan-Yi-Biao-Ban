@@ -22,7 +22,7 @@ export const registerAuthRoutes = (app: Express, container: AppContainer) => {
     }
 
     const { sessionId, session } = await sessionStore.create(
-      createMockSession(authResult.data.userId, authResult.data.displayName),
+      createMockSession(authResult.data.userId, authResult.data.displayName, authResult.data.isSupervisor ?? true),
     );
     setSessionCookie(res, sessionId);
     return res.status(201).json(session);
