@@ -38,7 +38,24 @@ const roleNav = {
 } as const;
 
 type NavItem = readonly [label: string, href: string, Icon: LucideIcon];
-type MobileNavItem = readonly [label: string, Icon: LucideIcon];
+type MobileNavItem = readonly [label: string, href: string, Icon: LucideIcon];
+
+const roleMobileNav: Record<"supervisor" | "system", readonly MobileNavItem[]> = {
+  supervisor: [
+    ["首頁", "/supervisor", Home],
+    ["任務", "/supervisor/tasks", ClipboardList],
+    ["公告", "/supervisor/announcements", Bell],
+    ["人力", "/supervisor/people", Users],
+    ["更多", "/supervisor/anomalies", MoreHorizontal],
+  ],
+  system: [
+    ["首頁", "/system", Home],
+    ["健康", "/system/health", Gauge],
+    ["告警", "/system/alerts", Bell],
+    ["整合", "/system/integrations", ShieldCheck],
+    ["更多", "/system/raw-inspector", MoreHorizontal],
+  ],
+};
 
 interface RoleShellProps {
   role: "supervisor" | "system";
@@ -146,18 +163,15 @@ export function RoleShell({ role, title, subtitle, children }: RoleShellProps) {
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t border-[#e5ecf3] bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
-        {([
-          ["首頁", Home],
-          ["任務", ClipboardList],
-          ["公告", Bell],
-          [role === "system" ? "系統" : "人力", role === "system" ? Gauge : Users],
-          ["更多", MoreHorizontal],
-        ] satisfies readonly MobileNavItem[]).map(([label, Icon], index) => (
-          <button key={String(label)} className={cn("flex min-h-12 flex-col items-center justify-center gap-1 rounded-[8px] text-[11px] font-black", index === 0 ? "text-[#1f6fd1]" : "text-[#6c7a8e]")}>
+        {roleMobileNav[role].map(([label, href, Icon]) => {
+          const active = location === href || (href !== "/" && location.startsWith(href));
+          return (
+          <Link key={String(label)} href={href} className={cn("flex min-h-12 flex-col items-center justify-center gap-1 rounded-[8px] text-[11px] font-black", active ? "text-[#1f6fd1]" : "text-[#6c7a8e]")}>
             <Icon className="h-5 w-5" />
             {label}
-          </button>
-        ))}
+          </Link>
+          );
+        })}
       </nav>
     </div>
   );

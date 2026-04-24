@@ -29,7 +29,10 @@ import EmployeeHomePage from "@/modules/employee/home/employee-home-page";
 import SupervisorDashboardPage from "@/modules/supervisor/dashboard-page";
 import SupervisorAnnouncementsPage from "@/modules/supervisor/announcements/page";
 import SupervisorAnomaliesPage from "@/modules/supervisor/anomalies/page";
+import SupervisorPeoplePage from "@/modules/supervisor/people/page";
+import SupervisorTasksPage from "@/modules/supervisor/tasks/page";
 import SystemDashboardPage from "@/modules/system/dashboard-page";
+import SystemIntegrationsPage from "@/modules/system/integrations/page";
 import WorkbenchLoginPage from "@/modules/workbench/login-page";
 import { LegacyWorkbenchPage } from "@/modules/workbench/legacy-page";
 import { useAuthMe } from "@/shared/auth/session";
@@ -175,9 +178,7 @@ function WorkbenchRouter() {
       <Route path="/EMPLOYEE" component={EmployeeHomePage} />
       <Route path="/supervisor/home" component={SupervisorDashboardPage} />
       <Route path="/supervisor/tasks">
-        <LegacyWorkbenchPage role="supervisor" title="任務管理" subtitle="沿用既有任務與營運資料，後續逐步拆成新 module。">
-          <Operations />
-        </LegacyWorkbenchPage>
+        <SupervisorTasksPage />
       </Route>
       <Route path="/supervisor/announcements">
         <SupervisorAnnouncementsPage />
@@ -186,9 +187,7 @@ function WorkbenchRouter() {
         <SupervisorAnomaliesPage />
       </Route>
       <Route path="/supervisor/people">
-        <LegacyWorkbenchPage role="supervisor" title="人力狀態" subtitle="HR 與權限稽核先掛入主管工作台。">
-          <HrAudit />
-        </LegacyWorkbenchPage>
+        <SupervisorPeoplePage />
       </Route>
       <Route path="/supervisor" component={SupervisorDashboardPage} />
       <Route path="/system/health" component={SystemDashboardPage} />
@@ -198,9 +197,7 @@ function WorkbenchRouter() {
         </LegacyWorkbenchPage>
       </Route>
       <Route path="/system/integrations">
-        <LegacyWorkbenchPage role="system" title="整合監控" subtitle="外部資料源與跨館資源先由既有頁面承接。">
-          <Operations />
-        </LegacyWorkbenchPage>
+        <SystemIntegrationsPage />
       </Route>
       <Route path="/system/audit">
         <LegacyWorkbenchPage role="system" title="操作稽核" subtitle="公告分析與稽核資料先搬入系統治理殼。">

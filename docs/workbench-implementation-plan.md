@@ -345,17 +345,22 @@ Sprint 1 只做架構基線，不急著做完整功能或完整視覺稿。
 - 外部資料來源保留與可切換 adapter：Ragic、LINE Bot Assistant、Smart Schedule Manager。
 - 場館與 LINE 群組 ID 對照常數集中於 shared domain，不散落在 UI。
 - 主管首頁支援版面控制，widget 可開關。
+- 手機底部導航已從純按鈕改為真實 route link，支援主管 / 系統角色核心入口切換。
+- `/supervisor/tasks` 已從 legacy wrapper 遷成正式主管 module。
 - `/supervisor/announcements` 已從 legacy wrapper 遷成正式主管 module。
 - `/supervisor/anomalies` 已從 legacy wrapper 遷成正式主管 module。
+- `/supervisor/people` 已從 legacy wrapper 遷成正式主管 module。
+- `/system/integrations` 已從 legacy wrapper 遷成正式系統 module。
 - shared API client 已補齊 `GET` / `POST` / `PATCH` / `DELETE`，供 module mutation 使用。
 
 下一批遷移順序：
 
-1. `supervisor/tasks`：任務總覽與代辦處理。
-2. `supervisor/people`：人員 / 員工資料查詢，Ragic adapter 對接。
-3. `supervisor/reports`：報表分析與匯出。
-4. `system/integrations`：整合監控從 legacy page 拆成 system module。
+1. `supervisor/handover`：交接總覽、未確認交接與櫃台交接 CRUD。
+2. `supervisor/settings`：主管版面與場館設定。
+3. `system/alerts`：告警中心從異常舊頁拆成系統事件 module。
+4. `system/audit`：操作稽核從公告分析舊頁拆成 audit module。
 5. `system/raw-inspector`：加 audit 與查詢防護後正式 module 化。
+6. `supervisor/reports`：報表分析與匯出。
 
 目前完成口徑：
 
