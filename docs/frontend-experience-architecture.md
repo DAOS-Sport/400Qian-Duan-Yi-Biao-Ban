@@ -293,6 +293,7 @@ client/src/
 - `/supervisor/anomalies` 已改為正式主管模組 `client/src/modules/supervisor/anomalies`，前端只呼叫本平台異常通報 / 通知收件者 API，保留處理狀態與刪除 mutation。
 - `/system/integrations` 已改為正式系統模組 `client/src/modules/system/integrations`，讀取 system integration BFF，不再由舊跨館資源頁直接打外部 Replit URL。
 - `/system/alerts`、`/system/audit`、`/system/raw-inspector` 已改為正式系統模組，分別承接告警、稽核與白名單 raw JSON inspection。
+- `/employee/tasks`、`/employee/announcements`、`/employee/handover`、`/employee/shift`、`/employee/more` 已改為正式員工端深連模組；手機底部導航與桌機側欄皆為真實 route link。
 - 舊 `client/src/pages/dashboard.tsx` 與 `client/src/pages/system-health.tsx` 已轉為新角色頁 wrapper，避免第一張舊畫面從 legacy route 回流。
 - 視覺上先對齊架構書與圖二的資訊架構、角色入口、響應式骨架；後續 UIUX 精修應只改 module widget / ui-kit，不反向破壞 BFF 邊界。
 
@@ -309,6 +310,11 @@ client/src/
 已完成正式 module：
 
 - `employee/home`：員工首頁 BFF DTO。
+- `employee/tasks`：今日任務列表。
+- `employee/announcements`：群組公告與必讀狀態。
+- `employee/handover`：櫃台交接列表與新增。
+- `employee/shift`：今日班表與活動檔期。
+- `employee/more`：常用入口、文件與 Portal quick-links。
 - `supervisor/dashboard`：主管首頁 BFF DTO 與版面控制。
 - `supervisor/tasks`：主管任務投影與篩選。
 - `supervisor/handover`：櫃台交接列表與新增。

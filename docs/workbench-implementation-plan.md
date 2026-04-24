@@ -340,6 +340,7 @@ Sprint 1 只做架構基線，不急著做完整功能或完整視覺稿。
 已落地：
 
 - 三角色工作台入口：`/employee`、`/supervisor`、`/system`。
+- 員工端正式深連入口：`/employee/tasks`、`/employee/announcements`、`/employee/handover`、`/employee/shift`、`/employee/more`。
 - 全端開發測試登入：`1111 / 1111`，預設 active role 為 `system`，可切換 `employee` / `supervisor` / `system`。
 - BFF 基線：`/api/bff/employee/home`、`/api/bff/supervisor/dashboard`、`/api/bff/system/overview`。
 - 外部資料來源保留與可切換 adapter：Ragic、LINE Bot Assistant、Smart Schedule Manager。
@@ -359,6 +360,7 @@ Sprint 1 只做架構基線，不急著做完整功能或完整視覺稿。
 - `/system/raw-inspector` 已從 legacy wrapper 遷成正式系統 module，限制白名單 endpoint。
 - Portal localStorage session / facility 真相已退場，登入、切館與 route guard 改由 `/api/auth/me` cookie session 裁定。
 - Workbench 共用 UI token / card / shell 已依外部 web-design-skill 改善 hover、focus、reduced-motion、container query 與手機底部導航狀態。
+- Replit 外接資料接線文件已新增：`docs/replit-external-data-connection.md`。
 - shared API client 已補齊 `GET` / `POST` / `PATCH` / `DELETE`，供 module mutation 使用。
 
 下一批遷移順序：

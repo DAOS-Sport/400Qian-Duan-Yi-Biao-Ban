@@ -29,6 +29,7 @@ import type {
   ShortcutSummary,
   TaskSummary,
 } from "@shared/domain/workbench";
+import { Link, useLocation } from "wouter";
 import { WorkbenchCard } from "@/shared/ui-kit/workbench-card";
 import { riseIn, staggerContainer } from "@/shared/motion/tokens";
 import { RoleSwitcher } from "@/modules/workbench/role-switcher";
@@ -36,18 +37,18 @@ import { fetchEmployeeHome } from "./api";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { label: "首頁", icon: Home, active: true },
-  { label: "櫃台交接", icon: MessageSquareText },
-  { label: "群組公告", icon: Bell, badge: "2" },
-  { label: "活動檔期", icon: CalendarDays },
-  { label: "班表入口", icon: ClipboardCheck },
-  { label: "任務管理", icon: ListChecks },
-  { label: "報名 / 課程", icon: BookOpen },
-  { label: "點名 / 打卡", icon: ShieldCheck },
-  { label: "匯款確認", icon: CheckCircle2 },
-  { label: "設備回報", icon: Wrench },
-  { label: "知識庫 Q&A", icon: MessageSquareText },
-  { label: "個人記事", icon: FileText },
+  { label: "首頁", icon: Home, href: "/employee" },
+  { label: "櫃台交接", icon: MessageSquareText, href: "/employee/handover" },
+  { label: "群組公告", icon: Bell, href: "/employee/announcements", badge: "2" },
+  { label: "活動檔期", icon: CalendarDays, href: "/employee/shift" },
+  { label: "班表入口", icon: ClipboardCheck, href: "/employee/shift" },
+  { label: "任務管理", icon: ListChecks, href: "/employee/tasks" },
+  { label: "報名 / 課程", icon: BookOpen, href: "/employee/more" },
+  { label: "點名 / 打卡", icon: ShieldCheck, href: "/employee/more" },
+  { label: "匯款確認", icon: CheckCircle2, href: "/employee/more" },
+  { label: "設備回報", icon: Wrench, href: "/employee/more" },
+  { label: "知識庫 Q&A", icon: MessageSquareText, href: "/employee/more" },
+  { label: "個人記事", icon: FileText, href: "/employee/more" },
 ];
 
 const shortcutIcons = {
@@ -101,6 +102,7 @@ function SectionTitle({
 }
 
 function DesktopSidebar() {
+  const [location] = useLocation();
   return (
     <aside className="hidden h-dvh w-[232px] shrink-0 flex-col rounded-r-[18px] bg-[#1f3f68] p-5 text-white shadow-[20px_0_40px_-32px_rgba(13,31,55,0.7)] lg:flex">
       <div className="flex items-center gap-3">
@@ -123,18 +125,20 @@ function DesktopSidebar() {
       <nav className="mt-5 flex flex-1 flex-col gap-1 overflow-y-auto pr-1">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const active = item.href === "/employee" ? location === "/employee" || location === "/EMPLOYEE" : location.startsWith(item.href);
           return (
-            <button
+            <Link
               key={item.label}
+              href={item.href}
               className={cn(
-                "flex min-h-10 items-center gap-3 rounded-[8px] px-3 text-left text-[14px] font-bold transition",
-                item.active ? "bg-gradient-to-r from-[#1cb4a3] to-[#9dd84f] text-white" : "text-[#d6e2ef] hover:bg-white/10",
+                "workbench-focus flex min-h-10 items-center gap-3 rounded-[8px] px-3 text-left text-[14px] font-bold transition",
+                active ? "bg-gradient-to-r from-[#1cb4a3] to-[#9dd84f] text-white" : "text-[#d6e2ef] hover:bg-white/10",
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
               {item.badge ? <span className="grid h-5 w-5 place-items-center rounded-full bg-[#ff4964] text-[10px]">{item.badge}</span> : null}
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -147,10 +151,10 @@ function DesktopSidebar() {
             <p className="text-[11px] text-[#b6c7d9]">員工</p>
           </div>
         </div>
-        <button className="flex min-h-9 w-full items-center gap-3 rounded-[8px] px-3 text-[13px] text-[#d6e2ef] hover:bg-white/10">
+        <Link href="/employee/more" className="workbench-focus flex min-h-9 w-full items-center gap-3 rounded-[8px] px-3 text-[13px] text-[#d6e2ef] hover:bg-white/10">
           <Settings className="h-4 w-4" />
           設定
-        </button>
+        </Link>
       </div>
     </aside>
   );
@@ -161,7 +165,7 @@ function TopBar() {
     <header className="sticky top-0 z-20 border-b border-[#dfe7ef] bg-[#0d2a50] text-white lg:bg-white/80 lg:text-[#10233f] lg:backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1280px] items-center justify-between px-4 lg:h-16 lg:px-7">
         <div className="flex items-center gap-3 lg:hidden">
-          <button className="grid h-10 w-10 place-items-center rounded-[8px] bg-white/10">
+          <button aria-label="開啟選單" className="workbench-focus grid h-10 w-10 place-items-center rounded-[8px] bg-white/10">
             <Menu className="h-5 w-5" />
           </button>
           <p className="text-[15px] font-black">駿斯 Kinetic Ops</p>
@@ -183,14 +187,14 @@ function TopBar() {
           <div className="hidden lg:block">
             <RoleSwitcher />
           </div>
-          <button className="hidden h-10 w-10 place-items-center rounded-full bg-[#f0f4f8] text-[#10233f] lg:grid">
+          <button aria-label="搜尋" className="workbench-focus hidden h-10 w-10 place-items-center rounded-full bg-[#f0f4f8] text-[#10233f] lg:grid">
             <Search className="h-4 w-4" />
           </button>
-          <button className="relative grid h-10 w-10 place-items-center rounded-full bg-white/10 lg:bg-[#f0f4f8] lg:text-[#10233f]">
+          <button aria-label="通知" className="workbench-focus relative grid h-10 w-10 place-items-center rounded-full bg-white/10 lg:bg-[#f0f4f8] lg:text-[#10233f]">
             <Bell className="h-4 w-4" />
             <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#ff4964]" />
           </button>
-          <button className="grid h-10 w-10 place-items-center rounded-full bg-[#007166] text-[13px] font-black text-white">駿</button>
+          <button aria-label="員工帳號" className="workbench-focus grid h-10 w-10 place-items-center rounded-full bg-[#007166] text-[13px] font-black text-white">駿</button>
         </div>
       </div>
       <div className="border-t border-white/10 px-4 py-2 lg:hidden">
@@ -376,21 +380,23 @@ function LowerGrid({ home }: { home: EmployeeHomeDto }) {
 
 function BottomNav() {
   const items = [
-    { label: "首頁", icon: Home, active: true },
-    { label: "任務", icon: ListChecks },
-    { label: "公告", icon: Bell },
-    { label: "交接", icon: MessageSquareText },
-    { label: "更多", icon: MoreHorizontal },
+    { label: "首頁", icon: Home, href: "/employee" },
+    { label: "任務", icon: ListChecks, href: "/employee/tasks" },
+    { label: "公告", icon: Bell, href: "/employee/announcements" },
+    { label: "交接", icon: MessageSquareText, href: "/employee/handover" },
+    { label: "更多", icon: MoreHorizontal, href: "/employee/more" },
   ];
+  const [location] = useLocation();
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t border-[#e5ecf3] bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
       {items.map((item) => {
         const Icon = item.icon;
+        const active = item.href === "/employee" ? location === "/employee" || location === "/EMPLOYEE" : location.startsWith(item.href);
         return (
-          <button key={item.label} className={cn("flex min-h-12 flex-col items-center justify-center gap-1 rounded-[8px] text-[11px] font-black", item.active ? "text-[#1f6fd1]" : "text-[#6c7a8e]")}>
+          <Link key={item.label} href={item.href} className={cn("workbench-focus flex min-h-12 flex-col items-center justify-center gap-1 rounded-[8px] text-[11px] font-black", active ? "bg-[#eef5ff] text-[#1f6fd1]" : "text-[#6c7a8e]")}>
             <Icon className="h-5 w-5" />
             {item.label}
-          </button>
+          </Link>
         );
       })}
     </nav>
@@ -426,7 +432,7 @@ export default function EmployeeHomePage() {
   }
 
   return (
-    <div className="min-h-dvh bg-[#f4f7fb] text-[#10233f]">
+    <div className="workbench-shell">
       <div className="flex min-h-dvh">
         <DesktopSidebar />
         <div className="min-w-0 flex-1 pb-24 lg:pb-0">

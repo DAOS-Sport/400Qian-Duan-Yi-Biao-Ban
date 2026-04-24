@@ -26,6 +26,11 @@ import PortalManage from "@/pages/portal/portal-manage";
 import PortalAnalytics from "@/pages/portal/portal-analytics";
 import PortalReview from "@/pages/portal/portal-review";
 import EmployeeHomePage from "@/modules/employee/home/employee-home-page";
+import EmployeeAnnouncementsPage from "@/modules/employee/announcements/page";
+import EmployeeHandoverPage from "@/modules/employee/handover/page";
+import EmployeeMorePage from "@/modules/employee/more/page";
+import EmployeeShiftPage from "@/modules/employee/shift/page";
+import EmployeeTasksPage from "@/modules/employee/tasks/page";
 import SupervisorDashboardPage from "@/modules/supervisor/dashboard-page";
 import SupervisorAnnouncementsPage from "@/modules/supervisor/announcements/page";
 import SupervisorAnomaliesPage from "@/modules/supervisor/anomalies/page";
@@ -227,6 +232,21 @@ function WorkbenchRouter() {
       </Route>
       <Route path="/system/overview" component={SystemDashboardPage} />
       <Route path="/system" component={SystemDashboardPage} />
+      <Route path="/employee/tasks">
+        <EmployeeTasksPage />
+      </Route>
+      <Route path="/employee/announcements">
+        <EmployeeAnnouncementsPage />
+      </Route>
+      <Route path="/employee/handover">
+        <EmployeeHandoverPage />
+      </Route>
+      <Route path="/employee/shift">
+        <EmployeeShiftPage />
+      </Route>
+      <Route path="/employee/more">
+        <EmployeeMorePage />
+      </Route>
       <Route path="/employee/home" component={EmployeeHomePage} />
       <Route path="/employee" component={EmployeeHomePage} />
       <Route component={SystemDashboardPage} />
