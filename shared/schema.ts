@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,6 +16,57 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export const facilities = pgTable("facilities", {
+  id: serial("id").primaryKey(),
+  facilityKey: text("facility_key").notNull().unique(),
+  name: text("name").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertFacilitySchema = createInsertSchema(facilities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertFacility = z.infer<typeof insertFacilitySchema>;
+export type Facility = typeof facilities.$inferSelect;
+
+export const sessionsIndex = pgTable("sessions_index", {
+  id: serial("id").primaryKey(),
+  sessionIdHash: text("session_id_hash").notNull().unique(),
+  userId: text("user_id").notNull(),
+  activeRole: text("active_role").notNull(),
+  activeFacility: text("active_facility"),
+  issuedAt: timestamp("issued_at").notNull(),
+  lastActive: timestamp("last_active").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  revokedAt: timestamp("revoked_at"),
+});
+
+export const userRoleSnapshots = pgTable("user_role_snapshots", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  grantedRoles: text("granted_roles").array().notNull(),
+  grantedFacilities: text("granted_facilities").array().notNull(),
+  permissionsSnapshot: text("permissions_snapshot").array().notNull(),
+  source: text("source").default("system").notNull(),
+  capturedAt: timestamp("captured_at").defaultNow().notNull(),
+});
+
+export const authAuditLogs = pgTable("auth_audit_logs", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  actorId: text("actor_id"),
+  action: text("action").notNull(),
+  resultStatus: text("result_status").notNull(),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  payload: jsonb("payload").$type<Record<string, unknown>>(),
+  correlationId: text("correlation_id"),
+});
 
 export const anomalyReports = pgTable("anomaly_reports", {
   id: serial("id").primaryKey(),
@@ -154,3 +205,122 @@ export const insertPortalEventSchema = createInsertSchema(portalEvents).omit({
 
 export type InsertPortalEvent = z.infer<typeof insertPortalEventSchema>;
 export type PortalEvent = typeof portalEvents.$inferSelect;
+
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  actorId: text("actor_id"),
+  role: text("role"),
+  facilityKey: text("facility_key"),
+  action: text("action").notNull(),
+  resource: text("resource").notNull(),
+  resourceId: text("resource_id"),
+  payload: jsonb("payload").$type<Record<string, unknown>>(),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  correlationId: text("correlation_id"),
+  resultStatus: text("result_status").default("success").notNull(),
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  timestamp: true,
+});
+
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+
+export const uiEvents = pgTable("ui_events", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  userId: text("user_id"),
+  role: text("role"),
+  facilityKey: text("facility_key"),
+  page: text("page").notNull(),
+  componentId: text("component_id"),
+  actionType: text("action_type").notNull(),
+  payload: jsonb("payload").$type<Record<string, unknown>>(),
+  traceId: text("trace_id"),
+  correlationId: text("correlation_id"),
+  sessionIdHash: text("session_id_hash"),
+});
+
+export const insertUiEventSchema = createInsertSchema(uiEvents).omit({
+  id: true,
+  timestamp: true,
+});
+
+export type InsertUiEvent = z.infer<typeof insertUiEventSchema>;
+export type UiEvent = typeof uiEvents.$inferSelect;
+
+export const integrationErrorLogs = pgTable("integration_error_logs", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  source: text("source").notNull(),
+  errorCode: text("error_code").notNull(),
+  message: text("message").notNull(),
+  payload: jsonb("payload").$type<Record<string, unknown>>(),
+  correlationId: text("correlation_id"),
+});
+
+export const syncJobRuns = pgTable("sync_job_runs", {
+  id: serial("id").primaryKey(),
+  jobName: text("job_name").notNull(),
+  source: text("source").notNull(),
+  status: text("status").notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  finishedAt: timestamp("finished_at"),
+  errorCode: text("error_code"),
+  message: text("message"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+});
+
+export const bffLatencyLogs = pgTable("bff_latency_logs", {
+  id: serial("id").primaryKey(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  route: text("route").notNull(),
+  role: text("role"),
+  facilityKey: text("facility_key"),
+  durationMs: integer("duration_ms").notNull(),
+  statusCode: integer("status_code").notNull(),
+  correlationId: text("correlation_id"),
+});
+
+export const employeeHomeProjection = pgTable("employee_home_projection", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id"),
+  facilityKey: text("facility_key").notNull(),
+  projection: jsonb("projection").$type<Record<string, unknown>>().notNull(),
+  sourceStatus: text("source_status").default("ok").notNull(),
+  lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const supervisorDashboardProjection = pgTable("supervisor_dashboard_projection", {
+  id: serial("id").primaryKey(),
+  facilityKey: text("facility_key").notNull(),
+  projection: jsonb("projection").$type<Record<string, unknown>>().notNull(),
+  sourceStatus: text("source_status").default("ok").notNull(),
+  lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const systemOverviewProjection = pgTable("system_overview_projection", {
+  id: serial("id").primaryKey(),
+  projection: jsonb("projection").$type<Record<string, unknown>>().notNull(),
+  sourceStatus: text("source_status").default("ok").notNull(),
+  lastSyncAt: timestamp("last_sync_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// External source payloads, such as Ragic, schedule, booking, LINE, Gmail, or
+// Replit-hosted migration feeds, are stored here before projection. These rows
+// are not the system of record for internal workbench business state.
+export const sourceSnapshots = pgTable("source_snapshots", {
+  id: serial("id").primaryKey(),
+  source: text("source").notNull(),
+  externalId: text("external_id"),
+  facilityKey: text("facility_key"),
+  payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+  capturedAt: timestamp("captured_at").defaultNow().notNull(),
+});

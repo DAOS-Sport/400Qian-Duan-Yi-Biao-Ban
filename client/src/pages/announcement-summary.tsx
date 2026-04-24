@@ -57,7 +57,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 interface KpiDef {
   label: string;
-  key: keyof AnnouncementSummaryResponse;
+  key: "totalMessagesToday" | "analyzedMessagesToday" | "pendingReviewCount" | "approvedCount" | "rejectedCount";
   icon: typeof MessageSquare;
   accent: string;
   iconBg: string;

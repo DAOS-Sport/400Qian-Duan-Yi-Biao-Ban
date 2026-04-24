@@ -1,13 +1,16 @@
 import { drizzle } from "drizzle-orm/neon-serverless";
 import ws from "ws";
 import * as schema from "@shared/schema";
+import { getDatabaseRuntimeConfig } from "./shared/db/profile";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set");
+const dbConfig = getDatabaseRuntimeConfig();
+
+if (dbConfig.isMockConnection) {
+  console.warn("[db] DATABASE_URL is not set. Using mock connection profile; DB-backed legacy routes will require a real database.");
 }
 
 export const db = drizzle({
-  connection: process.env.DATABASE_URL,
+  connection: dbConfig.connectionString,
   schema,
   ws: ws,
 });

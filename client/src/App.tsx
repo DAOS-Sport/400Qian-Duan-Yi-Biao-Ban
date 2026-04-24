@@ -25,6 +25,13 @@ import PortalAnnouncementDetail from "@/pages/portal/portal-announcement-detail"
 import PortalManage from "@/pages/portal/portal-manage";
 import PortalAnalytics from "@/pages/portal/portal-analytics";
 import PortalReview from "@/pages/portal/portal-review";
+import EmployeeHomePage from "@/modules/employee/home/employee-home-page";
+import SupervisorDashboardPage from "@/modules/supervisor/dashboard-page";
+import SystemDashboardPage from "@/modules/system/dashboard-page";
+import WorkbenchLoginPage from "@/modules/workbench/login-page";
+import { LegacyWorkbenchPage } from "@/modules/workbench/legacy-page";
+import { useAuthMe } from "@/shared/auth/session";
+import { roleHomePath } from "@shared/auth/me";
 import { usePortalAuth } from "@/hooks/use-bound-facility";
 import { getFacilityConfig } from "@/config/facility-configs";
 
@@ -155,6 +162,85 @@ function PortalRouter() {
   );
 }
 
+function WorkbenchRouter() {
+  return (
+    <Switch>
+      <Route path="/">
+        <Redirect to="/system" />
+      </Route>
+      <Route path="/SYSTEM" component={SystemDashboardPage} />
+      <Route path="/SUPERVISOR" component={SupervisorDashboardPage} />
+      <Route path="/EMPLOYEE" component={EmployeeHomePage} />
+      <Route path="/supervisor/home" component={SupervisorDashboardPage} />
+      <Route path="/supervisor/tasks">
+        <LegacyWorkbenchPage role="supervisor" title="任務管理" subtitle="沿用既有任務與營運資料，後續逐步拆成新 module。">
+          <Operations />
+        </LegacyWorkbenchPage>
+      </Route>
+      <Route path="/supervisor/announcements">
+        <LegacyWorkbenchPage role="supervisor" title="公告管理" subtitle="公告審核與發布功能先搬入新工作台殼。">
+          <Announcements />
+        </LegacyWorkbenchPage>
+      </Route>
+      <Route path="/supervisor/anomalies">
+        <LegacyWorkbenchPage role="supervisor" title="異常審核" subtitle="打卡異常管理先由既有功能承接。">
+          <AnomalyReports />
+        </LegacyWorkbenchPage>
+      </Route>
+      <Route path="/supervisor/people">
+        <LegacyWorkbenchPage role="supervisor" title="人力狀態" subtitle="HR 與權限稽核先掛入主管工作台。">
+          <HrAudit />
+        </LegacyWorkbenchPage>
+      </Route>
+      <Route path="/supervisor" component={SupervisorDashboardPage} />
+      <Route path="/system/health" component={SystemDashboardPage} />
+      <Route path="/system/alerts">
+        <LegacyWorkbenchPage role="system" title="告警中心" subtitle="先接既有異常監控頁，後續改成系統事件 module。">
+          <AnomalyReports />
+        </LegacyWorkbenchPage>
+      </Route>
+      <Route path="/system/integrations">
+        <LegacyWorkbenchPage role="system" title="整合監控" subtitle="外部資料源與跨館資源先由既有頁面承接。">
+          <Operations />
+        </LegacyWorkbenchPage>
+      </Route>
+      <Route path="/system/audit">
+        <LegacyWorkbenchPage role="system" title="操作稽核" subtitle="公告分析與稽核資料先搬入系統治理殼。">
+          <AnnouncementSummary />
+        </LegacyWorkbenchPage>
+      </Route>
+      <Route path="/system/raw-inspector">
+        <LegacyWorkbenchPage role="system" title="Raw Inspector" subtitle="外部來源原始資料檢視入口，正式資料待 Replit 重連。">
+          <Analytics />
+        </LegacyWorkbenchPage>
+      </Route>
+      <Route path="/system/overview" component={SystemDashboardPage} />
+      <Route path="/system" component={SystemDashboardPage} />
+      <Route path="/employee/home" component={EmployeeHomePage} />
+      <Route path="/employee" component={EmployeeHomePage} />
+      <Route component={SystemDashboardPage} />
+    </Switch>
+  );
+}
+
+function WorkbenchAuthGate() {
+  const { data: session, isLoading, isError } = useAuthMe();
+
+  if (isLoading) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-[#f4f7fb] text-[14px] font-bold text-[#637185]">
+        載入登入狀態...
+      </div>
+    );
+  }
+
+  if (isError || !session) {
+    return <Redirect to="/login" />;
+  }
+
+  return <WorkbenchRouter />;
+}
+
 const sidebarStyle = {
   "--sidebar-width": "16rem",
   "--sidebar-width-icon": "3rem",
@@ -168,13 +254,23 @@ function HeaderTitle() {
 
 function App() {
   const [location] = useLocation();
+  const normalizedLocation = location.toLowerCase();
   const isPortal = location.startsWith("/portal");
+  const isLogin = normalizedLocation === "/login";
+  const isWorkbench =
+    normalizedLocation === "/" ||
+    normalizedLocation === "/employee" ||
+    normalizedLocation.startsWith("/employee/") ||
+    normalizedLocation === "/supervisor" ||
+    normalizedLocation.startsWith("/supervisor/") ||
+    normalizedLocation === "/system" ||
+    normalizedLocation.startsWith("/system/");
 
-  if (isPortal) {
+  if (isPortal || isWorkbench || isLogin) {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <PortalRouter />
+          {isLogin ? <LoginRedirector /> : isWorkbench ? <WorkbenchAuthGate /> : <PortalRouter />}
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
@@ -203,6 +299,20 @@ function App() {
       </TooltipProvider>
     </QueryClientProvider>
   );
+}
+
+function LoginRedirector() {
+  const { data: session, isLoading } = useAuthMe();
+
+  if (isLoading) {
+    return <WorkbenchLoginPage />;
+  }
+
+  if (session) {
+    return <Redirect to={roleHomePath[session.activeRole]} />;
+  }
+
+  return <WorkbenchLoginPage />;
 }
 
 export default App;
