@@ -2,15 +2,18 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Building2, ChevronRight, MapPin } from "lucide-react";
 import { getAllActiveFacilities } from "@/config/facility-configs";
+import { useSwitchFacility } from "@/shared/auth/session";
 
 export default function PortalSetup() {
   const [, navigate] = useLocation();
   const facilities = getAllActiveFacilities();
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const switchFacility = useSwitchFacility();
 
   const handleSelect = (key: string) => {
-    localStorage.setItem("facilityKey", key);
-    navigate(`/portal/${key}`);
+    switchFacility.mutate(key, {
+      onSuccess: () => navigate(`/portal/${key}`),
+    });
   };
 
   return (
@@ -51,6 +54,7 @@ export default function PortalSetup() {
               key={f.facilityKey}
               type="button"
               onClick={() => handleSelect(f.facilityKey)}
+              disabled={switchFacility.isPending}
               onMouseEnter={() => setHoveredKey(f.facilityKey)}
               onMouseLeave={() => setHoveredKey(null)}
               className="w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 text-left"

@@ -11,10 +11,10 @@ export function WorkbenchCard({ children, className, tone = "light" }: Workbench
   return (
     <section
       className={cn(
-        "rounded-[8px] border shadow-[0_24px_48px_-28px_rgba(15,34,58,0.22)]",
+        "workbench-card",
         tone === "navy"
-          ? "border-[#28456b] bg-[#18345b] text-white"
-          : "border-[#e6edf4] bg-white text-[#10233f]",
+          ? "workbench-card--navy text-white"
+          : "text-[#10233f]",
         className,
       )}
     >

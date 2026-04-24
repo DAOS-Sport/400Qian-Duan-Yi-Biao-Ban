@@ -328,12 +328,12 @@ Sprint 1 只做架構基線，不急著做完整功能或完整視覺稿。
 
 ## 12. 目前需優先處理的技術債
 
-1. `client/src/hooks/use-bound-facility.ts` 使用 localStorage 作 auth / facility 真相。
-2. `client/src/lib/portalApi.ts` 前端自行 fallback 拼 announcements / campaigns。
-3. `server/routes.ts` 過度集中，且混合 upload、mail、auth、portal、admin。
-4. `server/routes.ts` CORS 目前使用 `Access-Control-Allow-Origin: *`，未來 cookie session 不可沿用。
-5. `uploads/` 與 `exports/` 是本機持久層風險，需用 StorageAdapter 包起來。
-6. `shared/schema.ts` 已開始承擔多 domain schema，後續需拆成 domain schema barrel export。
+1. `client/src/lib/portalApi.ts` 仍有部分前端 fallback 拼 announcements / campaigns，下一階段應收斂到 BFF section。
+2. `server/routes.ts` 仍是 legacy route 聚合點，已支援 cookie session caller，但後續應逐步移到 `server/modules/*`。
+3. `server/routes.ts` CORS 目前使用 `Access-Control-Allow-Origin: *`，正式 cookie session / VPS 部署前不可沿用。
+4. `uploads/` 與 `exports/` 是本機持久層風險，需用 StorageAdapter 包起來。
+5. `shared/schema.ts` 已開始承擔多 domain schema，後續需拆成 domain schema barrel export。
+6. `Raw Inspector` 已完成白名單與 UI module 化，尚待補 server-side audit log。
 
 ## 13. 2026-04-24 落地進度
 
@@ -350,19 +350,26 @@ Sprint 1 只做架構基線，不急著做完整功能或完整視覺稿。
 - `/supervisor/announcements` 已從 legacy wrapper 遷成正式主管 module。
 - `/supervisor/anomalies` 已從 legacy wrapper 遷成正式主管 module。
 - `/supervisor/people` 已從 legacy wrapper 遷成正式主管 module。
+- `/supervisor/handover` 已從 legacy wrapper 遷成正式主管 module，使用 Portal handovers API。
+- `/supervisor/settings` 已從 legacy wrapper 遷成正式主管 module，讀取 quick-links / system announcements。
+- `/supervisor/reports` 已新增正式主管 module，彙整 Supervisor BFF、Portal analytics、System overview。
+- `/system/alerts` 已從 legacy wrapper 遷成正式系統 module，彙整 System overview 與 anomaly reports。
+- `/system/audit` 已新增正式系統 module，讀取 UI event overview 與 Portal analytics。
 - `/system/integrations` 已從 legacy wrapper 遷成正式系統 module。
+- `/system/raw-inspector` 已從 legacy wrapper 遷成正式系統 module，限制白名單 endpoint。
+- Portal localStorage session / facility 真相已退場，登入、切館與 route guard 改由 `/api/auth/me` cookie session 裁定。
+- Workbench 共用 UI token / card / shell 已依外部 web-design-skill 改善 hover、focus、reduced-motion、container query 與手機底部導航狀態。
 - shared API client 已補齊 `GET` / `POST` / `PATCH` / `DELETE`，供 module mutation 使用。
 
 下一批遷移順序：
 
-1. `supervisor/handover`：交接總覽、未確認交接與櫃台交接 CRUD。
-2. `supervisor/settings`：主管版面與場館設定。
-3. `system/alerts`：告警中心從異常舊頁拆成系統事件 module。
-4. `system/audit`：操作稽核從公告分析舊頁拆成 audit module。
-5. `system/raw-inspector`：加 audit 與查詢防護後正式 module 化。
-6. `supervisor/reports`：報表分析與匯出。
+1. `portalApi` remaining fallback：將公告 / campaigns fallback 移入 BFF。
+2. `server/modules/*` extraction：把 alerts、audit、handover、reports 的 route 實作逐步移出 `server/routes.ts`。
+3. `StorageAdapter`：包住 uploads / exports，保留 Replit / VPS / object storage 替換能力。
+4. `Audit log write path`：Raw Inspector、公告審核、異常審核、主管設定變更補 server-side audit。
+5. `CORS / CSRF hardening`：正式部署前改為白名單 origin 與 cookie session 防護。
 
 目前完成口徑：
 
-- 底層架構與兩份主要架構書的核心邊界已鋪好。
-- 仍有舊功能尚未 100% module 化；後續以本清單順序搬遷，避免一次性重寫造成回歸風險。
+- 底層架構與兩份主要架構書指定的工作台主路由已完成 module 化。
+- 前端工作台已不再依賴 legacy wrapper 作主要頁面；剩餘技術債集中在 server route 抽薄、BFF fallback 收斂、持久層 adapter 與正式部署安全。

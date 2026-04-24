@@ -1,19 +1,9 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { usePortalAuth } from "@/hooks/use-bound-facility";
 import { getAllActiveFacilities } from "@/config/facility-configs";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-
-interface RagicLoginResponse {
-  employeeNumber: string;
-  name: string;
-  role?: string;
-  facility?: string;
-  department?: string;
-  isSupervisor?: boolean;
-}
 
 function MaterialIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`} aria-hidden>{name}</span>;
@@ -23,29 +13,23 @@ export default function PortalLogin() {
   const [employeeNumber, setEmployeeNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [selectedFacility, setSelectedFacility] = useState("");
-  const { login } = usePortalAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const facilities = getAllActiveFacilities();
 
   const loginMut = useMutation({
-    mutationFn: async (): Promise<RagicLoginResponse> => {
-      const res = await apiRequest("POST", "/api/auth/ragic-login", {
-        employeeNumber: employeeNumber.trim(),
-        phone: phone.trim(),
+    mutationFn: async () => {
+      const loginRes = await apiRequest("POST", "/api/auth/login", {
+        username: employeeNumber.trim(),
+        password: phone.trim(),
       });
-      return res.json() as Promise<RagicLoginResponse>;
+      const session = await loginRes.json();
+      if (selectedFacility) {
+        await apiRequest("POST", "/api/auth/active-facility", { activeFacility: selectedFacility });
+      }
+      return session;
     },
-    onSuccess: (data: RagicLoginResponse) => {
-      login({
-        employeeNumber: data.employeeNumber || employeeNumber.trim(),
-        name: data.name || employeeNumber.trim(),
-        role: data.role,
-        department: data.department,
-        isSupervisor: data.isSupervisor,
-        loggedInAt: new Date().toISOString(),
-      });
-      if (selectedFacility) localStorage.setItem("facilityKey", selectedFacility);
+    onSuccess: () => {
       navigate(selectedFacility ? `/portal/${selectedFacility}` : "/portal");
     },
     onError: (err: Error) => {

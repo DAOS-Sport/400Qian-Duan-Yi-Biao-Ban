@@ -19,6 +19,10 @@ export interface SwitchRoleRequestDto {
   activeRole: WorkbenchRole;
 }
 
+export interface SwitchFacilityRequestDto {
+  activeFacility: string;
+}
+
 export const roleHomePath: Record<WorkbenchRole, string> = {
   employee: "/employee",
   supervisor: "/supervisor",

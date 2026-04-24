@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { AuthMeDto, LoginRequestDto, SwitchRoleRequestDto, WorkbenchRole } from "@shared/auth/me";
+import type { AuthMeDto, LoginRequestDto, SwitchFacilityRequestDto, SwitchRoleRequestDto, WorkbenchRole } from "@shared/auth/me";
 import { apiGet, apiPost } from "@/shared/api/client";
 
 const authMeKey = ["/api/auth/me"] as const;
@@ -33,6 +33,15 @@ export const useSwitchRole = () => {
   return useMutation({
     mutationFn: (activeRole: WorkbenchRole) =>
       apiPost<AuthMeDto>("/api/auth/active-role", { activeRole } satisfies SwitchRoleRequestDto),
+    onSuccess: (session) => queryClient.setQueryData(authMeKey, session),
+  });
+};
+
+export const useSwitchFacility = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (activeFacility: string) =>
+      apiPost<AuthMeDto>("/api/auth/active-facility", { activeFacility } satisfies SwitchFacilityRequestDto),
     onSuccess: (session) => queryClient.setQueryData(authMeKey, session),
   });
 };

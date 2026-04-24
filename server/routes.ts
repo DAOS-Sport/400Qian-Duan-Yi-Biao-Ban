@@ -594,6 +594,16 @@ export async function registerRoutes(
   }
 
   async function resolveCaller(req: import("express").Request): Promise<EmployeeProfile | null> {
+    if (req.workbenchSession) {
+      return {
+        employeeNumber: req.workbenchSession.userId,
+        name: req.workbenchSession.displayName,
+        title: req.workbenchSession.grantedRoles.includes("system") ? "系統管理員" : req.workbenchSession.grantedRoles.includes("supervisor") ? "主管" : "員工",
+        status: "在職",
+        mobile: "",
+        isSupervisor: req.workbenchSession.grantedRoles.includes("supervisor") || req.workbenchSession.grantedRoles.includes("system"),
+      };
+    }
     const empNum = (req.headers["x-employee-number"] as string) || "";
     if (!empNum) return null;
     return await lookupEmployee(empNum);

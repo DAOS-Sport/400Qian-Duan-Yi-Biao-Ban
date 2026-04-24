@@ -7,6 +7,7 @@ import {
   FileText,
   Gauge,
   Home,
+  BarChart3,
   Menu,
   MoreHorizontal,
   Search,
@@ -25,6 +26,7 @@ const roleNav = {
     ["交接管理", "/supervisor/handover", FileText],
     ["異常審核", "/supervisor/anomalies", ShieldCheck],
     ["人力狀態", "/supervisor/people", Users],
+    ["報表分析", "/supervisor/reports", BarChart3],
     ["系統設定", "/supervisor/settings", Settings],
   ],
   system: [
@@ -46,7 +48,7 @@ const roleMobileNav: Record<"supervisor" | "system", readonly MobileNavItem[]> =
     ["任務", "/supervisor/tasks", ClipboardList],
     ["公告", "/supervisor/announcements", Bell],
     ["人力", "/supervisor/people", Users],
-    ["更多", "/supervisor/anomalies", MoreHorizontal],
+    ["更多", "/supervisor/reports", MoreHorizontal],
   ],
   system: [
     ["首頁", "/system", Home],
@@ -71,9 +73,9 @@ export function RoleShell({ role, title, subtitle, children }: RoleShellProps) {
   const roleLabel = role === "system" ? "系統管理員" : "主管・台中館";
 
   return (
-    <div className="min-h-dvh bg-[#f4f7fb] text-[#10233f]">
+    <div className="workbench-shell">
       <div className="flex min-h-dvh">
-        <aside className="hidden w-[216px] shrink-0 flex-col bg-[#1f3f68] p-4 text-white lg:flex">
+        <aside className="workbench-sidebar hidden w-[216px] shrink-0 flex-col p-4 text-white lg:flex">
           <div className="mb-5 flex items-center gap-2">
             <div className="grid h-8 w-8 place-items-center rounded-[8px] bg-[#143058] text-[#9dd84f]">
               <Gauge className="h-4 w-4" />
@@ -91,14 +93,15 @@ export function RoleShell({ role, title, subtitle, children }: RoleShellProps) {
           </div>
           <nav className="flex flex-1 flex-col gap-1">
             {nav.map(([label, href, Icon], index) => {
-              const active = location === href || (href !== "/" && location.startsWith(href));
+              const roleRoot = href === "/supervisor" || href === "/system";
+              const active = roleRoot ? location === href : location === href || location.startsWith(`${href}/`);
               const rootActive = index === 0 && role === "supervisor" && location === "/";
               return (
                 <Link
                   key={label}
                   href={href}
                   className={cn(
-                    "flex min-h-10 items-center gap-3 rounded-[8px] px-3 text-[13px] font-bold transition",
+                    "workbench-focus flex min-h-10 items-center gap-3 rounded-[8px] px-3 text-[13px] font-bold transition",
                     active || rootActive
                       ? "bg-gradient-to-r from-[#1cb4a3] to-[#9dd84f] text-white"
                       : "text-[#d8e3ef] hover:bg-white/10",
@@ -116,10 +119,10 @@ export function RoleShell({ role, title, subtitle, children }: RoleShellProps) {
         </aside>
 
         <div className="min-w-0 flex-1 pb-20 lg:pb-0">
-          <header className="sticky top-0 z-20 border-b border-[#dfe7ef] bg-[#0d2a50] text-white lg:bg-white/85 lg:text-[#10233f] lg:backdrop-blur">
+          <header className="sticky top-0 z-20 border-b border-[#dfe7ef] bg-[#0d2a50] text-white shadow-[0_1px_0_rgba(255,255,255,0.05)] lg:bg-white/[0.88] lg:text-[#10233f] lg:backdrop-blur-xl">
             <div className="mx-auto flex h-14 max-w-[1240px] items-center justify-between px-4 lg:h-12 lg:px-6">
               <div className="flex items-center gap-3">
-                <button className="grid h-9 w-9 place-items-center rounded-[8px] bg-white/10 lg:hidden">
+                <button aria-label="開啟選單" className="workbench-focus grid h-9 w-9 place-items-center rounded-[8px] bg-white/10 lg:hidden">
                   <Menu className="h-5 w-5" />
                 </button>
                 <div className="hidden lg:block">
@@ -131,10 +134,10 @@ export function RoleShell({ role, title, subtitle, children }: RoleShellProps) {
                 <div className="hidden lg:block">
                   <RoleSwitcher />
                 </div>
-                <button className="hidden h-9 w-9 place-items-center rounded-full bg-[#f0f4f8] lg:grid">
+                <button aria-label="搜尋" className="workbench-focus hidden h-9 w-9 place-items-center rounded-full bg-[#f0f4f8] lg:grid">
                   <Search className="h-4 w-4" />
                 </button>
-                <button className="relative grid h-9 w-9 place-items-center rounded-full bg-white/10 lg:bg-[#f0f4f8]">
+                <button aria-label="通知" className="workbench-focus relative grid h-9 w-9 place-items-center rounded-full bg-white/10 lg:bg-[#f0f4f8]">
                   <Bell className="h-4 w-4" />
                   <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#ff4964]" />
                 </button>
@@ -153,8 +156,8 @@ export function RoleShell({ role, title, subtitle, children }: RoleShellProps) {
                 <div className="lg:hidden">
                   <RoleSwitcher compact />
                 </div>
-                <button className="min-h-9 rounded-[8px] border border-[#dfe7ef] bg-white px-3 font-bold text-[#536175]">2026/04/23</button>
-                <button className="min-h-9 rounded-[8px] border border-[#dfe7ef] bg-white px-3 font-bold text-[#536175]">台中館</button>
+                <button className="workbench-focus min-h-9 rounded-[8px] border border-[#dfe7ef] bg-white px-3 font-bold text-[#536175]">2026/04/23</button>
+                <button className="workbench-focus min-h-9 rounded-[8px] border border-[#dfe7ef] bg-white px-3 font-bold text-[#536175]">台中館</button>
               </div>
             </div>
             {children}
@@ -164,12 +167,21 @@ export function RoleShell({ role, title, subtitle, children }: RoleShellProps) {
 
       <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t border-[#e5ecf3] bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
         {roleMobileNav[role].map(([label, href, Icon]) => {
-          const active = location === href || (href !== "/" && location.startsWith(href));
+          const roleRoot = href === "/supervisor" || href === "/system";
+          const active = roleRoot ? location === href : location === href || location.startsWith(`${href}/`);
           return (
-          <Link key={String(label)} href={href} className={cn("flex min-h-12 flex-col items-center justify-center gap-1 rounded-[8px] text-[11px] font-black", active ? "text-[#1f6fd1]" : "text-[#6c7a8e]")}>
-            <Icon className="h-5 w-5" />
-            {label}
-          </Link>
+            <Link
+              key={String(label)}
+              href={href}
+              aria-label={label}
+              className={cn(
+                "workbench-focus flex min-h-12 flex-col items-center justify-center gap-1 rounded-[8px] text-[11px] font-black",
+                active ? "bg-[#eef5ff] text-[#1f6fd1]" : "text-[#6c7a8e]",
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              {label}
+            </Link>
           );
         })}
       </nav>

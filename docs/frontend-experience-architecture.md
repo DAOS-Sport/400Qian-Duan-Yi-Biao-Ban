@@ -209,9 +209,9 @@ client/src/
 
 ## 10. 舊前端遷移策略
 
-現有高風險點：
+現有高風險點與處理狀態：
 
-- `use-bound-facility.ts` 用 localStorage 存 facility / auth。
+- `use-bound-facility.ts` 用 localStorage 存 facility / auth：已改為讀 `/api/auth/me` cookie session，場館切換走 `/api/auth/active-facility`。
 - `portalApi.ts` 在前端 fallback 拼 announcement / campaign。
 - `App.tsx` 中 portal 與 admin route 混在一起。
 - Wouter route 無 typed loader / beforeLoad。
@@ -223,7 +223,7 @@ client/src/
 3. 建立 auth guard，但先可用 mock `/api/auth/me`。
 4. 建立 employee home mock DTO。
 5. 把舊 portal 的可用 component 逐步搬成 module widget。
-6. 舊 portal 功能確認替代後，再退場 localStorage auth。
+6. 舊 portal 功能確認替代後，再退場 localStorage auth。（已完成 auth/facility truth 退場，theme preference 不在此範圍）
 
 ## 11. 前端驗收標準
 
@@ -282,13 +282,17 @@ client/src/
 - 主管與系統頁面只讀 BFF：`/api/bff/supervisor/dashboard`、`/api/bff/system/overview`。
 - 同一個開發帳號預設 active role 為 `system`，可透過 `/api/auth/active-role` 切換 `employee` / `supervisor` / `system`。
 - 主管首頁已加入版面控制，可開關 KPI、人力、異常、任務、快速操作、近期活動 widgets。
-- 舊功能先以 `LegacyWorkbenchPage` 掛進新工作台殼，例如 `/system/raw-inspector`，後續再逐頁拆成正式 module。
+- Workbench route 已不再使用 `LegacyWorkbenchPage` 作為剩餘功能承接；舊 `/analytics`、`/operations` 等原 DAOS 後台 route 仍保留在非 workbench 入口。
 - 手機底部導航已改為真實 route link，主管與系統角色分別對應各自核心入口，避免 mobile 只呈現不可導航的 icon button。
 - `/supervisor/tasks` 已改為正式主管模組 `client/src/modules/supervisor/tasks`，先讀主管 BFF 任務投影，後續接任務 state machine。
+- `/supervisor/handover` 已改為正式主管模組 `client/src/modules/supervisor/handover`，交接寫入由後端 session 強制作者身份。
+- `/supervisor/settings` 已改為正式主管模組 `client/src/modules/supervisor/settings`，讀取 quick links 與 system announcements。
+- `/supervisor/reports` 已改為正式主管模組 `client/src/modules/supervisor/reports`，彙整 BFF 與 Portal analytics。
 - `/supervisor/people` 已改為正式主管模組 `client/src/modules/supervisor/people`，前端只呼叫本平台 HR audit / interview-users API，體育署、Ragic、Smart Schedule 仍由後端代理。
 - `/supervisor/announcements` 已改為正式主管模組 `client/src/modules/supervisor/announcements`，前端只呼叫本平台公告 API，保留 LINE Bot Assistant 代理與審核 mutation。
 - `/supervisor/anomalies` 已改為正式主管模組 `client/src/modules/supervisor/anomalies`，前端只呼叫本平台異常通報 / 通知收件者 API，保留處理狀態與刪除 mutation。
 - `/system/integrations` 已改為正式系統模組 `client/src/modules/system/integrations`，讀取 system integration BFF，不再由舊跨館資源頁直接打外部 Replit URL。
+- `/system/alerts`、`/system/audit`、`/system/raw-inspector` 已改為正式系統模組，分別承接告警、稽核與白名單 raw JSON inspection。
 - 舊 `client/src/pages/dashboard.tsx` 與 `client/src/pages/system-health.tsx` 已轉為新角色頁 wrapper，避免第一張舊畫面從 legacy route 回流。
 - 視覺上先對齊架構書與圖二的資訊架構、角色入口、響應式骨架；後續 UIUX 精修應只改 module widget / ui-kit，不反向破壞 BFF 邊界。
 
@@ -307,10 +311,16 @@ client/src/
 - `employee/home`：員工首頁 BFF DTO。
 - `supervisor/dashboard`：主管首頁 BFF DTO 與版面控制。
 - `supervisor/tasks`：主管任務投影與篩選。
+- `supervisor/handover`：櫃台交接列表與新增。
 - `supervisor/announcements`：公告候選池審核。
 - `supervisor/anomalies`：打卡異常審核。
 - `supervisor/people`：人員稽核與面試授權入口。
+- `supervisor/settings`：場館快速入口與系統公告設定檢視。
+- `supervisor/reports`：主管報表分析。
 - `system/overview`：系統健康、整合狀態與快速工具。
+- `system/alerts`：系統告警中心。
+- `system/audit`：操作稽核。
 - `system/integrations`：外部 adapter registry 與整合失敗檢視。
+- `system/raw-inspector`：白名單 raw JSON inspector。
 
-仍保留 legacy wrapper 的功能應逐步遷移，不再新增新的 legacy wrapper route。
+Workbench 入口已完成目前規劃的正式 module 化；後續新增功能不得回到 legacy wrapper。

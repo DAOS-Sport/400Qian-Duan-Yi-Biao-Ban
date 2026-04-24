@@ -30,11 +30,16 @@ import SupervisorDashboardPage from "@/modules/supervisor/dashboard-page";
 import SupervisorAnnouncementsPage from "@/modules/supervisor/announcements/page";
 import SupervisorAnomaliesPage from "@/modules/supervisor/anomalies/page";
 import SupervisorPeoplePage from "@/modules/supervisor/people/page";
+import SupervisorHandoverPage from "@/modules/supervisor/handover/page";
+import SupervisorReportsPage from "@/modules/supervisor/reports/page";
+import SupervisorSettingsPage from "@/modules/supervisor/settings/page";
 import SupervisorTasksPage from "@/modules/supervisor/tasks/page";
 import SystemDashboardPage from "@/modules/system/dashboard-page";
+import SystemAlertsPage from "@/modules/system/alerts/page";
+import SystemAuditPage from "@/modules/system/audit/page";
 import SystemIntegrationsPage from "@/modules/system/integrations/page";
+import SystemRawInspectorPage from "@/modules/system/raw-inspector/page";
 import WorkbenchLoginPage from "@/modules/workbench/login-page";
-import { LegacyWorkbenchPage } from "@/modules/workbench/legacy-page";
 import { useAuthMe } from "@/shared/auth/session";
 import { roleHomePath } from "@shared/auth/me";
 import { usePortalAuth } from "@/hooks/use-bound-facility";
@@ -68,7 +73,10 @@ function AppRouter() {
 }
 
 function PortalAuthGuard({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn } = usePortalAuth();
+  const { isLoggedIn, isLoading } = usePortalAuth();
+  if (isLoading) {
+    return <div className="grid min-h-dvh place-items-center bg-stitch-surface text-sm font-bold text-slate-500">載入員工登入狀態...</div>;
+  }
   if (!isLoggedIn) {
     return <Redirect to="/portal/login" />;
   }
@@ -80,9 +88,14 @@ function GuardedPortalPage({ children }: { children: React.ReactNode }) {
 }
 
 function PortalIndexPage() {
-  const { isLoggedIn } = usePortalAuth();
-  const facilityKey = localStorage.getItem("facilityKey");
+  const { isLoggedIn, isLoading } = usePortalAuth();
+  const { data: session } = useAuthMe();
+  const facilityKey = session?.activeFacility ?? null;
   const validFacility = facilityKey ? getFacilityConfig(facilityKey) : null;
+
+  if (isLoading) {
+    return <div className="grid min-h-dvh place-items-center bg-stitch-surface text-sm font-bold text-slate-500">載入員工入口...</div>;
+  }
 
   if (!isLoggedIn) {
     return <Redirect to="/portal/login" />;
@@ -189,25 +202,28 @@ function WorkbenchRouter() {
       <Route path="/supervisor/people">
         <SupervisorPeoplePage />
       </Route>
+      <Route path="/supervisor/handover">
+        <SupervisorHandoverPage />
+      </Route>
+      <Route path="/supervisor/reports">
+        <SupervisorReportsPage />
+      </Route>
+      <Route path="/supervisor/settings">
+        <SupervisorSettingsPage />
+      </Route>
       <Route path="/supervisor" component={SupervisorDashboardPage} />
       <Route path="/system/health" component={SystemDashboardPage} />
       <Route path="/system/alerts">
-        <LegacyWorkbenchPage role="system" title="告警中心" subtitle="先接既有異常監控頁，後續改成系統事件 module。">
-          <AnomalyReports />
-        </LegacyWorkbenchPage>
+        <SystemAlertsPage />
       </Route>
       <Route path="/system/integrations">
         <SystemIntegrationsPage />
       </Route>
       <Route path="/system/audit">
-        <LegacyWorkbenchPage role="system" title="操作稽核" subtitle="公告分析與稽核資料先搬入系統治理殼。">
-          <AnnouncementSummary />
-        </LegacyWorkbenchPage>
+        <SystemAuditPage />
       </Route>
       <Route path="/system/raw-inspector">
-        <LegacyWorkbenchPage role="system" title="Raw Inspector" subtitle="外部來源原始資料檢視入口，正式資料待 Replit 重連。">
-          <Analytics />
-        </LegacyWorkbenchPage>
+        <SystemRawInspectorPage />
       </Route>
       <Route path="/system/overview" component={SystemDashboardPage} />
       <Route path="/system" component={SystemDashboardPage} />

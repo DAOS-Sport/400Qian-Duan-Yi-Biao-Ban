@@ -1,36 +1,25 @@
-import { useState, useCallback } from "react";
 import { getFacilityConfig } from "@/config/facility-configs";
+import { useAuthMe, useLogout, useSwitchFacility } from "@/shared/auth/session";
 import type { FacilityConfig } from "@/types/portal";
 
-const STORAGE_KEY = "facilityKey";
-
 export function useBoundFacility() {
-  const [facilityKey, setFacilityKeyState] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  });
+  const { data: session, isLoading } = useAuthMe();
+  const switchFacility = useSwitchFacility();
+  const facilityKey = session?.activeFacility ?? null;
 
   const config: FacilityConfig | null = facilityKey
     ? getFacilityConfig(facilityKey)
     : null;
 
-  const bind = useCallback((key: string) => {
-    localStorage.setItem(STORAGE_KEY, key);
-    setFacilityKeyState(key);
-  }, []);
-
-  const unbind = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    setFacilityKeyState(null);
-  }, []);
-
-  return { facilityKey, config, bind, unbind };
+  return {
+    facilityKey,
+    config,
+    isLoading,
+    bind: (key: string) => switchFacility.mutate(key),
+    bindAsync: (key: string) => switchFacility.mutateAsync(key),
+    unbind: () => undefined,
+  };
 }
-
-const AUTH_KEY = "portalAuth";
 
 export interface PortalAuthState {
   employeeNumber: string;
@@ -42,24 +31,22 @@ export interface PortalAuthState {
 }
 
 export function usePortalAuth() {
-  const [auth, setAuthState] = useState<PortalAuthState | null>(() => {
-    try {
-      const raw = localStorage.getItem(AUTH_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  });
+  const { data: session, isLoading } = useAuthMe();
+  const logoutMutation = useLogout();
+  const auth: PortalAuthState | null = session
+    ? {
+        employeeNumber: session.userId,
+        name: session.displayName,
+        isSupervisor: session.grantedRoles.includes("supervisor") || session.grantedRoles.includes("system"),
+        loggedInAt: new Date().toISOString(),
+      }
+    : null;
 
-  const login = useCallback((data: PortalAuthState) => {
-    localStorage.setItem(AUTH_KEY, JSON.stringify(data));
-    setAuthState(data);
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(AUTH_KEY);
-    setAuthState(null);
-  }, []);
-
-  return { auth, isLoggedIn: !!auth, login, logout };
+  return {
+    auth,
+    isLoading,
+    isLoggedIn: !!auth,
+    login: () => undefined,
+    logout: () => logoutMutation.mutate(),
+  };
 }

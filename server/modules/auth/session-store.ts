@@ -67,8 +67,10 @@ export const createMockSession = (
   displayName,
   grantedRoles: isSupervisor ? ["employee", "supervisor", "system"] : ["employee"],
   activeRole: isSupervisor ? "system" : "employee",
-  grantedFacilities: ["xinbei-high-school"],
-  activeFacility: "xinbei-high-school",
+  grantedFacilities: isSupervisor
+    ? ["xinbei_pool", "salu_counter", "songshan_pool", "sanmin_pool"]
+    : ["xinbei_pool"],
+  activeFacility: "xinbei_pool",
   permissionsSnapshot: [
     "employee:home:read",
     "supervisor:dashboard:read",
