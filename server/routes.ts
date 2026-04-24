@@ -10,6 +10,8 @@ import { corsMiddleware } from "./app/http/cors";
 import { registerNewArchitectureRoutes } from "./app/http/register-routes";
 import { env } from "./shared/config/env";
 import type { OperationalHandover } from "@shared/schema";
+import { findFacilityLineGroup, findScheduleRegionKey } from "@shared/domain/facilities";
+import { defaultEmployeeHomeWidgets, normalizeWidgetLayout } from "@shared/domain/layout";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "anomaly-reports");
 
@@ -19,6 +21,73 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif"]);
 const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"]);
+
+const readScheduleText = (value: unknown, fallback = "") => (typeof value === "string" && value.trim() ? value.trim() : fallback);
+
+const readScheduleNestedText = (value: unknown, keys: string[], fallback = "") => {
+  if (!value || typeof value !== "object") return fallback;
+  const row = value as Record<string, unknown>;
+  for (const key of keys) {
+    const text = readScheduleText(row[key]);
+    if (text) return text;
+  }
+  return fallback;
+};
+
+const inferShiftLabelFromStart = (startsAt: string) => {
+  const parsed = new Date(startsAt);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const hour = parsed.getHours();
+  if (hour >= 16) return "晚班";
+  if (hour >= 12) return "中班";
+  return "早班";
+};
+
+const resolveOperationalHandoverAssignee = async (input: {
+  facilityKey: string;
+  targetDate: string;
+  targetShiftLabel: string;
+}): Promise<{ assigneeEmployeeNumber: string | null; assigneeName: string | null }> => {
+  if (!env.smartScheduleBaseUrl || !env.smartScheduleApiToken) return { assigneeEmployeeNumber: null, assigneeName: null };
+  const url = new URL("/api/internal/schedules/today", env.smartScheduleBaseUrl);
+  url.searchParams.set("facilityKey", findScheduleRegionKey(input.facilityKey));
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    Authorization: `Bearer ${env.smartScheduleApiToken}`,
+    "X-Internal-Token": env.smartScheduleApiToken,
+    "X-API-Key": env.smartScheduleApiToken,
+  };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), env.externalApiTimeoutMs);
+  try {
+    const response = await fetch(url, { headers, signal: controller.signal });
+    const contentType = response.headers.get("content-type") || "";
+    if (!response.ok || !contentType.includes("application/json")) return { assigneeEmployeeNumber: null, assigneeName: null };
+    const payload = await response.json() as Record<string, unknown>;
+    const date = readScheduleText(payload.date);
+    if (date && date !== input.targetDate) return { assigneeEmployeeNumber: null, assigneeName: null };
+    const facility = findFacilityLineGroup(input.facilityKey);
+    const rows = Array.isArray(payload.shifts) ? payload.shifts : Array.isArray(payload.items) ? payload.items : [];
+    const matched = rows
+      .filter((row): row is Record<string, unknown> => Boolean(row && typeof row === "object"))
+      .find((row) => {
+        const venueName = readScheduleNestedText(row.venue, ["name", "venueName", "facilityName"]);
+        const start = readScheduleText(row.startsAt ?? row.startAt ?? row.startTime);
+        const label = `${readScheduleText(row.shiftLabel ?? row.label ?? row.kind)} ${inferShiftLabelFromStart(start)}`;
+        const sameFacility = !facility || !venueName || [facility.shortName, facility.fullName, ...facility.ragicDepartmentAliases].some((alias) => venueName.includes(alias) || alias.includes(venueName));
+        return sameFacility && label.includes(input.targetShiftLabel);
+      });
+    if (!matched) return { assigneeEmployeeNumber: null, assigneeName: null };
+    return {
+      assigneeEmployeeNumber: readScheduleNestedText(matched.employee, ["employeeNumber", "employeeCode", "code"]) || null,
+      assigneeName: readScheduleNestedText(matched.employee, ["name", "employeeName", "displayName"]) || null,
+    };
+  } catch {
+    return { assigneeEmployeeNumber: null, assigneeName: null };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -1071,6 +1140,13 @@ export async function registerRoutes(
       const parsed = operationalHandoverCreateBodySchema.safeParse(req.body || {});
       if (!parsed.success) return res.status(400).json({ message: "資料格式錯誤", errors: parsed.error.flatten() });
       if (!canAccessFacility(req, parsed.data.facilityKey)) return res.status(403).json({ message: "無此館別權限" });
+      const resolvedAssignee = parsed.data.assigneeEmployeeNumber || parsed.data.assigneeName
+        ? { assigneeEmployeeNumber: parsed.data.assigneeEmployeeNumber ?? null, assigneeName: parsed.data.assigneeName ?? null }
+        : await resolveOperationalHandoverAssignee({
+          facilityKey: parsed.data.facilityKey,
+          targetDate: parsed.data.targetDate,
+          targetShiftLabel: parsed.data.targetShiftLabel,
+        });
       const created = await storage.createOperationalHandover({
         facilityKey: parsed.data.facilityKey,
         title: parsed.data.title,
@@ -1081,8 +1157,8 @@ export async function registerRoutes(
         targetShiftLabel: parsed.data.targetShiftLabel,
         visibleFrom: toDateOrNull(parsed.data.visibleFrom),
         dueAt: toDateOrNull(parsed.data.dueAt),
-        assigneeEmployeeNumber: parsed.data.assigneeEmployeeNumber ?? null,
-        assigneeName: parsed.data.assigneeName ?? null,
+        assigneeEmployeeNumber: resolvedAssignee.assigneeEmployeeNumber,
+        assigneeName: resolvedAssignee.assigneeName,
         createdByEmployeeNumber: caller.employeeNumber,
         createdByName: caller.name,
         linkedActionType: parsed.data.linkedActionType ?? null,
@@ -1095,7 +1171,11 @@ export async function registerRoutes(
         eventType: "handover_create",
         target: String(created.id),
         targetLabel: created.title,
-        metadata: JSON.stringify({ targetDate: created.targetDate, targetShiftLabel: created.targetShiftLabel }),
+        metadata: JSON.stringify({
+          targetDate: created.targetDate,
+          targetShiftLabel: created.targetShiftLabel,
+          autoAssigned: Boolean(resolvedAssignee.assigneeEmployeeNumber || resolvedAssignee.assigneeName),
+        }),
       });
       res.status(201).json(mapOperationalHandoverForResponse(created));
     } catch (err) {
@@ -1172,6 +1252,69 @@ export async function registerRoutes(
       res.json({ ok });
     } catch (err) {
       const m = err instanceof Error ? err.message : "交班交接刪除失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  // -------- Portal: Widget Layout Settings --------
+  app.get("/api/portal/layout-settings", requireEmployee(), async (req, res) => {
+    try {
+      const facilityKey = String(req.query.facilityKey || req.workbenchSession?.activeFacility || "");
+      const role = String(req.query.role || "employee");
+      const layoutKey = String(req.query.layoutKey || "employee-home");
+      if (!facilityKey) return res.status(400).json({ message: "缺少 facilityKey" });
+      if (!canAccessFacility(req, facilityKey)) return res.status(403).json({ message: "無此館別權限" });
+      const setting = await storage.getWidgetLayout({ facilityKey, role, layoutKey });
+      res.json({
+        facilityKey,
+        role,
+        layoutKey,
+        widgets: normalizeWidgetLayout(setting?.widgets, defaultEmployeeHomeWidgets),
+        updatedAt: setting?.updatedAt ?? null,
+      });
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "版面設定查詢失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.patch("/api/portal/layout-settings", requireSupervisor(), async (req, res) => {
+    try {
+      const caller = (req as unknown as { caller: EmployeeProfile }).caller;
+      const bodySchema = z.object({
+        facilityKey: z.string().min(1),
+        role: z.enum(["employee", "supervisor", "system"]).default("employee"),
+        layoutKey: z.string().min(1).default("employee-home"),
+        widgets: z.array(z.object({
+          key: z.string().min(1),
+          label: z.string().min(1),
+          area: z.string().min(1),
+          enabled: z.boolean(),
+          size: z.enum(["wide", "card"]),
+          sortOrder: z.number().int(),
+        })),
+      });
+      const parsed = bodySchema.safeParse(req.body || {});
+      if (!parsed.success) return res.status(400).json({ message: "資料格式錯誤", errors: parsed.error.flatten() });
+      if (!canAccessFacility(req, parsed.data.facilityKey)) return res.status(403).json({ message: "無此館別權限" });
+      const saved = await storage.upsertWidgetLayout({
+        ...parsed.data,
+        widgets: normalizeWidgetLayout(parsed.data.widgets, defaultEmployeeHomeWidgets),
+        updatedByEmployeeNumber: caller.employeeNumber,
+        updatedByName: caller.name,
+      });
+      await storage.recordPortalEvent({
+        employeeNumber: caller.employeeNumber,
+        employeeName: caller.name,
+        facilityKey: parsed.data.facilityKey,
+        eventType: "layout_update",
+        target: parsed.data.layoutKey,
+        targetLabel: `${parsed.data.role}:${parsed.data.layoutKey}`,
+        metadata: JSON.stringify({ widgetCount: parsed.data.widgets.length }),
+      });
+      res.json(saved);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "版面設定儲存失敗";
       res.status(500).json({ message: m });
     }
   });

@@ -1,4 +1,5 @@
 import type { BffSection } from "../bff/envelope";
+import type { WorkbenchWidgetLayoutItem } from "./layout";
 
 export interface FacilitySummary {
   key: string;
@@ -81,6 +82,7 @@ export interface DocumentSummary {
 
 export interface EmployeeHomeDto {
   facility: FacilitySummary;
+  layout?: BffSection<WorkbenchWidgetLayoutItem[]>;
   weather: BffSection<WeatherSummary>;
   tasks: BffSection<TaskSummary[]>;
   announcements: BffSection<AnnouncementSummary[]>;

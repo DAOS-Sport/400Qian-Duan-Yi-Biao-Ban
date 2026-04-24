@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -31,11 +32,12 @@ import type {
   ShortcutSummary,
   TaskSummary,
 } from "@shared/domain/workbench";
+import { defaultEmployeeHomeWidgets, normalizeWidgetLayout } from "@shared/domain/layout";
 import { Link, useLocation } from "wouter";
 import { WorkbenchCard } from "@/shared/ui-kit/workbench-card";
 import { riseIn, staggerContainer } from "@/shared/motion/tokens";
 import { RoleSwitcher } from "@/modules/workbench/role-switcher";
-import { fetchEmployeeHome } from "./api";
+import { fetchEmployeeHome, searchEmployeeWorkbench, type EmployeeSearchResultDTO } from "./api";
 import { cn } from "@/lib/utils";
 import { facilityConfigs } from "@/config/facility-configs";
 import { useAuthMe, useSwitchFacility } from "@/shared/auth/session";
@@ -79,6 +81,15 @@ const formatShiftTime = (value?: string) => {
 };
 
 const shiftPeriodLabel = (shift: ShiftSummary) => {
+  if (shift.startsAt) {
+    const parsed = new Date(shift.startsAt);
+    if (!Number.isNaN(parsed.getTime())) {
+      const hour = parsed.getHours();
+      if (hour >= 16) return "晚班";
+      if (hour >= 12) return "中班";
+      return "早班";
+    }
+  }
   const label = `${shift.label} ${shift.startsAt ?? ""}`;
   if (/晚|16:|17:|18:|19:|20:|21:|22:/.test(label)) return "晚班";
   if (/中|12:|13:|14:|15:/.test(label)) return "中班";
@@ -244,7 +255,29 @@ function TopBar() {
   );
 }
 
-function Hero({ home }: { home: EmployeeHomeDto }) {
+const searchTypeLabel: Record<EmployeeSearchResultDTO["type"], string> = {
+  announcement: "公告",
+  handover: "交接",
+  task: "交班",
+  shift: "班表",
+  shortcut: "入口",
+  document: "文件",
+  campaign: "活動",
+};
+
+function Hero({
+  home,
+  searchQuery,
+  onSearchQueryChange,
+  searchResults,
+  isSearching,
+}: {
+  home: EmployeeHomeDto;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  searchResults: EmployeeSearchResultDTO[];
+  isSearching: boolean;
+}) {
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_180px] lg:items-center">
       <div>
@@ -252,10 +285,27 @@ function Hero({ home }: { home: EmployeeHomeDto }) {
         <label className="mt-2 flex min-h-14 max-w-[820px] items-center gap-3 rounded-[8px] border border-[#dfe7ef] bg-white px-4 shadow-[0_18px_45px_-36px_rgba(15,34,58,0.45)]">
           <Search className="h-5 w-5 shrink-0 text-[#2f6fe8]" />
           <input
+            value={searchQuery}
+            onChange={(event) => onSearchQueryChange(event.target.value)}
             className="min-w-0 flex-1 bg-transparent text-[16px] font-bold text-[#10233f] outline-none placeholder:text-[#8b9aae]"
             placeholder="搜尋公告、交接、班表、入口、常見問題"
           />
         </label>
+        {searchQuery.trim().length >= 2 ? (
+          <div className="mt-2 max-w-[820px] rounded-[8px] border border-[#dfe7ef] bg-white p-2 shadow-[0_18px_45px_-36px_rgba(15,34,58,0.45)]">
+            {isSearching ? <div className="px-3 py-2 text-[12px] font-bold text-[#637185]">搜尋中...</div> : null}
+            {!isSearching && searchResults.length === 0 ? <div className="px-3 py-2 text-[12px] font-bold text-[#637185]">沒有找到符合的資訊。</div> : null}
+            {searchResults.map((item) => (
+              <Link key={item.id} href={item.href} className="flex min-h-11 items-center gap-3 rounded-[8px] px-3 py-2 hover:bg-[#f7f9fb]">
+                <span className="shrink-0 rounded-[6px] bg-[#eef5ff] px-2 py-1 text-[11px] font-black text-[#1f6fd1]">{searchTypeLabel[item.type]}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-black text-[#10233f]">{item.title}</span>
+                  <span className="block truncate text-[11px] font-bold text-[#8b9aae]">{item.summary}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        ) : null}
         <p className="mt-3 flex items-center gap-2 text-[13px] font-medium text-[#637185]">
           <CalendarDays className="h-4 w-4 text-[#007166]" />
           {home.facility.businessDate}
@@ -369,12 +419,12 @@ function Shortcuts({ shortcuts }: { shortcuts: ShortcutSummary[] }) {
   );
 }
 
-function LowerGrid({ home }: { home: EmployeeHomeDto }) {
+function LowerGrid({ home, visibleKeys }: { home: EmployeeHomeDto; visibleKeys: Set<string> }) {
   const shiftRows = buildShiftRows(home.shifts.data ?? []);
   const activeTime = home.shifts.data?.find((shift) => shift.status === "active") ?? home.shifts.data?.[0];
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      <WorkbenchCard className="p-5">
+      {visibleKeys.has("shifts") ? <WorkbenchCard className="p-5">
         <SectionTitle title="今日班表" eyebrow="Shift" action="查看班表" />
         <div className="space-y-3">
           <div className="rounded-[8px] bg-[#eef5ff] px-3 py-2">
@@ -410,8 +460,8 @@ function LowerGrid({ home }: { home: EmployeeHomeDto }) {
             <span className="font-black text-[#10233f]">{home.shifts.data?.length ?? 0} 人</span>
           </div>
         </div>
-      </WorkbenchCard>
-      <WorkbenchCard className="p-5">
+      </WorkbenchCard> : null}
+      {visibleKeys.has("events") ? <WorkbenchCard className="p-5">
         <SectionTitle title="活動 / 課程快訊" eyebrow="Events" action="查看更多" />
         <div className="space-y-3">
           {home.campaigns.data?.map((campaign) => (
@@ -425,8 +475,8 @@ function LowerGrid({ home }: { home: EmployeeHomeDto }) {
             </div>
           ))}
         </div>
-      </WorkbenchCard>
-      <WorkbenchCard className="p-5">
+      </WorkbenchCard> : null}
+      {visibleKeys.has("documents") ? <WorkbenchCard className="p-5">
         <SectionTitle title="常用文件" eyebrow="Documents" action="查看更多" />
         <div className="space-y-3">
           {home.documents.data?.map((doc) => (
@@ -439,7 +489,7 @@ function LowerGrid({ home }: { home: EmployeeHomeDto }) {
             </button>
           ))}
         </div>
-      </WorkbenchCard>
+      </WorkbenchCard> : null}
     </div>
   );
 }
@@ -478,9 +528,19 @@ function LoadingState() {
 }
 
 export default function EmployeeHomePage() {
+  const [searchQuery, setSearchQuery] = useState("");
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/bff/employee/home"],
     queryFn: fetchEmployeeHome,
+  });
+  const layoutItems = useMemo(() => normalizeWidgetLayout(data?.layout?.data, defaultEmployeeHomeWidgets), [data?.layout?.data]);
+  const visibleWidgets = useMemo(() => new Set(layoutItems.filter((item) => item.enabled).map((item) => item.key)), [layoutItems]);
+  const primaryWidgets = layoutItems.filter((item) => item.enabled && item.area === "primary");
+  const lowerWidgets = layoutItems.filter((item) => item.enabled && item.area === "lower");
+  const searchQueryResult = useQuery({
+    queryKey: ["/api/bff/employee/search", data?.facility.key, searchQuery],
+    queryFn: () => searchEmployeeWorkbench(searchQuery, data?.facility.key),
+    enabled: Boolean(data?.facility.key && searchQuery.trim().length >= 2),
   });
 
   if (isLoading) return <LoadingState />;
@@ -506,19 +566,36 @@ export default function EmployeeHomePage() {
           <main className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-7 lg:py-8">
             <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-5">
               <motion.div variants={riseIn}>
-                <Hero home={data} />
+                {visibleWidgets.has("search") ? (
+                  <Hero
+                    home={data}
+                    searchQuery={searchQuery}
+                    onSearchQueryChange={setSearchQuery}
+                    searchResults={searchQueryResult.data?.items ?? []}
+                    isSearching={searchQueryResult.isFetching}
+                  />
+                ) : null}
               </motion.div>
-              <motion.div variants={riseIn} className="grid gap-4 lg:grid-cols-3">
-                <HandoverCard handovers={data.handover.data ?? []} tasks={data.tasks.data ?? []} />
-                <TutorBookingCard />
-                <AnnouncementCard announcements={data.announcements.data ?? []} />
-              </motion.div>
-              <motion.div variants={riseIn}>
-                <Shortcuts shortcuts={data.shortcuts.data ?? []} />
-              </motion.div>
-              <motion.div variants={riseIn}>
-                <LowerGrid home={data} />
-              </motion.div>
+              {primaryWidgets.length ? (
+                <motion.div variants={riseIn} className="grid gap-4 lg:grid-cols-3">
+                  {primaryWidgets.map((widget) => {
+                    if (widget.key === "handover") return <HandoverCard key={widget.key} handovers={data.handover.data ?? []} tasks={data.tasks.data ?? []} />;
+                    if (widget.key === "tutorBooking") return <TutorBookingCard key={widget.key} />;
+                    if (widget.key === "announcements") return <AnnouncementCard key={widget.key} announcements={data.announcements.data ?? []} />;
+                    return null;
+                  })}
+                </motion.div>
+              ) : null}
+              {visibleWidgets.has("shortcuts") ? (
+                <motion.div variants={riseIn}>
+                  <Shortcuts shortcuts={data.shortcuts.data ?? []} />
+                </motion.div>
+              ) : null}
+              {lowerWidgets.length ? (
+                <motion.div variants={riseIn}>
+                  <LowerGrid home={data} visibleKeys={new Set(lowerWidgets.map((item) => item.key))} />
+                </motion.div>
+              ) : null}
             </motion.div>
           </main>
         </div>

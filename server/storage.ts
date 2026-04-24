@@ -7,8 +7,11 @@ import {
   type QuickLink, type InsertQuickLink,
   type SystemAnnouncement, type InsertSystemAnnouncement,
   type PortalEvent, type InsertPortalEvent,
+  type WidgetLayoutSetting, type InsertWidgetLayoutSetting,
+  type WatchdogEvent, type InsertWatchdogEvent,
   users, anomalyReports, notificationRecipients,
   handoverEntries, operationalHandovers, quickLinks, systemAnnouncements, portalEvents,
+  widgetLayoutSettings, watchdogEvents,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, inArray, and, or, isNull, gte, sql } from "drizzle-orm";
@@ -65,6 +68,10 @@ export interface IStorage {
 
   // Portal Events (analytics)
   recordPortalEvent(event: InsertPortalEvent): Promise<PortalEvent>;
+  getWidgetLayout(opts: { facilityKey: string; role: string; layoutKey: string }): Promise<WidgetLayoutSetting | undefined>;
+  upsertWidgetLayout(layout: InsertWidgetLayoutSetting): Promise<WidgetLayoutSetting>;
+  createWatchdogEvent(event: InsertWatchdogEvent): Promise<WatchdogEvent>;
+  listWatchdogEvents(limit?: number): Promise<WatchdogEvent[]>;
   getEventStats(opts: { sinceDays?: number; facilityKey?: string }): Promise<{
     totalEvents: number;
     byType: Array<{ eventType: string; count: number }>;
@@ -268,6 +275,47 @@ export class DatabaseStorage implements IStorage {
   async recordPortalEvent(event: InsertPortalEvent): Promise<PortalEvent> {
     const [created] = await db.insert(portalEvents).values(event).returning();
     return created;
+  }
+
+  async getWidgetLayout(opts: { facilityKey: string; role: string; layoutKey: string }): Promise<WidgetLayoutSetting | undefined> {
+    const [row] = await db
+      .select()
+      .from(widgetLayoutSettings)
+      .where(and(
+        eq(widgetLayoutSettings.facilityKey, opts.facilityKey),
+        eq(widgetLayoutSettings.role, opts.role),
+        eq(widgetLayoutSettings.layoutKey, opts.layoutKey),
+      ))
+      .orderBy(desc(widgetLayoutSettings.updatedAt))
+      .limit(1);
+    return row;
+  }
+
+  async upsertWidgetLayout(layout: InsertWidgetLayoutSetting): Promise<WidgetLayoutSetting> {
+    const existing = await this.getWidgetLayout({
+      facilityKey: layout.facilityKey,
+      role: layout.role,
+      layoutKey: layout.layoutKey,
+    });
+    if (existing) {
+      const [updated] = await db
+        .update(widgetLayoutSettings)
+        .set({ ...layout, updatedAt: new Date() })
+        .where(eq(widgetLayoutSettings.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(widgetLayoutSettings).values(layout).returning();
+    return created;
+  }
+
+  async createWatchdogEvent(event: InsertWatchdogEvent): Promise<WatchdogEvent> {
+    const [created] = await db.insert(watchdogEvents).values(event).returning();
+    return created;
+  }
+
+  async listWatchdogEvents(limit = 50): Promise<WatchdogEvent[]> {
+    return db.select().from(watchdogEvents).orderBy(desc(watchdogEvents.observedAt)).limit(Math.min(limit, 200));
   }
 
   async getEventStats(opts: { sinceDays?: number; facilityKey?: string }): Promise<{

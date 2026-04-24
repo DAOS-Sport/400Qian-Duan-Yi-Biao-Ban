@@ -1,34 +1,40 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import { Bell, GripVertical, Link as LinkIcon, Settings, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { defaultEmployeeHomeWidgets, type WorkbenchWidgetLayoutItem } from "@shared/domain/layout";
 import { RoleShell } from "@/modules/workbench/role-shell";
 import { WorkbenchCard } from "@/shared/ui-kit/workbench-card";
 import { useAuthMe } from "@/shared/auth/session";
-import { fetchSupervisorQuickLinks, fetchSupervisorSystemAnnouncements } from "./api";
+import {
+  fetchSupervisorLayoutSettings,
+  fetchSupervisorQuickLinks,
+  fetchSupervisorSystemAnnouncements,
+  saveSupervisorLayoutSettings,
+} from "./api";
 import { cn } from "@/lib/utils";
-
-type WidgetKey = "search" | "handover" | "tutorBooking" | "announcements" | "shortcuts" | "shifts" | "events" | "documents";
-
-const defaultWidgets: Array<{ key: WidgetKey; label: string; area: string; enabled: boolean; size: "wide" | "card" }> = [
-  { key: "search", label: "搜尋列", area: "頂部", enabled: true, size: "wide" },
-  { key: "handover", label: "交接事項", area: "主卡", enabled: true, size: "card" },
-  { key: "tutorBooking", label: "今日家教預約", area: "主卡", enabled: true, size: "card" },
-  { key: "announcements", label: "群組重要公告", area: "主卡", enabled: true, size: "card" },
-  { key: "shortcuts", label: "快速操作", area: "工具列", enabled: true, size: "wide" },
-  { key: "shifts", label: "今日班表", area: "下方", enabled: true, size: "card" },
-  { key: "events", label: "活動 / 課程快訊", area: "下方", enabled: true, size: "card" },
-  { key: "documents", label: "常用文件", area: "下方", enabled: true, size: "card" },
-];
 
 export default function SupervisorSettingsPage() {
   const { data: session } = useAuthMe();
+  const queryClient = useQueryClient();
   const facilityKey = session?.activeFacility ?? "xinbei_pool";
-  const [widgets, setWidgets] = useState(defaultWidgets);
+  const [widgets, setWidgets] = useState<WorkbenchWidgetLayoutItem[]>(defaultEmployeeHomeWidgets);
   const quickLinksQuery = useQuery({ queryKey: ["/api/portal/quick-links", facilityKey], queryFn: () => fetchSupervisorQuickLinks(facilityKey) });
   const announcementsQuery = useQuery({ queryKey: ["/api/portal/system-announcements", facilityKey], queryFn: () => fetchSupervisorSystemAnnouncements(facilityKey) });
+  const layoutQuery = useQuery({ queryKey: ["/api/portal/layout-settings", facilityKey, "employee", "employee-home"], queryFn: () => fetchSupervisorLayoutSettings(facilityKey) });
+  const saveLayoutMutation = useMutation({
+    mutationFn: () => saveSupervisorLayoutSettings({ facilityKey, role: "employee", layoutKey: "employee-home", widgets }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/portal/layout-settings", facilityKey, "employee", "employee-home"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/bff/employee/home"] });
+    },
+  });
   const quickLinks = quickLinksQuery.data?.items ?? [];
   const announcements = announcementsQuery.data?.items ?? [];
+
+  useEffect(() => {
+    if (layoutQuery.data?.widgets?.length) setWidgets(layoutQuery.data.widgets);
+  }, [layoutQuery.data]);
   const governanceItems: readonly (readonly [title: string, desc: string, Icon: LucideIcon])[] = [
     ["權限邊界", "寫入操作需主管 session", ShieldCheck],
     ["版面設定", "Dashboard widget 控制已在首頁提供", SlidersHorizontal],
@@ -42,11 +48,11 @@ export default function SupervisorSettingsPage() {
       const next = [...current];
       const [item] = next.splice(index, 1);
       next.splice(nextIndex, 0, item);
-      return next;
+      return next.map((widget, order) => ({ ...widget, sortOrder: (order + 1) * 10 }));
     });
   };
 
-  const toggleWidget = (key: WidgetKey) => {
+  const toggleWidget = (key: string) => {
     setWidgets((current) => current.map((item) => item.key === key ? { ...item, enabled: !item.enabled } : item));
   };
 
@@ -74,12 +80,22 @@ export default function SupervisorSettingsPage() {
               <div className="grid h-10 w-10 place-items-center rounded-[8px] bg-[#eef5ff] text-[#2f6fe8]"><SlidersHorizontal className="h-5 w-5" /></div>
               <div>
                 <h2 className="text-[15px] font-black">員工首頁 Widget 排版草稿</h2>
-                <p className="text-[12px] font-bold text-[#8b9aae]">先提供可調整的排版意圖，後續會接 DB 儲存與正式套用。</p>
+                <p className="text-[12px] font-bold text-[#8b9aae]">儲存後會寫入 DB，員工首頁依此控制顯示與排序。</p>
               </div>
             </div>
-            <button type="button" onClick={() => setWidgets(defaultWidgets)} className="min-h-9 rounded-[8px] border border-[#dfe7ef] bg-white px-3 text-[12px] font-black text-[#536175]">
-              重設草稿
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setWidgets(defaultEmployeeHomeWidgets)} className="min-h-9 rounded-[8px] border border-[#dfe7ef] bg-white px-3 text-[12px] font-black text-[#536175]">
+                重設預設
+              </button>
+              <button
+                type="button"
+                onClick={() => saveLayoutMutation.mutate()}
+                disabled={saveLayoutMutation.isPending}
+                className="min-h-9 rounded-[8px] bg-[#0d2a50] px-3 text-[12px] font-black text-white disabled:opacity-55"
+              >
+                {saveLayoutMutation.isPending ? "儲存中..." : "儲存並套用"}
+              </button>
+            </div>
           </div>
           <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
             <div className="space-y-2">
@@ -88,7 +104,7 @@ export default function SupervisorSettingsPage() {
                   <GripVertical className="h-4 w-4 shrink-0 text-[#8b9aae]" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-black text-[#10233f]">{index + 1}. {widget.label}</p>
-                    <p className="text-[11px] font-bold text-[#8b9aae]">{widget.area} · {widget.size === "wide" ? "滿版" : "卡片"}</p>
+                    <p className="text-[11px] font-bold text-[#8b9aae]">{widget.area} · {widget.size === "wide" ? "滿版" : "卡片"} · 排序 {widget.sortOrder}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <button type="button" onClick={() => moveWidget(index, -1)} className="h-8 rounded-[8px] border border-[#dfe7ef] bg-white px-2 text-[11px] font-black text-[#536175]">上</button>
@@ -99,6 +115,9 @@ export default function SupervisorSettingsPage() {
                   </div>
                 </div>
               ))}
+              {layoutQuery.isLoading ? <div className="rounded-[8px] bg-[#fbfcfd] p-4 text-[13px] font-bold text-[#637185]">讀取版面設定中...</div> : null}
+              {saveLayoutMutation.isError ? <div className="rounded-[8px] bg-[#fff7f8] p-3 text-[12px] font-bold text-[#ff4964]">儲存失敗，請確認主管權限或 DB 連線。</div> : null}
+              {saveLayoutMutation.isSuccess ? <div className="rounded-[8px] bg-[#effaf4] p-3 text-[12px] font-bold text-[#15935d]">已儲存並套用到員工首頁。</div> : null}
             </div>
             <div className="rounded-[8px] border border-[#dfe7ef] bg-[#f7f9fb] p-3">
               <p className="mb-3 text-[12px] font-black text-[#536175]">首頁預覽骨架</p>

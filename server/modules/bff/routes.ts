@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import type { AppContainer } from "../../app/container";
 import { facilityLabel, facilityLineGroups, findFacilityLineGroup } from "@shared/domain/facilities";
+import { defaultEmployeeHomeWidgets, normalizeWidgetLayout } from "@shared/domain/layout";
 import type {
   AnnouncementSummary,
   CampaignSummary,
@@ -187,6 +188,7 @@ const buildEmployeeHomeFallback = async (
       businessDate: new Date().toLocaleDateString("zh-TW"),
       statusLabel: "降級資料",
     },
+    layout: ok(defaultEmployeeHomeWidgets, now),
     weather: unavailable("天氣資料尚未接入員工 BFF", "WEATHER_NOT_CONNECTED"),
     tasks: ok(operationalHandovers.filter((item) => item.status !== "done" && item.status !== "cancelled").map(mapOperationalHandoverTask), now),
     announcements: announcements.length
@@ -222,6 +224,77 @@ const mapScheduleShifts = (items: Awaited<ReturnType<AppContainer["integrations"
     startsAt: item.startsAt,
     endsAt: item.endsAt,
   }));
+};
+
+type SearchItem = {
+  id: string;
+  type: "announcement" | "handover" | "task" | "shift" | "shortcut" | "document" | "campaign";
+  title: string;
+  summary: string;
+  href: string;
+};
+
+const includesQuery = (value: string | undefined, query: string) =>
+  String(value || "").toLowerCase().includes(query.toLowerCase());
+
+const buildEmployeeSearchItems = (home: EmployeeHomeDto, query: string): SearchItem[] => {
+  const normalizedQuery = query.trim();
+  if (!normalizedQuery) return [];
+  const candidates: SearchItem[] = [
+    ...(home.announcements.data ?? []).map((item) => ({
+      id: `announcement-${item.id}`,
+      type: "announcement" as const,
+      title: item.title,
+      summary: item.summary || item.content || item.effectiveRange || "",
+      href: "/employee/announcements",
+    })),
+    ...(home.handover.data ?? []).map((item) => ({
+      id: `handover-${item.id}`,
+      type: "handover" as const,
+      title: item.title,
+      summary: item.content || item.dueLabel || item.authorName || "",
+      href: "/employee/handover",
+    })),
+    ...(home.tasks.data ?? []).map((item) => ({
+      id: `task-${item.id}`,
+      type: "task" as const,
+      title: item.title,
+      summary: item.dueLabel || item.reportNote || item.status,
+      href: "/employee/tasks",
+    })),
+    ...(home.shifts.data ?? []).map((item) => ({
+      id: `shift-${item.id}`,
+      type: "shift" as const,
+      title: item.employeeName || item.label,
+      summary: `${item.venueName || home.facility.name} ${item.timeRange || ""}`,
+      href: "/employee/shift",
+    })),
+    ...(home.shortcuts.data ?? []).map((item) => ({
+      id: `shortcut-${item.id}`,
+      type: "shortcut" as const,
+      title: item.label,
+      summary: item.href,
+      href: item.href,
+    })),
+    ...(home.campaigns.data ?? []).map((item) => ({
+      id: `campaign-${item.id}`,
+      type: "campaign" as const,
+      title: item.title,
+      summary: item.effectiveRange || item.statusLabel,
+      href: "/employee/announcements",
+    })),
+    ...(home.documents.data ?? []).map((item) => ({
+      id: `document-${item.id}`,
+      type: "document" as const,
+      title: item.title,
+      summary: item.updatedAt,
+      href: "/employee/more",
+    })),
+  ];
+
+  return candidates
+    .filter((item) => includesQuery(`${item.title} ${item.summary} ${item.type}`, normalizedQuery))
+    .slice(0, 12);
 };
 
 const handoverStatusToTaskStatus = (status: string): TaskSummary["status"] =>
@@ -326,7 +399,15 @@ const enrichEmployeeHome = async (
   const now = new Date().toISOString();
   const currentShiftCount = dto.shifts.data?.length ?? 0;
   const currentTaskCount = dto.tasks.data?.length ?? 0;
-  let nextDto = dto;
+  const layoutSetting = await storage.getWidgetLayout({
+    facilityKey: normalizedFacilityKey,
+    role: "employee",
+    layoutKey: "employee-home",
+  }).catch(() => null);
+  let nextDto: EmployeeHomeDto = {
+    ...dto,
+    layout: ok(normalizeWidgetLayout(layoutSetting?.widgets, defaultEmployeeHomeWidgets), now),
+  };
 
   if (currentTaskCount === 0) {
     const handovers = await storage.listOperationalHandovers({ facilityKey: normalizedFacilityKey, limit: 50 });
@@ -372,6 +453,37 @@ export const registerBffRoutes = (app: Express, container: AppContainer) => {
     }
 
     return res.json(await enrichEmployeeHome(result.data, facilityKey, container));
+  });
+
+  app.get("/api/bff/employee/search", async (req, res) => {
+    const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    if (query.length < 2) return res.json({ query, items: [] });
+    const requestedFacilityKey = typeof req.query.facilityKey === "string" ? req.query.facilityKey : undefined;
+    if (
+      requestedFacilityKey &&
+      req.workbenchSession &&
+      !req.workbenchSession.grantedFacilities.includes(requestedFacilityKey)
+    ) {
+      return res.status(403).json({ message: "Facility is not granted" });
+    }
+    const facilityKey = requestedFacilityKey || req.workbenchSession?.activeFacility || "xinbei_pool";
+    const result = await container.integrations.replitData.getEmployeeHomeProjection(facilityKey);
+    const home = result.data
+      ? await enrichEmployeeHome(result.data, facilityKey, container)
+      : await buildEmployeeHomeFallback(facilityKey, container, result.meta.fallbackReason || "Employee home projection is unavailable");
+
+    const items = buildEmployeeSearchItems(home, query);
+    await storage.recordPortalEvent({
+      employeeNumber: req.workbenchSession?.userId,
+      employeeName: req.workbenchSession?.displayName,
+      facilityKey,
+      eventType: "search",
+      target: "employee-home",
+      targetLabel: query,
+      metadata: JSON.stringify({ resultCount: items.length }),
+    }).catch(() => undefined);
+
+    return res.json({ query, items });
   });
 
   app.get("/api/bff/supervisor/dashboard", async (req, res) => {

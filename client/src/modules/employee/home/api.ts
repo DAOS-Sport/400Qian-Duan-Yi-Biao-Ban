@@ -2,6 +2,14 @@ import type { EmployeeHomeDto } from "@shared/domain/workbench";
 import { apiGet, apiPatch, apiPost } from "@/shared/api/client";
 import type { HandoverEntryDTO, QuickLinkDTO } from "@/types/portal";
 
+export interface EmployeeSearchResultDTO {
+  id: string;
+  type: "announcement" | "handover" | "task" | "shift" | "shortcut" | "document" | "campaign";
+  title: string;
+  summary: string;
+  href: string;
+}
+
 export interface OperationalHandoverDTO {
   id: number;
   facilityKey: string;
@@ -30,6 +38,12 @@ export interface OperationalHandoverDTO {
 }
 
 export const fetchEmployeeHome = () => apiGet<EmployeeHomeDto>("/api/bff/employee/home");
+
+export const searchEmployeeWorkbench = (query: string, facilityKey?: string) => {
+  const params = new URLSearchParams({ q: query });
+  if (facilityKey) params.set("facilityKey", facilityKey);
+  return apiGet<{ query: string; items: EmployeeSearchResultDTO[] }>(`/api/bff/employee/search?${params.toString()}`);
+};
 
 export const fetchEmployeeHandovers = (facilityKey: string) =>
   apiGet<{ items: HandoverEntryDTO[] }>(`/api/portal/handovers?facilityKey=${encodeURIComponent(facilityKey)}&limit=50`);
