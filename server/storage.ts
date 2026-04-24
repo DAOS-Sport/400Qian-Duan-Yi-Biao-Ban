@@ -5,12 +5,13 @@ import {
   type HandoverEntry, type InsertHandoverEntry,
   type OperationalHandover, type InsertOperationalHandover,
   type QuickLink, type InsertQuickLink,
+  type EmployeeResource, type InsertEmployeeResource,
   type SystemAnnouncement, type InsertSystemAnnouncement,
   type PortalEvent, type InsertPortalEvent,
   type WidgetLayoutSetting, type InsertWidgetLayoutSetting,
   type WatchdogEvent, type InsertWatchdogEvent,
   users, anomalyReports, notificationRecipients,
-  handoverEntries, operationalHandovers, quickLinks, systemAnnouncements, portalEvents,
+  handoverEntries, operationalHandovers, quickLinks, employeeResources, systemAnnouncements, portalEvents,
   widgetLayoutSettings, watchdogEvents,
 } from "@shared/schema";
 import { db } from "./db";
@@ -59,6 +60,11 @@ export interface IStorage {
   createQuickLink(link: InsertQuickLink): Promise<QuickLink>;
   updateQuickLink(id: number, data: Partial<InsertQuickLink>): Promise<QuickLink | undefined>;
   deleteQuickLink(id: number): Promise<boolean>;
+
+  // Employee resources (員工自建入口 / 便利貼)
+  listEmployeeResources(opts: { facilityKey?: string; category?: string; limit?: number }): Promise<EmployeeResource[]>;
+  createEmployeeResource(resource: InsertEmployeeResource): Promise<EmployeeResource>;
+  deleteEmployeeResource(id: number): Promise<boolean>;
 
   // SystemAnnouncements (主管維護)
   listSystemAnnouncements(facilityKey?: string, includeInactive?: boolean): Promise<SystemAnnouncement[]>;
@@ -243,6 +249,25 @@ export class DatabaseStorage implements IStorage {
 
   async deleteQuickLink(id: number): Promise<boolean> {
     const result = await db.delete(quickLinks).where(eq(quickLinks.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async listEmployeeResources(opts: { facilityKey?: string; category?: string; limit?: number }): Promise<EmployeeResource[]> {
+    const conditions = [];
+    if (opts.facilityKey) conditions.push(eq(employeeResources.facilityKey, opts.facilityKey));
+    if (opts.category) conditions.push(eq(employeeResources.category, opts.category));
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const query = where ? db.select().from(employeeResources).where(where) : db.select().from(employeeResources);
+    return query.orderBy(desc(employeeResources.isPinned), desc(employeeResources.createdAt)).limit(Math.min(opts.limit ?? 100, 200));
+  }
+
+  async createEmployeeResource(resource: InsertEmployeeResource): Promise<EmployeeResource> {
+    const [created] = await db.insert(employeeResources).values(resource).returning();
+    return created;
+  }
+
+  async deleteEmployeeResource(id: number): Promise<boolean> {
+    const result = await db.delete(employeeResources).where(eq(employeeResources.id, id)).returning();
     return result.length > 0;
   }
 

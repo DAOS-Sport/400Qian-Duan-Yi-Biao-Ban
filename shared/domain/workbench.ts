@@ -72,12 +72,23 @@ export interface CampaignSummary {
   title: string;
   statusLabel: string;
   effectiveRange: string;
+  linkUrl?: string;
 }
 
 export interface DocumentSummary {
   id: string;
   title: string;
   updatedAt: string;
+  url?: string;
+  description?: string;
+}
+
+export interface StickyNoteSummary {
+  id: string;
+  title: string;
+  content: string;
+  authorName?: string | null;
+  createdAt: string;
 }
 
 export interface EmployeeHomeDto {
@@ -91,6 +102,7 @@ export interface EmployeeHomeDto {
   shifts: BffSection<ShiftSummary[]>;
   campaigns: BffSection<CampaignSummary[]>;
   documents: BffSection<DocumentSummary[]>;
+  stickyNotes: BffSection<StickyNoteSummary[]>;
 }
 
 export interface SupervisorStaffingSummary {

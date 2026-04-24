@@ -204,6 +204,35 @@ export const insertQuickLinkSchema = createInsertSchema(quickLinks).omit({
 export type InsertQuickLink = z.infer<typeof insertQuickLinkSchema>;
 export type QuickLink = typeof quickLinks.$inferSelect;
 
+export const employeeResources = pgTable("employee_resources", {
+  id: serial("id").primaryKey(),
+  facilityKey: text("facility_key").notNull(),
+  category: text("category").notNull(),
+  title: text("title").notNull(),
+  content: text("content"),
+  url: text("url"),
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  createdByEmployeeNumber: text("created_by_employee_number"),
+  createdByName: text("created_by_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertEmployeeResourceSchema = createInsertSchema(employeeResources).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  facilityKey: z.string().min(1),
+  category: z.enum(["event", "document", "sticky_note"]),
+  title: z.string().min(1, "標題不可為空").max(120, "標題過長"),
+  content: z.string().max(1000, "內容過長").optional().nullable(),
+  url: z.string().url("網址格式不正確").optional().nullable(),
+});
+
+export type InsertEmployeeResource = z.infer<typeof insertEmployeeResourceSchema>;
+export type EmployeeResource = typeof employeeResources.$inferSelect;
+
 export const systemAnnouncements = pgTable("system_announcements", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -244,7 +273,7 @@ export const insertPortalEventSchema = createInsertSchema(portalEvents).omit({
   id: true,
   createdAt: true,
 }).extend({
-  eventType: z.enum(["pageview", "link_click", "announcement_open", "handover_create", "handover_report", "handover_claim", "layout_update", "widget_click", "search"]),
+  eventType: z.enum(["pageview", "link_click", "announcement_open", "handover_create", "handover_report", "handover_claim", "layout_update", "widget_click", "search", "resource_create"]),
 });
 
 export type InsertPortalEvent = z.infer<typeof insertPortalEventSchema>;

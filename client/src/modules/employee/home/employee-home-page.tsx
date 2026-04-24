@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Bell,
@@ -17,6 +17,7 @@ import {
   Menu,
   MessageSquareText,
   MoreHorizontal,
+  Plus,
   Search,
   Settings,
   ShieldCheck,
@@ -26,10 +27,13 @@ import {
 } from "lucide-react";
 import type {
   AnnouncementSummary,
+  CampaignSummary,
+  DocumentSummary,
   EmployeeHomeDto,
   HandoverSummary,
   ShiftSummary,
   ShortcutSummary,
+  StickyNoteSummary,
   TaskSummary,
 } from "@shared/domain/workbench";
 import { defaultEmployeeHomeWidgets, normalizeWidgetLayout } from "@shared/domain/layout";
@@ -37,7 +41,7 @@ import { Link, useLocation } from "wouter";
 import { WorkbenchCard } from "@/shared/ui-kit/workbench-card";
 import { riseIn, staggerContainer } from "@/shared/motion/tokens";
 import { RoleSwitcher } from "@/modules/workbench/role-switcher";
-import { fetchEmployeeHome, searchEmployeeWorkbench, type EmployeeSearchResultDTO } from "./api";
+import { createEmployeeResource, fetchEmployeeHome, searchEmployeeWorkbench, type EmployeeSearchResultDTO } from "./api";
 import { cn } from "@/lib/utils";
 import { facilityConfigs } from "@/config/facility-configs";
 import { useAuthMe, useSwitchFacility } from "@/shared/auth/session";
@@ -419,7 +423,142 @@ function Shortcuts({ shortcuts }: { shortcuts: ShortcutSummary[] }) {
   );
 }
 
-function LowerGrid({ home, visibleKeys }: { home: EmployeeHomeDto; visibleKeys: Set<string> }) {
+function AddResourceForm({
+  category,
+  facilityKey,
+  titlePlaceholder,
+  contentPlaceholder,
+  urlPlaceholder,
+  onCreated,
+}: {
+  category: "event" | "document" | "sticky_note";
+  facilityKey: string;
+  titlePlaceholder: string;
+  contentPlaceholder: string;
+  urlPlaceholder?: string;
+  onCreated: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [url, setUrl] = useState("");
+  const mutation = useMutation({
+    mutationFn: () => createEmployeeResource({
+      facilityKey,
+      category,
+      title,
+      content: content.trim() || undefined,
+      url: url.trim() || undefined,
+      isPinned: category === "sticky_note",
+    }),
+    onSuccess: () => {
+      setTitle("");
+      setContent("");
+      setUrl("");
+      onCreated();
+    },
+  });
+  const canSubmit = title.trim().length > 0 && !mutation.isPending;
+
+  return (
+    <div className="rounded-[8px] border border-dashed border-[#cfd9e5] bg-[#fbfcfd] p-3">
+      <div className="grid gap-2">
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          className="min-h-9 rounded-[8px] border border-[#dfe7ef] bg-white px-3 text-[12px] font-bold text-[#10233f] outline-none"
+          placeholder={titlePlaceholder}
+        />
+        <input
+          value={content}
+          onChange={(event) => setContent(event.target.value)}
+          className="min-h-9 rounded-[8px] border border-[#dfe7ef] bg-white px-3 text-[12px] font-bold text-[#10233f] outline-none"
+          placeholder={contentPlaceholder}
+        />
+        {urlPlaceholder ? (
+          <input
+            value={url}
+            onChange={(event) => setUrl(event.target.value)}
+            className="min-h-9 rounded-[8px] border border-[#dfe7ef] bg-white px-3 text-[12px] font-bold text-[#10233f] outline-none"
+            placeholder={urlPlaceholder}
+          />
+        ) : null}
+        <button
+          type="button"
+          disabled={!canSubmit}
+          onClick={() => mutation.mutate()}
+          className="inline-flex min-h-9 items-center justify-center gap-2 rounded-[8px] bg-[#0d2a50] px-3 text-[12px] font-black text-white disabled:opacity-50"
+        >
+          <Plus className="h-4 w-4" />
+          {mutation.isPending ? "新增中..." : "新增"}
+        </button>
+        {mutation.isError ? <p className="text-[11px] font-bold text-[#ff4964]">新增失敗，請確認欄位格式。</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function EventList({ campaigns }: { campaigns: CampaignSummary[] }) {
+  if (!campaigns.length) return <div className="rounded-[8px] bg-[#fbfcfd] p-6 text-center text-[13px] font-bold text-[#637185]">尚未新增活動 / 課程快訊。</div>;
+  return (
+    <div className="space-y-3">
+      {campaigns.map((campaign) => (
+        <a key={campaign.id} href={campaign.linkUrl || "#"} className="flex items-center gap-3 rounded-[8px] bg-[#f7f9fb] p-3">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-[8px] bg-[#eaf8ef] text-[#15935d]">
+            <CalendarDays className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-black text-[#10233f]">{campaign.title}</p>
+            <p className="mt-1 truncate text-[11px] font-bold text-[#637185]">{campaign.effectiveRange}</p>
+          </div>
+          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-[#15935d]">{campaign.statusLabel}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function DocumentList({ documents }: { documents: DocumentSummary[] }) {
+  if (!documents.length) return <div className="rounded-[8px] bg-[#fbfcfd] p-6 text-center text-[13px] font-bold text-[#637185]">尚未新增常用文件。</div>;
+  return (
+    <div className="space-y-2">
+      {documents.map((doc) => (
+        <a key={doc.id} href={doc.url || "#"} className="flex min-h-12 w-full items-center gap-3 rounded-[8px] px-2 text-left hover:bg-[#f7f9fb]">
+          <FileText className="h-5 w-5 shrink-0 text-[#1f6fd1]" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-black text-[#10233f]">{doc.title}</span>
+            <span className="block truncate text-[11px] font-medium text-[#8b9aae]">{doc.description || `更新：${doc.updatedAt}`}</span>
+          </span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function StickyNotesCard({ notes, facilityKey, onCreated }: { notes: StickyNoteSummary[]; facilityKey: string; onCreated: () => void }) {
+  return (
+    <WorkbenchCard className="p-5">
+      <SectionTitle title="便利貼" eyebrow="Notes" action="員工自建" />
+      <div className="space-y-3">
+        <AddResourceForm
+          category="sticky_note"
+          facilityKey={facilityKey}
+          titlePlaceholder="便利貼標題"
+          contentPlaceholder="提醒內容"
+          onCreated={onCreated}
+        />
+        {notes.map((note) => (
+          <div key={note.id} className="rounded-[8px] border border-[#f0dfaa] bg-[#fff9df] p-3">
+            <p className="text-[13px] font-black text-[#10233f]">{note.title}</p>
+            <p className="mt-1 text-[12px] font-bold leading-5 text-[#536175]">{note.content}</p>
+            <p className="mt-2 text-[10px] font-bold text-[#9a7a1d]">{note.authorName || "員工"} · {note.createdAt}</p>
+          </div>
+        ))}
+      </div>
+    </WorkbenchCard>
+  );
+}
+
+function LowerGrid({ home, visibleKeys, onResourceCreated }: { home: EmployeeHomeDto; visibleKeys: Set<string>; onResourceCreated: () => void }) {
   const shiftRows = buildShiftRows(home.shifts.data ?? []);
   const activeTime = home.shifts.data?.find((shift) => shift.status === "active") ?? home.shifts.data?.[0];
   return (
@@ -462,34 +601,20 @@ function LowerGrid({ home, visibleKeys }: { home: EmployeeHomeDto; visibleKeys: 
         </div>
       </WorkbenchCard> : null}
       {visibleKeys.has("events") ? <WorkbenchCard className="p-5">
-        <SectionTitle title="活動 / 課程快訊" eyebrow="Events" action="查看更多" />
+        <SectionTitle title="活動 / 課程快訊" eyebrow="Events" action="員工可新增" />
         <div className="space-y-3">
-          {home.campaigns.data?.map((campaign) => (
-            <div key={campaign.id} className="flex items-center gap-3 rounded-[8px] bg-[#f7f9fb] p-3">
-              <div className="h-14 w-20 rounded-[8px] bg-gradient-to-br from-[#0d7f77] to-[#9dd84f]" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-black text-[#10233f]">{campaign.title}</p>
-                <p className="mt-1 text-[11px] font-bold text-[#637185]">{campaign.effectiveRange}</p>
-              </div>
-              <span className="rounded-full bg-[#eaf8ef] px-2 py-1 text-[10px] font-black text-[#15935d]">{campaign.statusLabel}</span>
-            </div>
-          ))}
+          <AddResourceForm category="event" facilityKey={home.facility.key} titlePlaceholder="活動 / 課程名稱" contentPlaceholder="時間或備註" urlPlaceholder="報名或說明連結 https://..." onCreated={onResourceCreated} />
+          <EventList campaigns={home.campaigns.data ?? []} />
         </div>
       </WorkbenchCard> : null}
       {visibleKeys.has("documents") ? <WorkbenchCard className="p-5">
-        <SectionTitle title="常用文件" eyebrow="Documents" action="查看更多" />
+        <SectionTitle title="常用文件" eyebrow="Documents" action="員工可新增" />
         <div className="space-y-3">
-          {home.documents.data?.map((doc) => (
-            <button key={doc.id} className="flex min-h-12 w-full items-center gap-3 rounded-[8px] px-2 text-left hover:bg-[#f7f9fb]">
-              <FileText className="h-5 w-5 text-[#1f6fd1]" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-black text-[#10233f]">{doc.title}</span>
-                <span className="block text-[11px] font-medium text-[#8b9aae]">更新：{doc.updatedAt}</span>
-              </span>
-            </button>
-          ))}
+          <AddResourceForm category="document" facilityKey={home.facility.key} titlePlaceholder="文件名稱" contentPlaceholder="用途或備註" urlPlaceholder="文件連結 https://..." onCreated={onResourceCreated} />
+          <DocumentList documents={home.documents.data ?? []} />
         </div>
       </WorkbenchCard> : null}
+      {visibleKeys.has("stickyNotes") ? <StickyNotesCard notes={home.stickyNotes.data ?? []} facilityKey={home.facility.key} onCreated={onResourceCreated} /> : null}
     </div>
   );
 }
@@ -529,6 +654,7 @@ function LoadingState() {
 
 export default function EmployeeHomePage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/bff/employee/home"],
     queryFn: fetchEmployeeHome,
@@ -593,7 +719,11 @@ export default function EmployeeHomePage() {
               ) : null}
               {lowerWidgets.length ? (
                 <motion.div variants={riseIn}>
-                  <LowerGrid home={data} visibleKeys={new Set(lowerWidgets.map((item) => item.key))} />
+                  <LowerGrid
+                    home={data}
+                    visibleKeys={new Set(lowerWidgets.map((item) => item.key))}
+                    onResourceCreated={() => queryClient.invalidateQueries({ queryKey: ["/api/bff/employee/home"] })}
+                  />
                 </motion.div>
               ) : null}
             </motion.div>

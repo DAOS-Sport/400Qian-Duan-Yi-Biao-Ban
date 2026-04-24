@@ -1373,6 +1373,49 @@ export async function registerRoutes(
     }
   });
 
+  // -------- Portal: Employee Resources (員工自建活動 / 文件 / 便利貼) --------
+  app.get("/api/portal/employee-resources", requireEmployee(), async (req, res) => {
+    try {
+      const facilityKey = String(req.query.facilityKey || req.workbenchSession?.activeFacility || "");
+      const category = req.query.category ? String(req.query.category) : undefined;
+      if (!facilityKey) return res.status(400).json({ message: "缺少 facilityKey" });
+      if (!canAccessFacility(req, facilityKey)) return res.status(403).json({ message: "無此館別權限" });
+      const items = await storage.listEmployeeResources({ facilityKey, category, limit: req.query.limit ? Number(req.query.limit) : 100 });
+      res.json({ items });
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "員工資源查詢失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.post("/api/portal/employee-resources", requireEmployee(), async (req, res) => {
+    try {
+      const caller = (req as unknown as { caller: EmployeeProfile }).caller;
+      const { insertEmployeeResourceSchema } = await import("@shared/schema");
+      const parsed = insertEmployeeResourceSchema.safeParse({
+        ...req.body,
+        createdByEmployeeNumber: caller.employeeNumber,
+        createdByName: caller.name,
+      });
+      if (!parsed.success) return res.status(400).json({ message: "資料格式錯誤", errors: parsed.error.flatten() });
+      if (!canAccessFacility(req, parsed.data.facilityKey)) return res.status(403).json({ message: "無此館別權限" });
+      const created = await storage.createEmployeeResource(parsed.data);
+      await storage.recordPortalEvent({
+        employeeNumber: caller.employeeNumber,
+        employeeName: caller.name,
+        facilityKey: parsed.data.facilityKey,
+        eventType: "resource_create",
+        target: String(created.id),
+        targetLabel: `${created.category}:${created.title}`,
+        metadata: JSON.stringify({ category: created.category }),
+      });
+      res.status(201).json(created);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "員工資源建立失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
   // -------- Portal: System Announcements (主管維護) --------
   app.get("/api/portal/system-announcements", async (req, res) => {
     try {

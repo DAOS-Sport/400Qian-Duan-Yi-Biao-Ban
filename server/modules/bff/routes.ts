@@ -11,6 +11,7 @@ import type {
   ShiftSummary,
   ShortcutSummary,
   StaffMemberSummary,
+  StickyNoteSummary,
   TaskSummary,
 } from "@shared/domain/workbench";
 import type { OperationalHandover } from "@shared/schema";
@@ -104,10 +105,11 @@ const buildEmployeeHomeFallback = async (
   const now = new Date().toISOString();
   const facility = findFacilityLineGroup(facilityKey);
   const normalizedFacilityKey = facility?.facilityKey ?? facilityKey;
-  const [handoversResult, operationalHandoversResult, quickLinksResult, systemAnnouncementsResult, shiftsResult, candidateAnnouncementsResult] = await Promise.allSettled([
+  const [handoversResult, operationalHandoversResult, quickLinksResult, employeeResourcesResult, systemAnnouncementsResult, shiftsResult, candidateAnnouncementsResult] = await Promise.allSettled([
     storage.listHandovers(normalizedFacilityKey, 20),
     storage.listOperationalHandovers({ facilityKey: normalizedFacilityKey, limit: 50 }),
     storage.listQuickLinks(normalizedFacilityKey, false),
+    storage.listEmployeeResources({ facilityKey: normalizedFacilityKey, limit: 100 }),
     storage.listSystemAnnouncements(normalizedFacilityKey, false),
     container.integrations.schedule.listTodayShifts(normalizedFacilityKey),
     fetchAnnouncementCandidateFallback(normalizedFacilityKey),
@@ -116,6 +118,7 @@ const buildEmployeeHomeFallback = async (
   const handovers = handoversResult.status === "fulfilled" ? handoversResult.value : [];
   const operationalHandovers = operationalHandoversResult.status === "fulfilled" ? operationalHandoversResult.value : [];
   const quickLinks = quickLinksResult.status === "fulfilled" ? quickLinksResult.value : [];
+  const employeeResources = employeeResourcesResult.status === "fulfilled" ? employeeResourcesResult.value : [];
   const systemAnnouncements = systemAnnouncementsResult.status === "fulfilled" ? systemAnnouncementsResult.value : [];
   const scheduleResult = shiftsResult.status === "fulfilled" ? shiftsResult.value : null;
   const candidateAnnouncements = candidateAnnouncementsResult.status === "fulfilled" ? candidateAnnouncementsResult.value : [];
@@ -152,11 +155,22 @@ const buildEmployeeHomeFallback = async (
     })),
   ];
 
-  const documents: DocumentSummary[] = quickLinks.slice(0, 8).map((item) => ({
-    id: `doc-${item.id}`,
-    title: item.title,
-    updatedAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-TW") : "Portal",
-  }));
+  const documents: DocumentSummary[] = [
+    ...employeeResources.filter((item) => item.category === "document").map((item) => ({
+      id: `employee-doc-${item.id}`,
+      title: item.title,
+      updatedAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-TW") : "員工新增",
+      url: item.url ?? undefined,
+      description: item.content ?? undefined,
+    })),
+    ...quickLinks.slice(0, 8).map((item) => ({
+      id: `doc-${item.id}`,
+      title: item.title,
+      updatedAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-TW") : "Portal",
+      url: item.url,
+      description: item.description ?? undefined,
+    })),
+  ].slice(0, 10);
 
   const shifts: ShiftSummary[] = (scheduleResult?.data ?? []).map((item, index) => ({
     id: item.id,
@@ -169,14 +183,34 @@ const buildEmployeeHomeFallback = async (
     endsAt: item.endsAt,
   }));
 
-  const campaigns: CampaignSummary[] = candidateAnnouncements
-    .filter((item) => /活動|課程|營隊|報名|檔期/.test(`${item.title}${item.summary}`))
-    .slice(0, 6)
-    .map((item) => ({
-      id: `campaign-${item.id}`,
+  const campaigns: CampaignSummary[] = [
+    ...employeeResources.filter((item) => item.category === "event").map((item) => ({
+      id: `employee-event-${item.id}`,
       title: item.title,
-      statusLabel: item.priority === "required" ? "需確認" : "公告",
-      effectiveRange: item.effectiveRange,
+      statusLabel: "員工新增",
+      effectiveRange: item.content || "未設定時間",
+      linkUrl: item.url ?? undefined,
+    })),
+    ...candidateAnnouncements
+      .filter((item) => /活動|課程|營隊|報名|檔期/.test(`${item.title}${item.summary}`))
+      .slice(0, 6)
+      .map((item) => ({
+        id: `campaign-${item.id}`,
+        title: item.title,
+        statusLabel: item.priority === "required" ? "需確認" : "公告",
+        effectiveRange: item.effectiveRange,
+      })),
+  ].slice(0, 10);
+
+  const stickyNotes: StickyNoteSummary[] = employeeResources
+    .filter((item) => item.category === "sticky_note")
+    .slice(0, 8)
+    .map((item) => ({
+      id: `sticky-${item.id}`,
+      title: item.title,
+      content: item.content || "",
+      authorName: item.createdByName,
+      createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-TW") : "今日",
     }));
 
   const announcements = [...portalAnnouncements, ...candidateAnnouncements].slice(0, 10);
@@ -205,6 +239,7 @@ const buildEmployeeHomeFallback = async (
       ? degraded(campaigns, ["line-bot-facility-home"], now)
       : unavailable("活動檔期來源尚未提供 server-to-server 資料", "CAMPAIGN_SOURCE_UNAVAILABLE"),
     documents: ok(documents, now),
+    stickyNotes: ok(stickyNotes, now),
   };
 };
 
@@ -224,6 +259,38 @@ const mapScheduleShifts = (items: Awaited<ReturnType<AppContainer["integrations"
     startsAt: item.startsAt,
     endsAt: item.endsAt,
   }));
+};
+
+const getEmployeeResourceSections = async (facilityKey: string) => {
+  const resources = await storage.listEmployeeResources({ facilityKey, limit: 100 }).catch(() => []);
+  const campaigns: CampaignSummary[] = resources
+    .filter((item) => item.category === "event")
+    .map((item) => ({
+      id: `employee-event-${item.id}`,
+      title: item.title,
+      statusLabel: "員工新增",
+      effectiveRange: item.content || "未設定時間",
+      linkUrl: item.url ?? undefined,
+    }));
+  const documents: DocumentSummary[] = resources
+    .filter((item) => item.category === "document")
+    .map((item) => ({
+      id: `employee-doc-${item.id}`,
+      title: item.title,
+      updatedAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-TW") : "員工新增",
+      url: item.url ?? undefined,
+      description: item.content ?? undefined,
+    }));
+  const stickyNotes: StickyNoteSummary[] = resources
+    .filter((item) => item.category === "sticky_note")
+    .map((item) => ({
+      id: `sticky-${item.id}`,
+      title: item.title,
+      content: item.content || "",
+      authorName: item.createdByName,
+      createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-TW") : "今日",
+    }));
+  return { campaigns, documents, stickyNotes };
 };
 
 type SearchItem = {
@@ -287,8 +354,15 @@ const buildEmployeeSearchItems = (home: EmployeeHomeDto, query: string): SearchI
       id: `document-${item.id}`,
       type: "document" as const,
       title: item.title,
-      summary: item.updatedAt,
-      href: "/employee/more",
+      summary: item.description || item.updatedAt,
+      href: item.url || "/employee/more",
+    })),
+    ...(home.stickyNotes.data ?? []).map((item) => ({
+      id: `sticky-note-${item.id}`,
+      type: "document" as const,
+      title: item.title,
+      summary: item.content,
+      href: "/employee",
     })),
   ];
 
@@ -407,6 +481,14 @@ const enrichEmployeeHome = async (
   let nextDto: EmployeeHomeDto = {
     ...dto,
     layout: ok(normalizeWidgetLayout(layoutSetting?.widgets, defaultEmployeeHomeWidgets), now),
+    stickyNotes: dto.stickyNotes ?? ok([], now),
+  };
+  const employeeResources = await getEmployeeResourceSections(normalizedFacilityKey);
+  nextDto = {
+    ...nextDto,
+    campaigns: ok([...employeeResources.campaigns, ...(nextDto.campaigns.data ?? [])].slice(0, 10), now),
+    documents: ok([...employeeResources.documents, ...(nextDto.documents.data ?? [])].slice(0, 10), now),
+    stickyNotes: ok([...employeeResources.stickyNotes, ...(nextDto.stickyNotes.data ?? [])].slice(0, 8), now),
   };
 
   if (currentTaskCount === 0) {

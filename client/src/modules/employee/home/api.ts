@@ -10,6 +10,20 @@ export interface EmployeeSearchResultDTO {
   href: string;
 }
 
+export interface EmployeeResourceDTO {
+  id: number;
+  facilityKey: string;
+  category: "event" | "document" | "sticky_note";
+  title: string;
+  content: string | null;
+  url: string | null;
+  isPinned: boolean;
+  createdByEmployeeNumber: string | null;
+  createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface OperationalHandoverDTO {
   id: number;
   facilityKey: string;
@@ -50,6 +64,15 @@ export const fetchEmployeeHandovers = (facilityKey: string) =>
 
 export const createEmployeeHandover = (facilityKey: string, content: string) =>
   apiPost<HandoverEntryDTO>("/api/portal/handovers", { facilityKey, content, shiftLabel: "員工工作台" });
+
+export const createEmployeeResource = (input: {
+  facilityKey: string;
+  category: "event" | "document" | "sticky_note";
+  title: string;
+  content?: string;
+  url?: string;
+  isPinned?: boolean;
+}) => apiPost<EmployeeResourceDTO>("/api/portal/employee-resources", input);
 
 export const fetchEmployeeQuickLinks = (facilityKey: string) =>
   apiGet<{ items: QuickLinkDTO[] }>(`/api/portal/quick-links?facilityKey=${encodeURIComponent(facilityKey)}`);

@@ -44,6 +44,7 @@ New tables in this update:
 | --- | --- |
 | `widget_layout_settings` | Stores role/facility dashboard widget visibility and order. |
 | `watchdog_events` | Stores future external watchdog service events. |
+| `employee_resources` | Stores employee-created events/course links, common documents, and sticky notes. |
 
 Existing `portal_events` now accepts:
 
@@ -51,6 +52,7 @@ Existing `portal_events` now accepts:
 layout_update
 widget_click
 search
+resource_create
 ```
 
 ## New internal and BFF routes
@@ -60,6 +62,8 @@ search
 | `GET /api/portal/layout-settings?facilityKey=&role=employee&layoutKey=employee-home` | employee session | Read employee homepage widget layout. |
 | `PATCH /api/portal/layout-settings` | supervisor session | Save widget layout and apply to employee home. |
 | `GET /api/bff/employee/search?q=&facilityKey=` | employee session | Fuzzy search announcements, handover, tasks, shifts, shortcuts, documents. |
+| `GET /api/portal/employee-resources?facilityKey=&category=` | employee session | Read employee-created `event` / `document` / `sticky_note` resources. |
+| `POST /api/portal/employee-resources` | employee session | Add employee-created events/course links, documents, or sticky notes. |
 | `POST /api/watchdog/events` | `X-Internal-Token` / Bearer / `X-API-Key` | Future watchdog ingestion. JSON only. |
 | `GET /api/bff/system/watchdog-events` | system session | Read latest watchdog events. |
 
@@ -70,6 +74,7 @@ search
 | Employee announcements | LINE Bot internal facility home first, Portal system announcements and announcement candidates fallback. |
 | Employee handover / handoff | Portal `operational_handovers` + Portal `handover_entries`. |
 | Employee today shifts | Smart Schedule internal `/api/internal/schedules/today?facilityKey=<region>` filtered by facility aliases. |
+| Employee events/documents/sticky notes | Local Portal DB `employee_resources`, written by employee session, then rendered by employee BFF. |
 | Supervisor staffing | Ragic active employees + Smart Schedule current/next shifts. |
 | Supervisor widget control | `widget_layout_settings`, then normalized default layout fallback. |
 | System health | local config + integration overview + future watchdog events. |
