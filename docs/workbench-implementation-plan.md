@@ -334,3 +334,30 @@ Sprint 1 只做架構基線，不急著做完整功能或完整視覺稿。
 4. `server/routes.ts` CORS 目前使用 `Access-Control-Allow-Origin: *`，未來 cookie session 不可沿用。
 5. `uploads/` 與 `exports/` 是本機持久層風險，需用 StorageAdapter 包起來。
 6. `shared/schema.ts` 已開始承擔多 domain schema，後續需拆成 domain schema barrel export。
+
+## 13. 2026-04-24 落地進度
+
+已落地：
+
+- 三角色工作台入口：`/employee`、`/supervisor`、`/system`。
+- 全端開發測試登入：`1111 / 1111`，預設 active role 為 `system`，可切換 `employee` / `supervisor` / `system`。
+- BFF 基線：`/api/bff/employee/home`、`/api/bff/supervisor/dashboard`、`/api/bff/system/overview`。
+- 外部資料來源保留與可切換 adapter：Ragic、LINE Bot Assistant、Smart Schedule Manager。
+- 場館與 LINE 群組 ID 對照常數集中於 shared domain，不散落在 UI。
+- 主管首頁支援版面控制，widget 可開關。
+- `/supervisor/announcements` 已從 legacy wrapper 遷成正式主管 module。
+- `/supervisor/anomalies` 已從 legacy wrapper 遷成正式主管 module。
+- shared API client 已補齊 `GET` / `POST` / `PATCH` / `DELETE`，供 module mutation 使用。
+
+下一批遷移順序：
+
+1. `supervisor/tasks`：任務總覽與代辦處理。
+2. `supervisor/people`：人員 / 員工資料查詢，Ragic adapter 對接。
+3. `supervisor/reports`：報表分析與匯出。
+4. `system/integrations`：整合監控從 legacy page 拆成 system module。
+5. `system/raw-inspector`：加 audit 與查詢防護後正式 module 化。
+
+目前完成口徑：
+
+- 底層架構與兩份主要架構書的核心邊界已鋪好。
+- 仍有舊功能尚未 100% module 化；後續以本清單順序搬遷，避免一次性重寫造成回歸風險。

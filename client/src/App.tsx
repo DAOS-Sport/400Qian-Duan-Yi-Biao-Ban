@@ -27,6 +27,8 @@ import PortalAnalytics from "@/pages/portal/portal-analytics";
 import PortalReview from "@/pages/portal/portal-review";
 import EmployeeHomePage from "@/modules/employee/home/employee-home-page";
 import SupervisorDashboardPage from "@/modules/supervisor/dashboard-page";
+import SupervisorAnnouncementsPage from "@/modules/supervisor/announcements/page";
+import SupervisorAnomaliesPage from "@/modules/supervisor/anomalies/page";
 import SystemDashboardPage from "@/modules/system/dashboard-page";
 import WorkbenchLoginPage from "@/modules/workbench/login-page";
 import { LegacyWorkbenchPage } from "@/modules/workbench/legacy-page";
@@ -178,14 +180,10 @@ function WorkbenchRouter() {
         </LegacyWorkbenchPage>
       </Route>
       <Route path="/supervisor/announcements">
-        <LegacyWorkbenchPage role="supervisor" title="公告管理" subtitle="公告審核與發布功能先搬入新工作台殼。">
-          <Announcements />
-        </LegacyWorkbenchPage>
+        <SupervisorAnnouncementsPage />
       </Route>
       <Route path="/supervisor/anomalies">
-        <LegacyWorkbenchPage role="supervisor" title="異常審核" subtitle="打卡異常管理先由既有功能承接。">
-          <AnomalyReports />
-        </LegacyWorkbenchPage>
+        <SupervisorAnomaliesPage />
       </Route>
       <Route path="/supervisor/people">
         <LegacyWorkbenchPage role="supervisor" title="人力狀態" subtitle="HR 與權限稽核先掛入主管工作台。">

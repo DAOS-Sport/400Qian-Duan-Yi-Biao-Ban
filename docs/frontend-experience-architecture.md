@@ -282,6 +282,28 @@ client/src/
 - 主管與系統頁面只讀 BFF：`/api/bff/supervisor/dashboard`、`/api/bff/system/overview`。
 - 同一個開發帳號預設 active role 為 `system`，可透過 `/api/auth/active-role` 切換 `employee` / `supervisor` / `system`。
 - 主管首頁已加入版面控制，可開關 KPI、人力、異常、任務、快速操作、近期活動 widgets。
-- 舊功能先以 `LegacyWorkbenchPage` 掛進新工作台殼，例如 `/supervisor/anomalies`、`/supervisor/announcements`、`/system/integrations`、`/system/raw-inspector`，後續再逐頁拆成正式 module。
+- 舊功能先以 `LegacyWorkbenchPage` 掛進新工作台殼，例如 `/system/integrations`、`/system/raw-inspector`，後續再逐頁拆成正式 module。
+- `/supervisor/announcements` 已改為正式主管模組 `client/src/modules/supervisor/announcements`，前端只呼叫本平台公告 API，保留 LINE Bot Assistant 代理與審核 mutation。
+- `/supervisor/anomalies` 已改為正式主管模組 `client/src/modules/supervisor/anomalies`，前端只呼叫本平台異常通報 / 通知收件者 API，保留處理狀態與刪除 mutation。
 - 舊 `client/src/pages/dashboard.tsx` 與 `client/src/pages/system-health.tsx` 已轉為新角色頁 wrapper，避免第一張舊畫面從 legacy route 回流。
 - 視覺上先對齊架構書與圖二的資訊架構、角色入口、響應式骨架；後續 UIUX 精修應只改 module widget / ui-kit，不反向破壞 BFF 邊界。
+
+## 14. 目前 module 完成口徑
+
+完成定義不是「畫面可開」，而是同時滿足：
+
+1. 角色入口在 `/employee`、`/supervisor`、`/system` 內。
+2. 前端 module 不直接呼叫外部 SaaS 或資料庫。
+3. API 呼叫集中在 module `api.ts` 或 shared client。
+4. 桌機與手機共用同一資料契約，僅調整 layout priority。
+5. loading / empty / error / mutation busy state 有正式 UI。
+
+已完成正式 module：
+
+- `employee/home`：員工首頁 BFF DTO。
+- `supervisor/dashboard`：主管首頁 BFF DTO 與版面控制。
+- `supervisor/announcements`：公告候選池審核。
+- `supervisor/anomalies`：打卡異常審核。
+- `system/overview`：系統健康、整合狀態與快速工具。
+
+仍保留 legacy wrapper 的功能應逐步遷移，不再新增新的 legacy wrapper route。
