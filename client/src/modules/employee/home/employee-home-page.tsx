@@ -26,6 +26,8 @@ import {
 import type {
   AnnouncementSummary,
   EmployeeHomeDto,
+  HandoverSummary,
+  ShiftSummary,
   ShortcutSummary,
   TaskSummary,
 } from "@shared/domain/workbench";
@@ -67,6 +69,36 @@ const toneClass: Record<ShortcutSummary["tone"], string> = {
   violet: "bg-[#f2efff] text-[#6947d8]",
   rose: "bg-[#fff0f1] text-[#db4b5a]",
   cyan: "bg-[#ecfbff] text-[#1487a8]",
+};
+
+const formatShiftTime = (value?: string) => {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+};
+
+const shiftPeriodLabel = (shift: ShiftSummary) => {
+  const label = `${shift.label} ${shift.startsAt ?? ""}`;
+  if (/晚|16:|17:|18:|19:|20:|21:|22:/.test(label)) return "晚班";
+  if (/中|12:|13:|14:|15:/.test(label)) return "中班";
+  return "早班";
+};
+
+const buildShiftRows = (shifts: ShiftSummary[] = []) => {
+  const groups = new Map<string, { facilityName: string; early: string[]; mid: string[]; late: string[]; timeRange: string }>();
+  shifts.forEach((shift) => {
+    const facilityName = shift.venueName || "本館";
+    const current = groups.get(facilityName) ?? { facilityName, early: [], mid: [], late: [], timeRange: "" };
+    const period = shiftPeriodLabel(shift);
+    const name = shift.employeeName || shift.label.split("/")[0]?.trim() || "未命名";
+    if (period === "晚班") current.late.push(name);
+    else if (period === "中班") current.mid.push(name);
+    else current.early.push(name);
+    if (!current.timeRange) current.timeRange = shift.startsAt && shift.endsAt ? `${formatShiftTime(shift.startsAt)} - ${formatShiftTime(shift.endsAt)}` : shift.timeRange;
+    groups.set(facilityName, current);
+  });
+  return Array.from(groups.values());
 };
 
 function SectionTitle({
@@ -173,19 +205,15 @@ function TopBar() {
           </button>
           <p className="text-[15px] font-black">駿斯 Kinetic Ops</p>
         </div>
-        <nav className="hidden items-center gap-8 lg:flex">
-          {["DASHBOARD", "ACTIVITY", "DIRECTORY"].map((label, index) => (
-            <button
-              key={label}
-              className={cn(
-                "h-16 border-b-2 px-2 text-[11px] font-black tracking-[0.08em]",
-                index === 0 ? "border-[#79d146] text-[#79d146]" : "border-transparent text-[#536175]",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
+        <div className="hidden min-w-0 items-center gap-3 lg:flex">
+          <div className="grid h-10 w-10 place-items-center rounded-[8px] bg-[#eef5ff] text-[#1f6fd1]">
+            <Home className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-black text-[#10233f]">{facilityConfigs[session?.activeFacility ?? "xinbei_pool"]?.facilityName ?? "新北高中游泳池&運動中心"}</p>
+            <p className="text-[11px] font-bold text-[#79b943]">DASHBOARD</p>
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <div className="hidden lg:block">
             <RoleSwitcher />
@@ -202,9 +230,6 @@ function TopBar() {
               ))}
             </select>
           ) : null}
-          <button aria-label="搜尋" className="workbench-focus hidden h-10 w-10 place-items-center rounded-full bg-[#f0f4f8] text-[#10233f] lg:grid">
-            <Search className="h-4 w-4" />
-          </button>
           <button aria-label="通知" className="workbench-focus relative grid h-10 w-10 place-items-center rounded-full bg-white/10 lg:bg-[#f0f4f8] lg:text-[#10233f]">
             <Bell className="h-4 w-4" />
             <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#ff4964]" />
@@ -223,10 +248,14 @@ function Hero({ home }: { home: EmployeeHomeDto }) {
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_180px] lg:items-center">
       <div>
-        <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#007166]">Duty Dashboard</p>
-        <h1 className="mt-2 max-w-[820px] text-[28px] font-black leading-tight text-[#10233f] sm:text-[34px] lg:text-[40px]">
-          {home.facility.name}
-        </h1>
+        <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#007166]">Quick Search</p>
+        <label className="mt-2 flex min-h-14 max-w-[820px] items-center gap-3 rounded-[8px] border border-[#dfe7ef] bg-white px-4 shadow-[0_18px_45px_-36px_rgba(15,34,58,0.45)]">
+          <Search className="h-5 w-5 shrink-0 text-[#2f6fe8]" />
+          <input
+            className="min-w-0 flex-1 bg-transparent text-[16px] font-bold text-[#10233f] outline-none placeholder:text-[#8b9aae]"
+            placeholder="搜尋公告、交接、班表、入口、常見問題"
+          />
+        </label>
         <p className="mt-3 flex items-center gap-2 text-[13px] font-medium text-[#637185]">
           <CalendarDays className="h-4 w-4 text-[#007166]" />
           {home.facility.businessDate}
@@ -246,45 +275,50 @@ function Hero({ home }: { home: EmployeeHomeDto }) {
   );
 }
 
-function HandoverCard({ count }: { count: number }) {
+function HandoverCard({ handovers, tasks }: { handovers: HandoverSummary[]; tasks: TaskSummary[] }) {
+  const total = handovers.length + tasks.length;
   return (
     <WorkbenchCard className="p-5">
       <SectionTitle title="交接事項" eyebrow="Handover" />
-      <div className="flex min-h-[170px] flex-col items-center justify-center rounded-[8px] bg-[#f7f9fb] px-4 text-center">
-        <div className="grid h-14 w-14 place-items-center rounded-full bg-white text-[#6d7c90] shadow-sm">
-          <MessageSquareText className="h-7 w-7" />
+      {total > 0 ? (
+        <div className="space-y-3">
+          {tasks.slice(0, 3).map((task) => (
+            <Link key={`task-${task.id}`} href="/employee/tasks" className="block rounded-[8px] border border-[#e6edf4] bg-[#fbfcfd] p-3">
+              <p className="truncate text-[13px] font-black text-[#10233f]">{task.title}</p>
+              <p className="mt-1 text-[11px] font-bold text-[#8b9aae]">{task.dueLabel ?? "今日交班"} · {task.status}</p>
+            </Link>
+          ))}
+          {handovers.slice(0, Math.max(0, 4 - tasks.length)).map((item) => (
+            <Link key={`handover-${item.id}`} href="/employee/handover" className="block rounded-[8px] border border-[#e6edf4] bg-[#fbfcfd] p-3">
+              <p className="truncate text-[13px] font-black text-[#10233f]">{item.title}</p>
+              <p className="mt-1 text-[11px] font-bold text-[#8b9aae]">{item.authorName} · {item.dueLabel ?? item.status}</p>
+            </Link>
+          ))}
         </div>
-        <p className="mt-4 text-[16px] font-black text-[#10233f]">{count > 0 ? `${count} 則待確認交接` : "尚未設定交接事項"}</p>
-        <p className="mt-1 text-[12px] font-medium text-[#637185]">請聯絡 當班人員</p>
-        <button className="mt-5 min-h-10 rounded-[8px] bg-[#32af5c] px-5 text-[13px] font-black text-white">新增交接事項</button>
-      </div>
+      ) : (
+        <div className="flex min-h-[170px] flex-col items-center justify-center rounded-[8px] bg-[#f7f9fb] px-4 text-center">
+          <div className="grid h-14 w-14 place-items-center rounded-full bg-white text-[#6d7c90] shadow-sm">
+            <MessageSquareText className="h-7 w-7" />
+          </div>
+          <p className="mt-4 text-[16px] font-black text-[#10233f]">尚未設定交接事項</p>
+          <p className="mt-1 text-[12px] font-medium text-[#637185]">交班與交接會合併顯示在這裡</p>
+        </div>
+      )}
     </WorkbenchCard>
   );
 }
 
-function TaskCard({ tasks }: { tasks: TaskSummary[] }) {
-  const done = tasks.filter((task) => task.status === "done").length;
+function TutorBookingCard() {
   return (
     <WorkbenchCard className="p-5">
-      <SectionTitle title="今日交班" eyebrow="Handover Board" />
-      <div className="grid min-h-[170px] grid-cols-[82px_1fr] items-center gap-4">
-        <div className="grid h-[82px] w-[82px] place-items-center rounded-full border-[8px] border-[#eef2f6]">
-          <div className="text-center">
-            <p className="text-[24px] font-black text-[#10233f]">{done}/{tasks.length}</p>
-            <p className="text-[11px] font-bold text-[#8b9aae]">已完成</p>
+      <SectionTitle title="今日家教預約" eyebrow="Private Coaching" />
+      <div className="grid min-h-[170px] place-items-center rounded-[8px] bg-[#f7f9fb] px-4 text-center">
+        <div>
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-white text-[#8b9aae] shadow-sm">
+            <CalendarDays className="h-7 w-7" />
           </div>
-        </div>
-        <div className="space-y-2">
-          <p className="text-right text-[12px] font-black text-[#10233f]">{tasks.length - done} 項待處理</p>
-          {tasks.slice(0, 5).map((task) => (
-            <div key={task.id} className="flex items-center gap-2 text-[13px]">
-              <span className={cn("h-2 w-2 rounded-full", task.status === "done" ? "bg-[#32af5c]" : "bg-[#007166]")} />
-              <span className="min-w-0 flex-1 truncate font-bold text-[#4d5b70]">{task.title}</span>
-              <span className={cn("rounded-[4px] px-1.5 py-0.5 text-[10px] font-black", task.priority === "high" ? "bg-[#fff1e7] text-[#ef7d22]" : "bg-[#edfbf4] text-[#32af5c]")}>
-                {task.priority === "high" ? "高" : "低"}
-              </span>
-            </div>
-          ))}
+          <p className="mt-4 text-[16px] font-black text-[#10233f]">功能尚未開放</p>
+          <p className="mt-1 text-[12px] font-bold text-[#8b9aae]">之後接課程 / 預約資料來源</p>
         </div>
       </div>
     </WorkbenchCard>
@@ -336,27 +370,44 @@ function Shortcuts({ shortcuts }: { shortcuts: ShortcutSummary[] }) {
 }
 
 function LowerGrid({ home }: { home: EmployeeHomeDto }) {
+  const shiftRows = buildShiftRows(home.shifts.data ?? []);
+  const activeTime = home.shifts.data?.find((shift) => shift.status === "active") ?? home.shifts.data?.[0];
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <WorkbenchCard className="p-5">
         <SectionTitle title="今日班表" eyebrow="Shift" action="查看班表" />
-        <div className="space-y-4">
-          {home.shifts.data?.map((shift) => (
-            <div key={shift.id}>
-              <div className="flex items-center justify-between">
-                <p className="text-[14px] font-black text-[#10233f]">{shift.label} <span className="ml-2 font-bold">{shift.timeRange}</span></p>
-                <span className={cn("rounded-full px-2 py-1 text-[11px] font-black", shift.status === "active" ? "bg-[#eaf8ef] text-[#32af5c]" : "bg-[#eef2f6] text-[#637185]")}>
-                  {shift.status === "active" ? "進行中" : "未開始"}
-                </span>
-              </div>
-              <div className="mt-3 h-1.5 rounded-full bg-[#e9eef4]">
-                <div className={cn("h-1.5 rounded-full", shift.status === "active" ? "w-1/2 bg-[#32af5c]" : "w-0 bg-[#32af5c]")} />
+        <div className="space-y-3">
+          <div className="rounded-[8px] bg-[#eef5ff] px-3 py-2">
+            <p className="text-[11px] font-black text-[#536175]">當班時段</p>
+            <p className="mt-0.5 text-[14px] font-black text-[#10233f]">
+              {activeTime?.startsAt && activeTime?.endsAt ? `${formatShiftTime(activeTime.startsAt)} - ${formatShiftTime(activeTime.endsAt)}` : activeTime?.timeRange ?? "尚無班表"}
+            </p>
+          </div>
+          {shiftRows.map((row) => (
+            <div key={row.facilityName} className="rounded-[8px] border border-[#e6edf4] bg-[#fbfcfd] p-3">
+              <p className="text-[14px] font-black text-[#10233f]">{row.facilityName}</p>
+              <div className="mt-3 grid gap-2 text-[13px]">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="shrink-0 font-black text-[#536175]">早班</span>
+                  <span className="min-w-0 text-right font-bold text-[#10233f]">{row.early.join("、") || "-"}</span>
+                </div>
+                {row.mid.length ? (
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="shrink-0 font-black text-[#536175]">中班</span>
+                    <span className="min-w-0 text-right font-bold text-[#10233f]">{row.mid.join("、")}</span>
+                  </div>
+                ) : null}
+                <div className="flex items-start justify-between gap-3">
+                  <span className="shrink-0 font-black text-[#536175]">晚班</span>
+                  <span className="min-w-0 text-right font-bold text-[#10233f]">{row.late.join("、") || "-"}</span>
+                </div>
               </div>
             </div>
           ))}
+          {!shiftRows.length ? <div className="rounded-[8px] bg-[#fbfcfd] p-6 text-center text-[13px] font-bold text-[#637185]">目前沒有班表資料。</div> : null}
           <div className="flex items-center justify-between pt-1 text-[13px]">
             <span className="font-bold text-[#637185]">本日出勤</span>
-            <span className="font-black text-[#10233f]">1 / 2 人</span>
+            <span className="font-black text-[#10233f]">{home.shifts.data?.length ?? 0} 人</span>
           </div>
         </div>
       </WorkbenchCard>
@@ -458,8 +509,8 @@ export default function EmployeeHomePage() {
                 <Hero home={data} />
               </motion.div>
               <motion.div variants={riseIn} className="grid gap-4 lg:grid-cols-3">
-                <HandoverCard count={data.handover.data?.length ?? 0} />
-                <TaskCard tasks={data.tasks.data ?? []} />
+                <HandoverCard handovers={data.handover.data ?? []} tasks={data.tasks.data ?? []} />
+                <TutorBookingCard />
                 <AnnouncementCard announcements={data.announcements.data ?? []} />
               </motion.div>
               <motion.div variants={riseIn}>
