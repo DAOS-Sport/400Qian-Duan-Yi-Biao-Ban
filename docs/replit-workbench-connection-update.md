@@ -64,6 +64,9 @@ resource_create
 | `GET /api/bff/employee/search?q=&facilityKey=` | employee session | Fuzzy search announcements, handover, tasks, shifts, shortcuts, documents. |
 | `GET /api/portal/employee-resources?facilityKey=&category=` | employee session | Read employee-created `event` / `document` / `sticky_note` resources. |
 | `POST /api/portal/employee-resources` | employee session | Add employee-created events/course links, documents, or sticky notes. |
+| `PATCH /api/portal/employee-resources/:id` | owner or supervisor session | Edit employee-created resources. |
+| `DELETE /api/portal/employee-resources/:id` | owner or supervisor session | Delete employee-created resources. |
+| `GET /api/bff/system/schedule-snapshot?facilityKey=&from=&to=` | system session | Local BFF debug view of Smart Schedule export snapshot. |
 | `POST /api/watchdog/events` | `X-Internal-Token` / Bearer / `X-API-Key` | Future watchdog ingestion. JSON only. |
 | `GET /api/bff/system/watchdog-events` | system session | Read latest watchdog events. |
 
@@ -73,7 +76,7 @@ resource_create
 | --- | --- |
 | Employee announcements | LINE Bot internal facility home first, Portal system announcements and announcement candidates fallback. |
 | Employee handover / handoff | Portal `operational_handovers` + Portal `handover_entries`. |
-| Employee today shifts | Smart Schedule internal `/api/internal/schedules/today?facilityKey=<region>` filtered by facility aliases. |
+| Employee today shifts | Smart Schedule export `/api/internal/export/snapshot`, then fallback to `/api/internal/schedules/today`. BFF filters facility aliases, rest days, cancelled/deleted rows. |
 | Employee events/documents/sticky notes | Local Portal DB `employee_resources`, written by employee session, then rendered by employee BFF. |
 | Supervisor staffing | Ragic active employees + Smart Schedule current/next shifts. |
 | Supervisor widget control | `widget_layout_settings`, then normalized default layout fallback. |

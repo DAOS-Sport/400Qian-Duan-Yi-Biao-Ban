@@ -4,6 +4,8 @@ export const rawInspectorTargets = [
   ["/api/bff/system/overview", "系統總覽 BFF"],
   ["/api/bff/system/integration-overview", "整合監控 BFF"],
   ["/api/bff/supervisor/dashboard", "主管 Dashboard BFF"],
+  ["/api/bff/employee/home", "員工首頁 BFF"],
+  ["/api/bff/system/schedule-snapshot?facilityKey=xinbei_pool", "班表 Export Snapshot"],
   ["/api/portal/operational-handovers?facilityKey=xinbei_pool", "交班交接 Portal"],
   ["/api/announcement-dashboard/summary", "LINE 公告摘要代理"],
   ["/api/admin/overview", "Smart Schedule 代理"],

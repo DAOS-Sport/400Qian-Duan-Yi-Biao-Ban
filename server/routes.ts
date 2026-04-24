@@ -47,10 +47,12 @@ const resolveOperationalHandoverAssignee = async (input: {
   facilityKey: string;
   targetDate: string;
   targetShiftLabel: string;
-}): Promise<{ assigneeEmployeeNumber: string | null; assigneeName: string | null }> => {
+}): Promise<{ assigneeEmployeeNumber: string | null; assigneeName: string | null; scheduleRawId?: string; matchedBy?: string; confidence?: number }> => {
   if (!env.smartScheduleBaseUrl || !env.smartScheduleApiToken) return { assigneeEmployeeNumber: null, assigneeName: null };
-  const url = new URL("/api/internal/schedules/today", env.smartScheduleBaseUrl);
+  const url = new URL("/api/internal/export/snapshot", env.smartScheduleBaseUrl);
   url.searchParams.set("facilityKey", findScheduleRegionKey(input.facilityKey));
+  url.searchParams.set("from", input.targetDate);
+  url.searchParams.set("to", input.targetDate);
   const headers: Record<string, string> = {
     Accept: "application/json",
     Authorization: `Bearer ${env.smartScheduleApiToken}`,
@@ -64,23 +66,39 @@ const resolveOperationalHandoverAssignee = async (input: {
     const contentType = response.headers.get("content-type") || "";
     if (!response.ok || !contentType.includes("application/json")) return { assigneeEmployeeNumber: null, assigneeName: null };
     const payload = await response.json() as Record<string, unknown>;
-    const date = readScheduleText(payload.date);
-    if (date && date !== input.targetDate) return { assigneeEmployeeNumber: null, assigneeName: null };
     const facility = findFacilityLineGroup(input.facilityKey);
-    const rows = Array.isArray(payload.shifts) ? payload.shifts : Array.isArray(payload.items) ? payload.items : [];
+    const rows = Array.isArray(payload.schedules) ? payload.schedules : [];
     const matched = rows
       .filter((row): row is Record<string, unknown> => Boolean(row && typeof row === "object"))
       .find((row) => {
-        const venueName = readScheduleNestedText(row.venue, ["name", "venueName", "facilityName"]);
-        const start = readScheduleText(row.startsAt ?? row.startAt ?? row.startTime);
-        const label = `${readScheduleText(row.shiftLabel ?? row.label ?? row.kind)} ${inferShiftLabelFromStart(start)}`;
-        const sameFacility = !facility || !venueName || [facility.shortName, facility.fullName, ...facility.ragicDepartmentAliases].some((alias) => venueName.includes(alias) || alias.includes(venueName));
-        return sameFacility && label.includes(input.targetShiftLabel);
+        const venue = row.venue && typeof row.venue === "object" ? row.venue as Record<string, unknown> : {};
+        const shift = row.shift && typeof row.shift === "object" ? row.shift as Record<string, unknown> : {};
+        const assignment = row.assignment && typeof row.assignment === "object" ? row.assignment as Record<string, unknown> : {};
+        const venueNames = [
+          readScheduleText(venue.name),
+          readScheduleText(venue.shortName),
+          ...((Array.isArray(venue.aliases) ? venue.aliases : []) as unknown[]).map((item) => readScheduleText(item)),
+        ].filter(Boolean);
+        const start = readScheduleText(shift.startAt);
+        const period = readScheduleText(shift.period, inferShiftLabelFromStart(start));
+        const label = `${readScheduleText(shift.label)} ${readScheduleText(shift.name)} ${period}`;
+        const sameFacility = !facility || venueNames.length === 0 || venueNames.some((name) => [facility.shortName, facility.fullName, ...facility.ragicDepartmentAliases].some((alias) => name.includes(alias) || alias.includes(name)));
+        const active = ["", "scheduled", "changed", "completed"].includes(readScheduleText(assignment.status));
+        return active && sameFacility && (
+          label.includes(input.targetShiftLabel) ||
+          (input.targetShiftLabel.includes("早") && period === "early") ||
+          (input.targetShiftLabel.includes("中") && period === "mid") ||
+          (input.targetShiftLabel.includes("晚") && period === "late")
+        );
       });
     if (!matched) return { assigneeEmployeeNumber: null, assigneeName: null };
+    const employee = matched.employee && typeof matched.employee === "object" ? matched.employee as Record<string, unknown> : {};
     return {
-      assigneeEmployeeNumber: readScheduleNestedText(matched.employee, ["employeeNumber", "employeeCode", "code"]) || null,
-      assigneeName: readScheduleNestedText(matched.employee, ["name", "employeeName", "displayName"]) || null,
+      assigneeEmployeeNumber: readScheduleText(employee.employeeNumber) || null,
+      assigneeName: readScheduleText(employee.name) || null,
+      scheduleRawId: readScheduleText(matched.rawId),
+      matchedBy: "date+facility+period",
+      confidence: 0.9,
     };
   } catch {
     return { assigneeEmployeeNumber: null, assigneeName: null };
@@ -1175,6 +1193,9 @@ export async function registerRoutes(
           targetDate: created.targetDate,
           targetShiftLabel: created.targetShiftLabel,
           autoAssigned: Boolean(resolvedAssignee.assigneeEmployeeNumber || resolvedAssignee.assigneeName),
+          scheduleRawId: resolvedAssignee.scheduleRawId,
+          matchedBy: resolvedAssignee.matchedBy,
+          confidence: resolvedAssignee.confidence,
         }),
       });
       res.status(201).json(mapOperationalHandoverForResponse(created));
@@ -1412,6 +1433,50 @@ export async function registerRoutes(
       res.status(201).json(created);
     } catch (err) {
       const m = err instanceof Error ? err.message : "員工資源建立失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.patch("/api/portal/employee-resources/:id", requireEmployee(), async (req, res) => {
+    try {
+      const caller = (req as unknown as { caller: EmployeeProfile }).caller;
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: "無效 ID" });
+      const existing = (await storage.listEmployeeResources({ limit: 300 })).find((item) => item.id === id);
+      if (!existing) return res.status(404).json({ message: "找不到員工資源" });
+      if (!canAccessFacility(req, existing.facilityKey)) return res.status(403).json({ message: "無此館別權限" });
+      const canEdit = existing.createdByEmployeeNumber === caller.employeeNumber || caller.isSupervisor;
+      if (!canEdit) return res.status(403).json({ message: "只能編輯自己建立的資料" });
+      const patchSchema = z.object({
+        title: z.string().min(1).max(120).optional(),
+        content: z.string().max(1000).nullable().optional(),
+        url: z.string().url().nullable().optional(),
+        isPinned: z.boolean().optional(),
+      });
+      const parsed = patchSchema.safeParse(req.body || {});
+      if (!parsed.success) return res.status(400).json({ message: "資料格式錯誤", errors: parsed.error.flatten() });
+      const updated = await storage.updateEmployeeResource(id, parsed.data);
+      res.json(updated);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "員工資源更新失敗";
+      res.status(500).json({ message: m });
+    }
+  });
+
+  app.delete("/api/portal/employee-resources/:id", requireEmployee(), async (req, res) => {
+    try {
+      const caller = (req as unknown as { caller: EmployeeProfile }).caller;
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: "無效 ID" });
+      const existing = (await storage.listEmployeeResources({ limit: 300 })).find((item) => item.id === id);
+      if (!existing) return res.status(404).json({ message: "找不到員工資源" });
+      if (!canAccessFacility(req, existing.facilityKey)) return res.status(403).json({ message: "無此館別權限" });
+      const canDelete = existing.createdByEmployeeNumber === caller.employeeNumber || caller.isSupervisor;
+      if (!canDelete) return res.status(403).json({ message: "只能刪除自己建立的資料" });
+      const ok = await storage.deleteEmployeeResource(id);
+      res.json({ ok });
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "員工資源刪除失敗";
       res.status(500).json({ message: m });
     }
   });

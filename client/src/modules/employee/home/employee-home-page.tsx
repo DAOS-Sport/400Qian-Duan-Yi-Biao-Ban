@@ -41,7 +41,14 @@ import { Link, useLocation } from "wouter";
 import { WorkbenchCard } from "@/shared/ui-kit/workbench-card";
 import { riseIn, staggerContainer } from "@/shared/motion/tokens";
 import { RoleSwitcher } from "@/modules/workbench/role-switcher";
-import { createEmployeeResource, fetchEmployeeHome, searchEmployeeWorkbench, type EmployeeSearchResultDTO } from "./api";
+import {
+  createEmployeeResource,
+  deleteEmployeeResource,
+  fetchEmployeeHome,
+  searchEmployeeWorkbench,
+  updateEmployeeResource,
+  type EmployeeSearchResultDTO,
+} from "./api";
 import { cn } from "@/lib/utils";
 import { facilityConfigs } from "@/config/facility-configs";
 import { useAuthMe, useSwitchFacility } from "@/shared/auth/session";
@@ -497,38 +504,95 @@ function AddResourceForm({
   );
 }
 
-function EventList({ campaigns }: { campaigns: CampaignSummary[] }) {
+function ResourceActions({
+  resourceId,
+  title,
+  content,
+  url,
+  onChanged,
+}: {
+  resourceId?: number;
+  title: string;
+  content?: string;
+  url?: string;
+  onChanged: () => void;
+}) {
+  const updateMutation = useMutation({
+    mutationFn: (next: { title: string; content?: string | null; url?: string | null }) => updateEmployeeResource(resourceId!, next),
+    onSuccess: onChanged,
+  });
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteEmployeeResource(resourceId!),
+    onSuccess: onChanged,
+  });
+  if (!resourceId) return null;
+  return (
+    <div className="mt-2 flex gap-2">
+      <button
+        type="button"
+        onClick={() => {
+          const nextTitle = window.prompt("標題", title);
+          if (nextTitle === null) return;
+          const nextContent = window.prompt("內容 / 備註", content || "");
+          if (nextContent === null) return;
+          const nextUrl = url === undefined ? undefined : window.prompt("連結", url || "");
+          updateMutation.mutate({ title: nextTitle, content: nextContent || null, url: nextUrl === undefined ? undefined : nextUrl || null });
+        }}
+        className="rounded-[6px] bg-white px-2 py-1 text-[10px] font-black text-[#536175]"
+      >
+        編輯
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (window.confirm("確認刪除？")) deleteMutation.mutate();
+        }}
+        className="rounded-[6px] bg-[#fff0f1] px-2 py-1 text-[10px] font-black text-[#db4b5a]"
+      >
+        刪除
+      </button>
+    </div>
+  );
+}
+
+function EventList({ campaigns, onChanged }: { campaigns: CampaignSummary[]; onChanged: () => void }) {
   if (!campaigns.length) return <div className="rounded-[8px] bg-[#fbfcfd] p-6 text-center text-[13px] font-bold text-[#637185]">尚未新增活動 / 課程快訊。</div>;
   return (
     <div className="space-y-3">
       {campaigns.map((campaign) => (
-        <a key={campaign.id} href={campaign.linkUrl || "#"} className="flex items-center gap-3 rounded-[8px] bg-[#f7f9fb] p-3">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-[8px] bg-[#eaf8ef] text-[#15935d]">
-            <CalendarDays className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-black text-[#10233f]">{campaign.title}</p>
-            <p className="mt-1 truncate text-[11px] font-bold text-[#637185]">{campaign.effectiveRange}</p>
-          </div>
-          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-[#15935d]">{campaign.statusLabel}</span>
-        </a>
+        <div key={campaign.id} className="rounded-[8px] bg-[#f7f9fb] p-3">
+          <a href={campaign.linkUrl || "#"} className="flex items-center gap-3">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-[8px] bg-[#eaf8ef] text-[#15935d]">
+              <CalendarDays className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-black text-[#10233f]">{campaign.title}</p>
+              <p className="mt-1 truncate text-[11px] font-bold text-[#637185]">{campaign.effectiveRange}</p>
+            </div>
+            <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-[#15935d]">{campaign.statusLabel}</span>
+          </a>
+          <ResourceActions resourceId={campaign.resourceId} title={campaign.title} content={campaign.effectiveRange} url={campaign.linkUrl} onChanged={onChanged} />
+        </div>
       ))}
     </div>
   );
 }
 
-function DocumentList({ documents }: { documents: DocumentSummary[] }) {
+function DocumentList({ documents, onChanged }: { documents: DocumentSummary[]; onChanged: () => void }) {
   if (!documents.length) return <div className="rounded-[8px] bg-[#fbfcfd] p-6 text-center text-[13px] font-bold text-[#637185]">尚未新增常用文件。</div>;
   return (
     <div className="space-y-2">
       {documents.map((doc) => (
-        <a key={doc.id} href={doc.url || "#"} className="flex min-h-12 w-full items-center gap-3 rounded-[8px] px-2 text-left hover:bg-[#f7f9fb]">
-          <FileText className="h-5 w-5 shrink-0 text-[#1f6fd1]" />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-black text-[#10233f]">{doc.title}</span>
-            <span className="block truncate text-[11px] font-medium text-[#8b9aae]">{doc.description || `更新：${doc.updatedAt}`}</span>
-          </span>
-        </a>
+        <div key={doc.id} className="rounded-[8px] px-2 py-2 hover:bg-[#f7f9fb]">
+          <a href={doc.url || "#"} className="flex min-h-12 w-full items-center gap-3 text-left">
+            <FileText className="h-5 w-5 shrink-0 text-[#1f6fd1]" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-black text-[#10233f]">{doc.title}</span>
+              <span className="block truncate text-[11px] font-medium text-[#8b9aae]">{doc.description || `更新：${doc.updatedAt}`}</span>
+            </span>
+          </a>
+          <ResourceActions resourceId={doc.resourceId} title={doc.title} content={doc.description} url={doc.url} onChanged={onChanged} />
+        </div>
       ))}
     </div>
   );
@@ -551,6 +615,7 @@ function StickyNotesCard({ notes, facilityKey, onCreated }: { notes: StickyNoteS
             <p className="text-[13px] font-black text-[#10233f]">{note.title}</p>
             <p className="mt-1 text-[12px] font-bold leading-5 text-[#536175]">{note.content}</p>
             <p className="mt-2 text-[10px] font-bold text-[#9a7a1d]">{note.authorName || "員工"} · {note.createdAt}</p>
+            <ResourceActions resourceId={note.resourceId} title={note.title} content={note.content} onChanged={onCreated} />
           </div>
         ))}
       </div>
@@ -604,14 +669,14 @@ function LowerGrid({ home, visibleKeys, onResourceCreated }: { home: EmployeeHom
         <SectionTitle title="活動 / 課程快訊" eyebrow="Events" action="員工可新增" />
         <div className="space-y-3">
           <AddResourceForm category="event" facilityKey={home.facility.key} titlePlaceholder="活動 / 課程名稱" contentPlaceholder="時間或備註" urlPlaceholder="報名或說明連結 https://..." onCreated={onResourceCreated} />
-          <EventList campaigns={home.campaigns.data ?? []} />
+          <EventList campaigns={home.campaigns.data ?? []} onChanged={onResourceCreated} />
         </div>
       </WorkbenchCard> : null}
       {visibleKeys.has("documents") ? <WorkbenchCard className="p-5">
         <SectionTitle title="常用文件" eyebrow="Documents" action="員工可新增" />
         <div className="space-y-3">
           <AddResourceForm category="document" facilityKey={home.facility.key} titlePlaceholder="文件名稱" contentPlaceholder="用途或備註" urlPlaceholder="文件連結 https://..." onCreated={onResourceCreated} />
-          <DocumentList documents={home.documents.data ?? []} />
+          <DocumentList documents={home.documents.data ?? []} onChanged={onResourceCreated} />
         </div>
       </WorkbenchCard> : null}
       {visibleKeys.has("stickyNotes") ? <StickyNotesCard notes={home.stickyNotes.data ?? []} facilityKey={home.facility.key} onCreated={onResourceCreated} /> : null}

@@ -69,6 +69,7 @@ export interface ShiftSummary {
 
 export interface CampaignSummary {
   id: string;
+  resourceId?: number;
   title: string;
   statusLabel: string;
   effectiveRange: string;
@@ -77,6 +78,7 @@ export interface CampaignSummary {
 
 export interface DocumentSummary {
   id: string;
+  resourceId?: number;
   title: string;
   updatedAt: string;
   url?: string;
@@ -85,6 +87,7 @@ export interface DocumentSummary {
 
 export interface StickyNoteSummary {
   id: string;
+  resourceId?: number;
   title: string;
   content: string;
   authorName?: string | null;

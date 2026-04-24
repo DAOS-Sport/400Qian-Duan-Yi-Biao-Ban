@@ -65,6 +65,15 @@ export const registerSystemRoutes = (app: Express, container: AppContainer) => {
     return res.json({ items: await storage.listWatchdogEvents(50) });
   });
 
+  app.get("/api/bff/system/schedule-snapshot", async (req, res) => {
+    const facilityKey = typeof req.query.facilityKey === "string" ? req.query.facilityKey : req.workbenchSession?.activeFacility || "xinbei_pool";
+    const from = typeof req.query.from === "string" ? req.query.from : new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Taipei" });
+    const to = typeof req.query.to === "string" ? req.query.to : from;
+    const result = await container.integrations.schedule.getScheduleSnapshot({ facilityKey, from, to });
+    if (!result.data) return res.status(502).json({ message: result.meta.fallbackReason, meta: result.meta });
+    return res.json(result.data);
+  });
+
   app.post("/api/watchdog/events", async (req, res) => {
     if (!container.config.internalApiToken) return res.status(503).json({ message: "INTERNAL_API_TOKEN is not configured" });
     const token = readInternalToken(req);

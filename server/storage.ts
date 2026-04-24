@@ -64,6 +64,7 @@ export interface IStorage {
   // Employee resources (員工自建入口 / 便利貼)
   listEmployeeResources(opts: { facilityKey?: string; category?: string; limit?: number }): Promise<EmployeeResource[]>;
   createEmployeeResource(resource: InsertEmployeeResource): Promise<EmployeeResource>;
+  updateEmployeeResource(id: number, data: Partial<InsertEmployeeResource>): Promise<EmployeeResource | undefined>;
   deleteEmployeeResource(id: number): Promise<boolean>;
 
   // SystemAnnouncements (主管維護)
@@ -264,6 +265,15 @@ export class DatabaseStorage implements IStorage {
   async createEmployeeResource(resource: InsertEmployeeResource): Promise<EmployeeResource> {
     const [created] = await db.insert(employeeResources).values(resource).returning();
     return created;
+  }
+
+  async updateEmployeeResource(id: number, data: Partial<InsertEmployeeResource>): Promise<EmployeeResource | undefined> {
+    const [updated] = await db
+      .update(employeeResources)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(employeeResources.id, id))
+      .returning();
+    return updated;
   }
 
   async deleteEmployeeResource(id: number): Promise<boolean> {

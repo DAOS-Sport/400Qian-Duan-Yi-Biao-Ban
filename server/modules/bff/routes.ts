@@ -158,6 +158,7 @@ const buildEmployeeHomeFallback = async (
   const documents: DocumentSummary[] = [
     ...employeeResources.filter((item) => item.category === "document").map((item) => ({
       id: `employee-doc-${item.id}`,
+      resourceId: item.id,
       title: item.title,
       updatedAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-TW") : "員工新增",
       url: item.url ?? undefined,
@@ -186,6 +187,7 @@ const buildEmployeeHomeFallback = async (
   const campaigns: CampaignSummary[] = [
     ...employeeResources.filter((item) => item.category === "event").map((item) => ({
       id: `employee-event-${item.id}`,
+      resourceId: item.id,
       title: item.title,
       statusLabel: "員工新增",
       effectiveRange: item.content || "未設定時間",
@@ -207,6 +209,7 @@ const buildEmployeeHomeFallback = async (
     .slice(0, 8)
     .map((item) => ({
       id: `sticky-${item.id}`,
+      resourceId: item.id,
       title: item.title,
       content: item.content || "",
       authorName: item.createdByName,
@@ -267,6 +270,7 @@ const getEmployeeResourceSections = async (facilityKey: string) => {
     .filter((item) => item.category === "event")
     .map((item) => ({
       id: `employee-event-${item.id}`,
+      resourceId: item.id,
       title: item.title,
       statusLabel: "員工新增",
       effectiveRange: item.content || "未設定時間",
@@ -276,6 +280,7 @@ const getEmployeeResourceSections = async (facilityKey: string) => {
     .filter((item) => item.category === "document")
     .map((item) => ({
       id: `employee-doc-${item.id}`,
+      resourceId: item.id,
       title: item.title,
       updatedAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-TW") : "員工新增",
       url: item.url ?? undefined,
@@ -285,6 +290,7 @@ const getEmployeeResourceSections = async (facilityKey: string) => {
     .filter((item) => item.category === "sticky_note")
     .map((item) => ({
       id: `sticky-${item.id}`,
+      resourceId: item.id,
       title: item.title,
       content: item.content || "",
       authorName: item.createdByName,

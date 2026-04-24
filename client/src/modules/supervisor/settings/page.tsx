@@ -19,6 +19,7 @@ export default function SupervisorSettingsPage() {
   const queryClient = useQueryClient();
   const facilityKey = session?.activeFacility ?? "xinbei_pool";
   const [widgets, setWidgets] = useState<WorkbenchWidgetLayoutItem[]>(defaultEmployeeHomeWidgets);
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const quickLinksQuery = useQuery({ queryKey: ["/api/portal/quick-links", facilityKey], queryFn: () => fetchSupervisorQuickLinks(facilityKey) });
   const announcementsQuery = useQuery({ queryKey: ["/api/portal/system-announcements", facilityKey], queryFn: () => fetchSupervisorSystemAnnouncements(facilityKey) });
   const layoutQuery = useQuery({ queryKey: ["/api/portal/layout-settings", facilityKey, "employee", "employee-home"], queryFn: () => fetchSupervisorLayoutSettings(facilityKey) });
@@ -54,6 +55,19 @@ export default function SupervisorSettingsPage() {
 
   const toggleWidget = (key: string) => {
     setWidgets((current) => current.map((item) => item.key === key ? { ...item, enabled: !item.enabled } : item));
+  };
+
+  const moveWidgetByKey = (sourceKey: string, targetKey: string) => {
+    if (sourceKey === targetKey) return;
+    setWidgets((current) => {
+      const sourceIndex = current.findIndex((item) => item.key === sourceKey);
+      const targetIndex = current.findIndex((item) => item.key === targetKey);
+      if (sourceIndex < 0 || targetIndex < 0) return current;
+      const next = [...current];
+      const [item] = next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, item);
+      return next.map((widget, order) => ({ ...widget, sortOrder: (order + 1) * 10 }));
+    });
   };
 
   return (
@@ -100,7 +114,22 @@ export default function SupervisorSettingsPage() {
           <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
             <div className="space-y-2">
               {widgets.map((widget, index) => (
-                <div key={widget.key} className={cn("flex items-center gap-3 rounded-[8px] border p-3", widget.enabled ? "border-[#dfe7ef] bg-[#fbfcfd]" : "border-[#edf1f5] bg-white opacity-55")}>
+                <div
+                  key={widget.key}
+                  draggable
+                  onDragStart={() => setDraggingKey(widget.key)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => {
+                    if (draggingKey) moveWidgetByKey(draggingKey, widget.key);
+                    setDraggingKey(null);
+                  }}
+                  onDragEnd={() => setDraggingKey(null)}
+                  className={cn(
+                    "flex cursor-grab items-center gap-3 rounded-[8px] border p-3 active:cursor-grabbing",
+                    widget.enabled ? "border-[#dfe7ef] bg-[#fbfcfd]" : "border-[#edf1f5] bg-white opacity-55",
+                    draggingKey === widget.key && "border-[#2f6fe8] bg-[#eef5ff]",
+                  )}
+                >
                   <GripVertical className="h-4 w-4 shrink-0 text-[#8b9aae]" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-black text-[#10233f]">{index + 1}. {widget.label}</p>

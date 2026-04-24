@@ -1,5 +1,5 @@
 import type { EmployeeHomeDto } from "@shared/domain/workbench";
-import { apiGet, apiPatch, apiPost } from "@/shared/api/client";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/shared/api/client";
 import type { HandoverEntryDTO, QuickLinkDTO } from "@/types/portal";
 
 export interface EmployeeSearchResultDTO {
@@ -73,6 +73,15 @@ export const createEmployeeResource = (input: {
   url?: string;
   isPinned?: boolean;
 }) => apiPost<EmployeeResourceDTO>("/api/portal/employee-resources", input);
+
+export const updateEmployeeResource = (id: number, input: Partial<{
+  title: string;
+  content: string | null;
+  url: string | null;
+  isPinned: boolean;
+}>) => apiPatch<EmployeeResourceDTO>(`/api/portal/employee-resources/${id}`, input);
+
+export const deleteEmployeeResource = (id: number) => apiDelete<{ ok: boolean }>(`/api/portal/employee-resources/${id}`);
 
 export const fetchEmployeeQuickLinks = (facilityKey: string) =>
   apiGet<{ items: QuickLinkDTO[] }>(`/api/portal/quick-links?facilityKey=${encodeURIComponent(facilityKey)}`);
