@@ -8,7 +8,9 @@
     "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
+    "type-check": "tsc",
     "check:modules": "tsx scripts/module-registry-check.ts",
+    "smoke:modules": "tsx scripts/module-smoke.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
