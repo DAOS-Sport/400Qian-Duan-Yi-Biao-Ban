@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import type { AppContainer } from "../../app/container";
 import type { ScheduleShift } from "../../integrations/schedule/adapter";
+import { listRagicH05FacilityCandidates } from "../../integrations/ragic/facility-adapter";
 import { facilityLabel, facilityLineGroups, findFacilityLineGroup } from "@shared/domain/facilities";
 import { defaultEmployeeHomeWidgets, normalizeWidgetLayout } from "@shared/domain/layout";
 import type {
@@ -17,7 +18,7 @@ import type {
   TaskSummary,
   TrainingSummary,
 } from "@shared/domain/workbench";
-import type { OperationalHandover, Task } from "@shared/schema";
+import type { OperationalHandover, SystemAnnouncement, Task } from "@shared/schema";
 import type { BffSection } from "@shared/bff/envelope";
 import { getModuleDescriptorsByRole, getNavigationModules, type HomeCardDto } from "@shared/modules";
 import { storage } from "../../storage";
@@ -366,6 +367,34 @@ const mapEmployeeAnnouncementResource = (item: {
   };
 };
 
+const mapSystemAnnouncementSummary = (item: SystemAnnouncement, now: string): AnnouncementSummary => ({
+  id: `portal-ann-${item.id}`,
+  title: item.title,
+  summary: item.content,
+  content: item.content,
+  priority: item.severity === "critical" ? "required" : item.severity === "warning" ? "high" : "normal",
+  type: item.announcementType === "sop"
+    ? "sop"
+    : item.announcementType === "event" || item.announcementType === "discount" || item.announcementType === "course"
+      ? "event"
+      : item.announcementType === "required"
+        ? "required"
+        : "notice",
+  isPinned: Boolean(item.isPinned) || item.severity === "critical",
+  effectiveRange: item.publishedAt ? new Date(item.publishedAt).toLocaleString("zh-TW") : "即時",
+  publishedAt: item.publishedAt ? item.publishedAt.toISOString() : now,
+  deadlineLabel: item.expiresAt ? new Date(item.expiresAt).toLocaleDateString("zh-TW") : "未設定",
+});
+
+const uniqueAnnouncements = (items: AnnouncementSummary[]) => {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+};
+
 const announcementSortTime = (item: AnnouncementSummary) => {
   const parsed = Date.parse(item.scheduledAt ?? item.publishedAt ?? item.effectiveRange ?? "");
   return Number.isFinite(parsed) ? parsed : 0;
@@ -455,18 +484,7 @@ const buildEmployeeHomeFallback = async (
   const scheduleResult = shiftsResult.status === "fulfilled" ? shiftsResult.value : null;
   const candidateAnnouncements = candidateAnnouncementsResult.status === "fulfilled" ? candidateAnnouncementsResult.value : [];
 
-  const portalAnnouncements: AnnouncementSummary[] = systemAnnouncements.slice(0, 8).map((item) => ({
-    id: `portal-ann-${item.id}`,
-    title: item.title,
-    summary: item.content,
-    content: item.content,
-    priority: item.severity === "critical" ? "required" : item.severity === "warning" ? "high" : "normal",
-    type: item.severity === "critical" ? "required" : "notice",
-    isPinned: item.severity === "critical",
-    effectiveRange: item.publishedAt ? new Date(item.publishedAt).toLocaleString("zh-TW") : "即時",
-    publishedAt: item.publishedAt ? item.publishedAt.toISOString() : now,
-    deadlineLabel: item.expiresAt ? new Date(item.expiresAt).toLocaleDateString("zh-TW") : "未設定",
-  }));
+  const portalAnnouncements: AnnouncementSummary[] = systemAnnouncements.slice(0, 8).map((item) => mapSystemAnnouncementSummary(item, now));
   const resourceAnnouncements = employeeResources
     .filter((item) => item.category === "announcement")
     .map(mapEmployeeAnnouncementResource);
@@ -566,7 +584,7 @@ const buildEmployeeHomeFallback = async (
       return Date.parse(b.createdAt) - Date.parse(a.createdAt);
     });
 
-  const announcements = [...resourceAnnouncements, ...portalAnnouncements, ...candidateAnnouncements]
+  const announcements = uniqueAnnouncements([...resourceAnnouncements, ...portalAnnouncements, ...candidateAnnouncements])
     .sort((a, b) => Number(Boolean(b.isPinned)) - Number(Boolean(a.isPinned)) || announcementSortTime(b) - announcementSortTime(a))
     .slice(0, 10);
 
@@ -684,7 +702,7 @@ const getEmployeeResourceSections = async (facilityKey: string) => {
 
 type SearchItem = {
   id: string;
-  type: "announcement" | "handover" | "task" | "shift" | "shortcut" | "document" | "campaign" | "training";
+  type: "announcement" | "handover" | "task" | "shift" | "shortcut" | "document" | "campaign" | "training" | "qna";
   title: string;
   summary: string;
   href: string;
@@ -888,13 +906,15 @@ const enrichEmployeeHome = async (
     training: dto.training ?? ok([], now),
   };
   const employeeResources = await getEmployeeResourceSections(normalizedFacilityKey);
+  const systemAnnouncements = await storage.listSystemAnnouncements(normalizedFacilityKey, false).catch(() => []);
+  const portalAnnouncements = systemAnnouncements.slice(0, 8).map((item) => mapSystemAnnouncementSummary(item, now));
   const localTasks = await storage.listTasks({ facilityKey: normalizedFacilityKey, limit: 50 }).catch(() => []);
   nextDto = {
     ...nextDto,
     tasks: ok(localTasks.map(mapTaskSummary), now),
     shortcuts: ok(defaultEmployeeShortcuts, now),
     announcements: ok(
-      [...employeeResources.announcements, ...(nextDto.announcements.data ?? [])]
+      uniqueAnnouncements([...employeeResources.announcements, ...portalAnnouncements, ...(nextDto.announcements.data ?? [])])
         .sort((a, b) => Number(Boolean(b.isPinned)) - Number(Boolean(a.isPinned)) || announcementSortTime(b) - announcementSortTime(a))
         .slice(0, 10),
       now,
@@ -1032,7 +1052,16 @@ export const registerBffRoutes = (app: Express, container: AppContainer) => {
       ? await enrichEmployeeHome(result.data, facilityKey, container)
       : await buildEmployeeHomeFallback(facilityKey, container, result.meta.fallbackReason || "Employee home projection is unavailable");
 
-    const items = buildEmployeeSearchItems(home, query);
+    const qnaItems = await storage.listKnowledgeBaseQna({ facilityKey, query, limit: 8 })
+      .then((items) => items.map((item): SearchItem => ({
+        id: `qna-${item.id}`,
+        type: "qna",
+        title: item.question,
+        summary: [item.answer, item.category, ...(item.tags ?? [])].filter(Boolean).join(" · "),
+        href: `/employee/qna?q=${encodeURIComponent(query)}`,
+      })))
+      .catch(() => []);
+    const items = [...qnaItems, ...buildEmployeeSearchItems(home, query)].slice(0, 12);
     await storage.recordPortalEvent({
       employeeNumber: session.userId,
       employeeName: session.displayName,
@@ -1078,10 +1107,17 @@ export const registerBffRoutes = (app: Express, container: AppContainer) => {
   app.get("/api/bff/supervisor/dashboard", requireRole("supervisor", "system"), async (req, res) => {
     const session = req.workbenchSession!;
     const dashboard = env.dataSourceMode === "mock" ? getSupervisorDashboardMock() : await getSupervisorDashboardFromSources();
-    const facilityKeys = session.grantedFacilities.length
+    const grantedFacilityKeys = session.grantedFacilities.length
       ? session.grantedFacilities
       : facilityLineGroups.map((facility) => facility.facilityKey);
-    const facilityKey = session.activeFacility || dashboard.facility.key || "xinbei_pool";
+    const ragicFacilities = await listRagicH05FacilityCandidates().catch(() => undefined);
+    const ragicOtFacilityKeys = new Set((ragicFacilities?.data ?? []).map((facility) => facility.facilityKey));
+    const filteredFacilityKeys = ragicOtFacilityKeys.size
+      ? grantedFacilityKeys.filter((facilityKey) => ragicOtFacilityKeys.has(facilityKey))
+      : grantedFacilityKeys;
+    const facilityKeys = filteredFacilityKeys.length ? filteredFacilityKeys : grantedFacilityKeys;
+    const requestedActiveFacility = session.activeFacility || dashboard.facility.key || "xinbei_pool";
+    const facilityKey = facilityKeys.includes(requestedActiveFacility) ? requestedActiveFacility : facilityKeys[0] ?? "xinbei_pool";
     try {
       const [handovers, tasks, staffing] = await Promise.all([
         storage.listOperationalHandovers({ facilityKey, limit: 100 }).catch(() => []),

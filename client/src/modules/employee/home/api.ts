@@ -4,7 +4,7 @@ import type { HandoverEntryDTO, QuickLinkDTO } from "@/types/portal";
 
 export interface EmployeeSearchResultDTO {
   id: string;
-  type: "announcement" | "handover" | "task" | "shift" | "shortcut" | "document" | "campaign";
+  type: "announcement" | "handover" | "task" | "shift" | "shortcut" | "document" | "campaign" | "training" | "qna";
   title: string;
   summary: string;
   href: string;
@@ -27,6 +27,23 @@ export interface EmployeeResourceDTO {
   scheduledAt: string | null;
   createdByEmployeeNumber: string | null;
   createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KnowledgeBaseQnaDTO {
+  id: number;
+  facilityKey: string;
+  question: string;
+  answer: string | null;
+  category: string | null;
+  tags: string[];
+  status: "draft" | "published" | "archived";
+  isPinned: boolean;
+  createdByEmployeeNumber: string | null;
+  createdByName: string | null;
+  createdByRole: "employee" | "supervisor" | "system" | null;
+  updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -164,6 +181,32 @@ export const updateEmployeeResource = (id: number, input: Partial<{
 }>) => apiPatch<EmployeeResourceDTO>(`/api/portal/employee-resources/${id}`, input);
 
 export const deleteEmployeeResource = (id: number) => apiDelete<{ ok: boolean }>(`/api/portal/employee-resources/${id}`);
+
+export const fetchKnowledgeBaseQna = (facilityKey: string, query?: string, limit = 100) => {
+  const params = new URLSearchParams({ facilityKey, limit: String(limit) });
+  if (query?.trim()) params.set("q", query.trim());
+  return apiGet<{ items: KnowledgeBaseQnaDTO[] }>(`/api/portal/knowledge-base-qna?${params.toString()}`);
+};
+
+export const createKnowledgeBaseQna = (input: {
+  facilityKey: string;
+  question: string;
+  answer?: string | null;
+  category?: string | null;
+  tags?: string[];
+  isPinned?: boolean;
+}) => apiPost<KnowledgeBaseQnaDTO>("/api/portal/knowledge-base-qna", input);
+
+export const updateKnowledgeBaseQna = (id: number, input: Partial<{
+  question: string;
+  answer: string | null;
+  category: string | null;
+  tags: string[];
+  isPinned: boolean;
+  status: "draft" | "published" | "archived";
+}>) => apiPatch<KnowledgeBaseQnaDTO>(`/api/portal/knowledge-base-qna/${id}`, input);
+
+export const deleteKnowledgeBaseQna = (id: number) => apiDelete<{ ok: boolean }>(`/api/portal/knowledge-base-qna/${id}`);
 
 export const fetchEmployeeQuickLinks = (facilityKey: string) =>
   apiGet<{ items: QuickLinkDTO[] }>(`/api/portal/quick-links?facilityKey=${encodeURIComponent(facilityKey)}`);

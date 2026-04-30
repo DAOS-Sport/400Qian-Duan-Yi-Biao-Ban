@@ -33,6 +33,7 @@ import EmployeeDocumentsPage from "@/modules/employee/documents/page";
 import EmployeeHandoverPage from "@/modules/employee/handover/page";
 import EmployeeMorePage from "@/modules/employee/more/page";
 import EmployeePersonalNotePage from "@/modules/employee/personal-note/page";
+import EmployeeQnaPage from "@/modules/employee/qna/page";
 import EmployeeShiftPage from "@/modules/employee/shift/page";
 import EmployeeTasksPage from "@/modules/employee/tasks/page";
 import EmployeeTrainingPage from "@/modules/employee/training/page";
@@ -42,7 +43,6 @@ import SupervisorAnomaliesPage from "@/modules/supervisor/anomalies/page";
 import SupervisorPeoplePage from "@/modules/supervisor/people/page";
 import SupervisorHandoverPage from "@/modules/supervisor/handover/page";
 import SupervisorReportsPage from "@/modules/supervisor/reports/page";
-import SupervisorSettingsPage from "@/modules/supervisor/settings/page";
 import SupervisorTasksPage from "@/modules/supervisor/tasks/page";
 import SupervisorTrainingPage from "@/modules/supervisor/training/page";
 import SystemDashboardPage from "@/modules/system/dashboard-page";
@@ -225,6 +225,12 @@ function WorkbenchRouter() {
       <Route path="/supervisor/people">
         <SupervisorPeoplePage />
       </Route>
+      <Route path="/supervisor/facilities/:facilityKey">
+        {(params) => <SupervisorPeoplePage facilityKey={params.facilityKey} />}
+      </Route>
+      <Route path="/supervisor/facilities">
+        <SupervisorPeoplePage />
+      </Route>
       <Route path="/supervisor/handover">
         <SupervisorHandoverPage />
       </Route>
@@ -232,7 +238,7 @@ function WorkbenchRouter() {
         <SupervisorReportsPage />
       </Route>
       <Route path="/supervisor/settings">
-        <SupervisorSettingsPage />
+        <Redirect to="/supervisor" />
       </Route>
       <Route path="/supervisor/training">
         <SupervisorTrainingPage />
@@ -290,7 +296,7 @@ function WorkbenchRouter() {
         <EmployeePersonalNotePage />
       </Route>
       <Route path="/employee/qna">
-        <EmployeeMorePage />
+        <EmployeeQnaPage />
       </Route>
       <Route path="/employee/checkins">
         <EmployeeMorePage />
