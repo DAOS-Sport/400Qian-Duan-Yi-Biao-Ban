@@ -264,6 +264,22 @@ const readText = (value: unknown, fallback = "") => (typeof value === "string" &
 const isImageUrl = (value: unknown) =>
   typeof value === "string" && /\.(png|jpe?g|gif|webp|avif|svg)(\?.*)?$/i.test(value.trim());
 
+const toIsoStringOrNull = (value: Date | string | null | undefined) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+const formatEventRange = (item: { content?: string | null; eventStartAt?: Date | string | null; eventEndAt?: Date | string | null }) => {
+  const start = toIsoStringOrNull(item.eventStartAt);
+  const end = toIsoStringOrNull(item.eventEndAt);
+  if (start && end) {
+    return `${new Date(start).toLocaleDateString("zh-TW")} - ${new Date(end).toLocaleDateString("zh-TW")}`;
+  }
+  if (start) return new Date(start).toLocaleString("zh-TW");
+  return item.content || "未設定時間";
+};
+
 const isVideoUrl = (value: unknown) =>
   typeof value === "string" && /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(value.trim());
 
@@ -512,10 +528,13 @@ const buildEmployeeHomeFallback = async (
       id: `employee-event-${item.id}`,
       resourceId: item.id,
       title: item.title,
-      statusLabel: item.subCategory || "員工新增",
-      effectiveRange: item.content || "未設定時間",
+      statusLabel: item.eventCategory || item.subCategory || "員工新增",
+      effectiveRange: formatEventRange(item),
       linkUrl: item.url ?? undefined,
-      imageUrl: isImageUrl(item.url) ? item.url ?? undefined : undefined,
+      imageUrl: item.imageUrl ?? (isImageUrl(item.url) ? item.url ?? undefined : undefined),
+      eventCategory: item.eventCategory ?? item.subCategory ?? undefined,
+      startsAt: toIsoStringOrNull(item.eventStartAt),
+      endsAt: toIsoStringOrNull(item.eventEndAt),
     })),
     ...candidateAnnouncements
       .filter((item) => /活動|課程|營隊|報名|檔期/.test(`${item.title}${item.summary}`))
@@ -615,10 +634,13 @@ const getEmployeeResourceSections = async (facilityKey: string) => {
       id: `employee-event-${item.id}`,
       resourceId: item.id,
       title: item.title,
-      statusLabel: item.subCategory || "員工新增",
-      effectiveRange: item.content || "未設定時間",
+      statusLabel: item.eventCategory || item.subCategory || "員工新增",
+      effectiveRange: formatEventRange(item),
       linkUrl: item.url ?? undefined,
-      imageUrl: isImageUrl(item.url) ? item.url ?? undefined : undefined,
+      imageUrl: item.imageUrl ?? (isImageUrl(item.url) ? item.url ?? undefined : undefined),
+      eventCategory: item.eventCategory ?? item.subCategory ?? undefined,
+      startsAt: toIsoStringOrNull(item.eventStartAt),
+      endsAt: toIsoStringOrNull(item.eventEndAt),
     }));
   const documents: DocumentSummary[] = resources
     .filter((item) => item.category === "document")
@@ -1066,8 +1088,28 @@ export const registerBffRoutes = (app: Express, container: AppContainer) => {
         storage.listTasks({ facilityKey, limit: 100 }).catch(() => []),
         buildStaffingSummary(container, facilityKeys),
       ]);
+      const facilityWork = await Promise.all(facilityKeys.map(async (key) => {
+        const [facilityHandovers, facilityTasks] = await Promise.all([
+          storage.listOperationalHandovers({ facilityKey: key, limit: 50 }).catch(() => []),
+          storage.listTasks({ facilityKey: key, limit: 50 }).catch(() => []),
+        ]);
+        const staffingRow = staffing.byFacility?.find((row) => row.facilityKey === key);
+        const currentLead = staffing.currentOnDuty?.find((member) => member.facilityKey === key);
+        return {
+          facilityKey: key,
+          facilityName: facilityLabel(key),
+          area: findFacilityLineGroup(key)?.area ?? "未分類",
+          active: staffingRow?.active ?? 0,
+          onShift: staffingRow?.onShift ?? 0,
+          next: staffingRow?.next ?? 0,
+          openHandovers: facilityHandovers.filter((handover) => handover.status !== "done" && handover.status !== "cancelled").length,
+          incompleteTasks: facilityTasks.filter((task) => task.status !== "done" && task.status !== "cancelled").length,
+          currentLead,
+        };
+      }));
       return res.json({
         ...dashboard,
+        facilities: ok(facilityWork),
         staffing: ok(staffing),
         incompleteTasks: ok(tasks.filter((task) => task.status !== "done" && task.status !== "cancelled").map(mapTaskSummary)),
         handoverOverview: ok({

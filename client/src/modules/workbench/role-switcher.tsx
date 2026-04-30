@@ -3,28 +3,27 @@ import { LogOut } from "lucide-react";
 import type { WorkbenchRole } from "@shared/auth/me";
 import { roleHomePath, roleLabels } from "@shared/auth/me";
 import { cn } from "@/lib/utils";
-import { useAuthMe, useLogout, useSwitchRole } from "@/shared/auth/session";
+import { useAuthMe, useLogout } from "@/shared/auth/session";
 
 const roleOrder: readonly WorkbenchRole[] = ["employee", "supervisor", "system"];
 
 export function RoleSwitcher({ compact = false, visualActiveRole }: { compact?: boolean; visualActiveRole?: WorkbenchRole }) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { data: session } = useAuthMe();
-  const switchRole = useSwitchRole();
   const logout = useLogout();
 
   if (!session) return null;
-  const activeRole = visualActiveRole ?? session.activeRole;
+  const layoutRole: WorkbenchRole | undefined = location.toLowerCase().startsWith("/system")
+    ? "system"
+    : location.toLowerCase().startsWith("/supervisor")
+      ? "supervisor"
+      : location.toLowerCase().startsWith("/employee")
+        ? "employee"
+        : undefined;
+  const activeRole = visualActiveRole ?? layoutRole ?? session.activeRole;
 
   const goRole = (role: WorkbenchRole) => {
-    if (role === session.activeRole) {
-      setLocation(roleHomePath[role]);
-      return;
-    }
-
-    switchRole.mutate(role, {
-      onSuccess: () => setLocation(roleHomePath[role]),
-    });
+    setLocation(roleHomePath[role]);
   };
 
   return (
@@ -37,7 +36,6 @@ export function RoleSwitcher({ compact = false, visualActiveRole }: { compact?: 
               key={role}
               type="button"
               onClick={() => goRole(role)}
-              disabled={switchRole.isPending}
               className={cn(
                 "min-h-8 min-w-0 rounded-[6px] px-3 text-[12px] font-black transition",
                 compact && "flex-1 px-2 text-[11px]",
@@ -59,7 +57,7 @@ export function RoleSwitcher({ compact = false, visualActiveRole }: { compact?: 
         </button>
       ) : null}
       <span className="hidden text-[11px] font-bold text-[#8b9aae] xl:inline">
-        {session.displayName} · {roleLabels[session.activeRole]}
+        {session.displayName} · {roleLabels[activeRole]}
       </span>
     </div>
   );

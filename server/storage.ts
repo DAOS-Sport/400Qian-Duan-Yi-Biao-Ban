@@ -328,7 +328,7 @@ export class DatabaseStorage implements IStorage {
     const where = conditions.length > 0 ? and(...conditions) : undefined;
     const query = where ? db.select().from(employeeResources).where(where) : db.select().from(employeeResources);
     return query
-      .orderBy(desc(employeeResources.isPinned), asc(employeeResources.sortOrder), asc(employeeResources.scheduledAt), desc(employeeResources.createdAt))
+      .orderBy(desc(employeeResources.isPinned), asc(employeeResources.sortOrder), asc(employeeResources.eventStartAt), asc(employeeResources.scheduledAt), desc(employeeResources.createdAt))
       .limit(Math.min(opts.limit ?? 100, 200));
   }
 

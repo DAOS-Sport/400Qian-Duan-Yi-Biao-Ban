@@ -56,19 +56,19 @@ flowchart LR
 |---|---|---|---|---|---|---|
 | 首頁 | partial | 員工 | 已依示意圖重排 | `/api/bff/employee/home` | BFF 聚合 | 補真實資料與更多 empty/not_connected 邊界 |
 | 交辦事項 / 櫃台交接 | partial | 員工 / 主管 | 首頁卡 + 完整頁 + drawer | `/api/handover`, `/api/bff/employee/handover/*` | `operational_handovers` | 部署後驗證 DB 寫入與跨班排序 |
-| 活動檔期 / 課程快訊 | partial | 員工 / 主管 | 深藍活動卡片 | `employee_resources category=event` | Postgres | 圖片 URL、分類、詳情頁可再強化 |
+| 活動檔期 / 課程快訊 | partial -> usable | 員工 / 主管 | 深藍活動卡片 + 詳情頁 | `employee_resources category=event` | Postgres | 部署套用 `0004` 後驗證圖片 URL、起訖時間與詳情頁 |
 | 常用文件 | partial -> usable | 員工 | Notion-like link database | `/api/portal/employee-resources` | `employee_resources category=document` | 部署驗證新增分類、排序、點名報到 deep link |
 | 個人工作記事 / 便利貼 | partial -> usable | 員工 | 快速新增 drawer + 完整頁 | `/api/portal/employee-resources` | `employee_resources category=sticky_note` | 部署驗證選填日期時間、手機體驗 |
 | 相關問題詢問 | planned | 員工 / 主管 | 入口存在 | 未接正式 API | none | 不建立 RAG 前先做 FAQ CRUD |
 | 點名 / 報到 | deep-link utility | 員工 | 從主導覽移除 | 仍保留 `/employee/checkins` | 外部 / 未接線 | 由常用文件連結進入 |
 | 今日班表 | external / partial | 員工 | 首頁預覽卡 | `/api/bff/employee/shifts/today` | Smart Schedule | 接 Replit / schedule source 後驗證 |
-| 員工教材 | next module | 員工 / 主管 / IT | 尚未建立 | 建議沿用 employee_resources + portal_events | Postgres | 下一輪施工 |
+| 員工教材 | usable / pending Replit flow | 員工 / 主管 / IT | 員工查閱、主管管理、system 觀看紀錄 | `employee_resources category=training` + `ui_events` | Postgres | Replit 已通過後持續補 UI polish |
 
 ## 4. 主管端施工狀態
 
 | 模組 | 目前狀態 | 作用 | 下一步 |
 |---|---|---|---|
-| 主管首頁 | partial | 主管摘要與任務視角 | 補真實 staffing / handover / tasks 聚合 |
+| 主管首頁 | partial -> usable overview | 主管摘要、授權場館 overview、主理人、人力、交辦與任務摘要 | 補 facility detail 下鑽頁 |
 | 任務 | partial | 主管派發與管理同館 task | 部署 DB 驗證 |
 | 公告 | partial | 公告治理與發布 | 收斂審核流程與員工已讀狀態 |
 | 櫃台交接 | partial | 主管查看與管理交接 | 補篩選與跨館權限 |
@@ -151,6 +151,10 @@ flowchart LR
 - Phase 1 教材閉環 smoke：`scripts/module-smoke.ts` 已檢查員工端送出穩定 string `resourceId`，以及 telemetry 報表相容舊 number payload。
 - Phase 1 教材部署驗收腳本：`npm run check:training-flow` 已新增，部署後用登入 Cookie 驗證「新增教材 -> employee BFF -> TRAINING_VIEW -> system 報表 -> 清理測試教材」。
 - Phase 1 UIUX 第一輪：對照 `ui-ux-pro-max` 與 Vercel Web Interface Guidelines，補強 Employee shell/home/documents/personal-note 的焦點狀態、表單 name、placeholder ellipsis、內部常用文件連結 SPA 導航與手機底部導覽文字保護。
+- Phase 0 Replit Gate：commit `94dd613` 已完成部署驗證；`ui_events`、`client_errors`、`audit_logs` 三表真實寫入通過。
+- Phase 1 T1.1/T1.3：新增 `docs/audits/employee-ui-consistency.md`；活動檔期新增圖片 URL、事件分類、起訖時間與 `/employee/activity-periods/:id` 詳情模式，並新增 `migrations/0004_employee_resource_event_metadata.sql`。
+- Phase 2 T2.1：RoleSwitcher 改為路由跳轉；`/employee/*`、`/supervisor/*`、`/system/*` 由 URL + `grantedRoles` 決定可進入 layout，進入後再同步 `activeRole` 給既有 BFF。
+- Phase 2 T2.2：主管首頁新增授權場館 overview grid；BFF 回傳各館人力、當班主理人、未完成交辦與任務摘要，不新增表。
 
 `check:training-flow` 使用方式：
 
@@ -174,4 +178,4 @@ TRAINING_FLOW_COOKIE='connect.sid=...' npm run check:training-flow
 
 1. Replit DB migration / 實資料 smoke：部署 DB 後跑常用文件、便利貼、教材觀看、異常收件者新增更新，並查 `audit_logs` 對應 row。
 2. `/employee` browser multi-viewport review：桌機、平板、手機確認無橫向捲動、抽屜不跳動、底部導覽不溢出。
-3. 活動檔期圖片卡片：Phase 1 補圖片 URL、分類、詳情頁。
+3. 活動檔期 Replit 驗收：套用 `0004_employee_resource_event_metadata.sql`，新增一筆含圖片 URL / 詳情 URL / 起訖時間的活動，確認列表與詳情頁都正常。

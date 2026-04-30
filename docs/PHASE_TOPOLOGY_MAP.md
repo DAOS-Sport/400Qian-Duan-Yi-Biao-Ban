@@ -111,13 +111,13 @@ flowchart TD
 - `0.1.5`：五棒 domain writes 成功後補 `recordAudit()`，涵蓋 `quick_links`、`employee_resources`、`operational_handovers`、`system_announcements`、`tasks update/status` 共 11 個寫入點
 - `0.1.6`：`tasks create` 改走 `withTaskCreateMetadata()`，成功建立後補 `TASK_CREATED` audit；`audit-writer.ts` 移除未接線 reserved writer，只保留 repository 使用的 `AuditEventInput`
 - `Phase 0 Closure Batch`：`handover_entries` create、`anomaly_reports` create/resolve/batch resolve、`notification_recipients` create/update/delete 已補 audit；`HANDOVER_ENTRY_UPDATED` 因無 update endpoint 標記 skipped
+- `Phase 0 Replit Gate`：commit `94dd613` 已由部署環境驗證通過；`ui_events`、`client_errors`、`audit_logs` 三表皆完成真實寫入，`CLIENT_ERROR_REPORTED` audit row 已確認 actor / role / facility / correlation_id。
 - `Phase 1 UIUX 第一輪`：Employee 首頁 / shell / documents / notes 補焦點狀態、表單 name、placeholder ellipsis、內部文件連結 SPA 導航、手機底部導覽文字截斷保護
 
 下一個 Phase 0 候選：
 
-1. Replit DB migration 驗證：確認 `0003_domain_5w1h_metadata.sql` 已套用到部署資料庫。
-2. 寫入路徑實資料驗收：常用文件、便利貼、交辦、公告、任務、異常收件者、異常回報逐一新增/更新/處理，並查 `audit_logs` 是否有對應 row。
-3. 權限 guard 收斂：legacy 管理 API 逐步加上 supervisor/system guard。
+1. 權限 guard 收斂：legacy 管理 API 逐步加上 supervisor/system guard。
+2. 後續 DB migration 驗證：從 Phase 1 起每個新增 migration 都必須在 Replit 套用並查真實 row。
 
 Phase 0 出口條件：
 
@@ -159,6 +159,8 @@ flowchart TD
 已完成註記：
 
 - `Employee UIUX 第一輪`：對照 `ui-ux-pro-max` 與 Vercel Web Interface Guidelines，補強焦點狀態、表單可及性、SPA 內部文件連結、手機導覽長文字保護與 loading ellipsis。
+- `T1.1 Employee UI Audit`：新增 `docs/audits/employee-ui-consistency.md`，記錄 `/employee/*` 頁面盤點、已修項與殘留 UI debt。
+- `T1.3 活動卡片強化`：`employee_resources` 補 `image_url/event_category/event_start_at/event_end_at` nullable 欄位，Employee BFF `CampaignSummary` 補圖片、類型、起訖時間，`/employee/activity-periods/:id` 新增詳情模式。
 
 Phase 1 出口條件：
 
@@ -199,6 +201,11 @@ Phase 2 出口條件：
 - supervisor BFF 只回授權場館。
 - 主管可管理公告、任務、交辦，但不污染員工個人資料。
 - 公告有已讀 / 確認狀態，員工端只讀。
+
+已完成註記：
+
+- `T2.1 Supervisor Layout Refactor`：Role tabs 改為 URL navigation；`WorkbenchAuthGate` 依 URL + `grantedRoles` 做前端 route guard，進入授權 layout 後同步 `activeRole`，維持既有 BFF 相容。
+- `T2.2 Supervisor Home Overview`：`/api/bff/supervisor/dashboard` 新增 authorized facility overview section，主管首頁先顯示各館主理人、人力、未完成交辦與任務，detail 下鑽留後續。
 
 ## 6. Phase 3：系統配置與觀測
 

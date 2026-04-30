@@ -18,6 +18,10 @@ export interface EmployeeResourceDTO {
   title: string;
   content: string | null;
   url: string | null;
+  imageUrl: string | null;
+  eventCategory: string | null;
+  eventStartAt: string | null;
+  eventEndAt: string | null;
   isPinned: boolean;
   sortOrder: number;
   scheduledAt: string | null;
@@ -130,6 +134,10 @@ export const createEmployeeResource = (input: {
   title: string;
   content?: string;
   url?: string;
+  imageUrl?: string | null;
+  eventCategory?: string | null;
+  eventStartAt?: string | null;
+  eventEndAt?: string | null;
   isPinned?: boolean;
   sortOrder?: number;
   scheduledAt?: string | null;
@@ -146,6 +154,10 @@ export const updateEmployeeResource = (id: number, input: Partial<{
   subCategory: string | null;
   content: string | null;
   url: string | null;
+  imageUrl: string | null;
+  eventCategory: string | null;
+  eventStartAt: string | null;
+  eventEndAt: string | null;
   isPinned: boolean;
   sortOrder: number;
   scheduledAt: string | null;

@@ -210,7 +210,7 @@ export default function EmployeeTrainingPage() {
               <div>
                 <BookOpen className="mx-auto h-12 w-12 text-[#9aa8ba]" />
                 <p className="mt-3 text-[18px] font-black text-[#10233f]">尚未建立員工教材</p>
-                <p className="mt-1 text-[13px] font-bold text-[#637185]">教材資料來源已接 employee_resources / training；沒有資料時不補假內容。</p>
+                <p className="mt-1 text-[13px] font-bold text-[#637185]">主管或 IT 放上教材後，會顯示在這裡。</p>
               </div>
             </WorkbenchCard>
           )}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ExternalLink, Image as ImageIcon, Plus } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock, ExternalLink, Image as ImageIcon, Link as LinkIcon, Plus } from "lucide-react";
+import { Link } from "wouter";
 import type { CampaignSummary } from "@shared/domain/workbench";
 import { EmployeeShell } from "@/modules/employee/employee-shell";
 import { createEmployeeResource, fetchEmployeeHome } from "@/modules/employee/home/api";
@@ -23,6 +24,9 @@ const creatableTypes: Array<{ key: Exclude<ActivityFilter, "all">; label: string
 );
 
 const classifyCampaign = (campaign: CampaignSummary): Exclude<ActivityFilter, "all"> => {
+  if (campaign.eventCategory === "promotion" || campaign.eventCategory === "course" || campaign.eventCategory === "activity") {
+    return campaign.eventCategory;
+  }
   const text = `${campaign.title} ${campaign.statusLabel} ${campaign.effectiveRange}`.toLowerCase();
   if (/促銷|折|券|優惠|promotion|sale/.test(text)) return "promotion";
   if (/課程|教學|家教|營隊|course|class/.test(text)) return "course";
@@ -41,12 +45,32 @@ const badgeClassByType: Record<Exclude<ActivityFilter, "all">, string> = {
   activity: "bg-[#0d2f75] text-[#67a3ff]",
 };
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("zh-TW", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+};
+
 const getDateLabel = (campaign: CampaignSummary) => {
+  if (campaign.startsAt && campaign.endsAt) return `${formatDateTime(campaign.startsAt)} - ${formatDateTime(campaign.endsAt)}`;
+  if (campaign.startsAt) return formatDateTime(campaign.startsAt);
   const match = campaign.effectiveRange.match(/\d{1,2}\/\d{1,2}(?:\s*[-–]\s*\d{1,2}\/\d{1,2})?|\d{4}[-/]\d{1,2}[-/]\d{1,2}/);
   return match?.[0] ?? campaign.effectiveRange ?? "未設定";
 };
 
 const isImageUrl = (value: string | undefined) => Boolean(value && /\.(png|jpe?g|gif|webp|avif|svg)(\?.*)?$/i.test(value.trim()));
+
+const toIsoOrNull = (value: string) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
 
 function ActivityCard({ campaign, onChanged }: { campaign: CampaignSummary; onChanged: () => void }) {
   const type = classifyCampaign(campaign);
@@ -74,14 +98,10 @@ function ActivityCard({ campaign, onChanged }: { campaign: CampaignSummary; onCh
             <CalendarDays className="h-4 w-4 text-[#8eb5ff]" />
             {getDateLabel(campaign)}
           </span>
-          {linkUrl ? (
-            <a href={linkUrl} target="_blank" rel="noreferrer" className="workbench-focus inline-flex min-h-8 items-center gap-1 rounded-[6px] px-2 text-[12px] font-black text-white hover:text-[#9dd84f]">
-              查看詳情
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          ) : (
-            <span className="text-[12px] font-black text-white/60">尚未綁定網址</span>
-          )}
+          <Link href={`/employee/activity-periods/${encodeURIComponent(campaign.id)}`} className="workbench-focus inline-flex min-h-8 items-center gap-1 rounded-[6px] px-2 text-[12px] font-black text-white hover:text-[#9dd84f]">
+            查看詳情
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
         </div>
         {linkUrl ? <p className="mt-2 truncate text-[11px] font-bold text-white/50">綁定網址：{linkUrl}</p> : null}
         <EmployeeResourceActions
@@ -97,13 +117,78 @@ function ActivityCard({ campaign, onChanged }: { campaign: CampaignSummary; onCh
   );
 }
 
-export default function EmployeeActivityPeriodsPage() {
+function ActivityDetail({
+  campaign,
+  onChanged,
+}: {
+  campaign: CampaignSummary;
+  onChanged: () => void;
+}) {
+  const type = classifyCampaign(campaign);
+  const imageUrl = campaign.imageUrl ?? (isImageUrl(campaign.linkUrl) ? campaign.linkUrl : undefined);
+  return (
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <article className="overflow-hidden rounded-[8px] border border-[#dfe7ef] bg-white shadow-[0_18px_40px_-34px_rgba(15,34,58,0.65)]">
+        <div
+          className={cn("relative min-h-[280px] bg-[#0d2a50]", imageUrl ? "bg-cover bg-center" : "")}
+          style={imageUrl ? { backgroundImage: `linear-gradient(90deg, rgba(13,42,80,0.96), rgba(13,42,80,0.72)), url("${imageUrl}")` } : undefined}
+        >
+          <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
+            <span className={cn("w-fit rounded-[6px] px-2 py-1 text-[12px] font-black", badgeClassByType[type])}>{labelByType[type]}</span>
+            <h2 className="mt-4 max-w-3xl text-balance text-[32px] font-black leading-tight">{campaign.title}</h2>
+            <p className="mt-3 flex flex-wrap items-center gap-2 text-[13px] font-bold text-[#c7d4e5]">
+              <Clock className="h-4 w-4" />
+              {getDateLabel(campaign)}
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-4 p-6">
+          <section className="rounded-[8px] border border-[#dfe7ef] bg-[#f8fafc] p-4">
+            <p className="text-[12px] font-black uppercase tracking-[0.14em] text-[#8b9aae]">Event Window</p>
+            <p className="mt-2 text-[15px] font-bold leading-7 text-[#10233f]">{campaign.effectiveRange || "未設定活動時間"}</p>
+          </section>
+          {campaign.linkUrl ? (
+            <a
+              href={campaign.linkUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="workbench-focus inline-flex min-h-11 w-fit items-center gap-2 rounded-[8px] bg-[#0d2a50] px-4 text-[13px] font-black text-white hover:bg-[#173d6d]"
+            >
+              查看詳情
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          ) : (
+            <div className="rounded-[8px] bg-[#f7f9fb] p-4 text-[13px] font-bold text-[#637185]">尚未綁定外部網址。</div>
+          )}
+        </div>
+      </article>
+      <WorkbenchCard className="h-fit p-5">
+        <div className="border-l-4 border-[#16b6b1] pl-3">
+          <h3 className="text-[18px] font-black text-[#10233f]">管理這筆快訊</h3>
+          <p className="mt-1 text-[12px] font-bold text-[#637185]">只允許建立者或主管編輯。</p>
+        </div>
+        <EmployeeResourceActions
+          resourceId={campaign.resourceId}
+          title={campaign.title}
+          content={campaign.effectiveRange}
+          url={campaign.linkUrl}
+          onChanged={onChanged}
+          className="mt-4"
+        />
+      </WorkbenchCard>
+    </div>
+  );
+}
+
+export default function EmployeeActivityPeriodsPage({ activityId }: { activityId?: string }) {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<ActivityFilter>("all");
   const [title, setTitle] = useState("");
   const [type, setType] = useState<Exclude<ActivityFilter, "all">>("activity");
-  const [dateRange, setDateRange] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
   const [url, setUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const homeQuery = useQuery({
     queryKey: ["/api/bff/employee/home", "activity-periods"],
     queryFn: fetchEmployeeHome,
@@ -120,6 +205,7 @@ export default function EmployeeActivityPeriodsPage() {
     active: campaigns.filter((campaign) => !/即將|未開始|upcoming/i.test(campaign.statusLabel)).length,
     upcoming: campaigns.filter((campaign) => /即將|未開始|upcoming/i.test(campaign.statusLabel)).length,
   }), [campaigns]);
+  const selectedCampaign = activityId ? campaigns.find((campaign) => campaign.id === activityId) : undefined;
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/bff/employee/home"] });
@@ -132,22 +218,49 @@ export default function EmployeeActivityPeriodsPage() {
         facilityKey,
         category: "event",
         subCategory: labelByType[type],
+        eventCategory: type,
         title: title.trim(),
-        content: dateRange.trim() || undefined,
+        content: [startsAt, endsAt].filter(Boolean).join(" - ") || undefined,
         url: url.trim() || undefined,
+        imageUrl: imageUrl.trim() || undefined,
+        eventStartAt: toIsoOrNull(startsAt),
+        eventEndAt: toIsoOrNull(endsAt),
         sortOrder: campaigns.length + 1,
       }),
     onSuccess: () => {
       setTitle("");
       setType("activity");
-      setDateRange("");
+      setStartsAt("");
+      setEndsAt("");
       setUrl("");
+      setImageUrl("");
       invalidate();
     },
   });
 
   return (
     <EmployeeShell title="活動檔期" subtitle={`共 ${stats.total} 檔・進行中 ${stats.active}・即將上線 ${stats.upcoming}`}>
+      {activityId ? (
+        <div className="mb-4">
+          <Link href="/employee/activity-periods" className="workbench-focus inline-flex min-h-9 items-center gap-2 rounded-[8px] border border-[#dfe7ef] bg-white px-3 text-[12px] font-black text-[#536175]">
+            <ArrowLeft className="h-4 w-4" />
+            返回活動列表
+          </Link>
+        </div>
+      ) : null}
+      {activityId && !homeQuery.isLoading ? (
+        selectedCampaign ? (
+          <ActivityDetail campaign={selectedCampaign} onChanged={invalidate} />
+        ) : (
+          <WorkbenchCard className="grid min-h-[260px] place-items-center p-6 text-center">
+            <div>
+              <CalendarDays className="mx-auto h-10 w-10 text-[#9aa8ba]" />
+              <p className="mt-3 text-[16px] font-black text-[#10233f]">找不到活動檔期</p>
+              <p className="mt-1 text-[12px] font-bold text-[#8b9aae]">這筆活動可能已被刪除或不在目前館別。</p>
+            </div>
+          </WorkbenchCard>
+        )
+      ) : (
       <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
         <div className="min-w-0">
           <div className="mb-5 flex flex-wrap items-center justify-end gap-2">
@@ -180,7 +293,7 @@ export default function EmployeeActivityPeriodsPage() {
                 <CalendarDays className="mx-auto h-10 w-10 text-[#9aa8ba]" />
                 <p className="mt-3 text-[16px] font-black text-[#10233f]">目前沒有活動檔期</p>
                 <p className="mt-1 text-[12px] font-bold text-[#8b9aae]">
-                  活動檔期已接員工資源與 campaigns BFF；沒有資料時不補假活動。
+                  有新的活動或課程快訊時會顯示在這裡。
                 </p>
               </div>
             </div>
@@ -190,7 +303,7 @@ export default function EmployeeActivityPeriodsPage() {
         <WorkbenchCard className="h-fit p-5">
           <div className="border-l-4 border-[#16b6b1] pl-3">
             <h2 className="text-[18px] font-black text-[#10233f]">新增活動 / 課程快訊</h2>
-            <p className="mt-1 text-[12px] font-bold text-[#637185]">場館：{facilityKey}</p>
+          <p className="mt-1 text-[12px] font-bold text-[#637185]">場館：{facilityKey}</p>
           </div>
           <div className="mt-4 grid gap-3">
             <label className="grid gap-1 text-[12px] font-black text-[#536175]">
@@ -204,12 +317,26 @@ export default function EmployeeActivityPeriodsPage() {
               </select>
             </label>
             <label className="grid gap-1 text-[12px] font-black text-[#536175]">
-              日期 / 期間
-              <input value={dateRange} onChange={(event) => setDateRange(event.target.value)} className="min-h-10 rounded-[8px] border border-[#cfd9e5] bg-white px-3 text-[13px] text-[#10233f] outline-none focus:border-[#0d2a50]" />
+              開始時間
+              <input type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} className="min-h-10 rounded-[8px] border border-[#cfd9e5] bg-white px-3 text-[13px] text-[#10233f] outline-none focus:border-[#0d2a50]" />
             </label>
             <label className="grid gap-1 text-[12px] font-black text-[#536175]">
-              網址 / 圖片網址
-              <input value={url} onChange={(event) => setUrl(event.target.value)} className="min-h-10 rounded-[8px] border border-[#cfd9e5] bg-white px-3 text-[13px] text-[#10233f] outline-none focus:border-[#0d2a50]" />
+              結束時間
+              <input type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} className="min-h-10 rounded-[8px] border border-[#cfd9e5] bg-white px-3 text-[13px] text-[#10233f] outline-none focus:border-[#0d2a50]" />
+            </label>
+            <label className="grid gap-1 text-[12px] font-black text-[#536175]">
+              詳情網址
+              <div className="flex min-h-10 items-center gap-2 rounded-[8px] border border-[#cfd9e5] bg-white px-3">
+                <LinkIcon className="h-4 w-4 shrink-0 text-[#8b9aae]" />
+                <input value={url} onChange={(event) => setUrl(event.target.value)} className="min-w-0 flex-1 bg-transparent text-[13px] text-[#10233f] outline-none" />
+              </div>
+            </label>
+            <label className="grid gap-1 text-[12px] font-black text-[#536175]">
+              圖片網址
+              <div className="flex min-h-10 items-center gap-2 rounded-[8px] border border-[#cfd9e5] bg-white px-3">
+                <ImageIcon className="h-4 w-4 shrink-0 text-[#8b9aae]" />
+                <input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} className="min-w-0 flex-1 bg-transparent text-[13px] text-[#10233f] outline-none" />
+              </div>
             </label>
             <button
               type="button"
@@ -224,6 +351,7 @@ export default function EmployeeActivityPeriodsPage() {
           </div>
         </WorkbenchCard>
       </div>
+      )}
     </EmployeeShell>
   );
 }

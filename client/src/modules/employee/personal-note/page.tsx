@@ -55,7 +55,7 @@ export default function EmployeePersonalNotePage() {
   });
 
   return (
-    <EmployeeShell title="個人工作記事" subtitle="便利貼由員工自建，顯示在員工首頁摘要卡">
+    <EmployeeShell title="個人工作記事" subtitle="">
       <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
         <WorkbenchCard className="p-5">
           <div className="mb-4 flex items-center justify-between gap-3">

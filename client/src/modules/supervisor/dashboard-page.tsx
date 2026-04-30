@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, CalendarDays, CheckSquare, ClipboardList, Eye, Megaphone, PanelTop, Users } from "lucide-react";
+import { AlertCircle, CalendarDays, CheckSquare, ClipboardList, Eye, MapPin, Megaphone, PanelTop, Users } from "lucide-react";
 import type { SupervisorDashboardDto } from "@shared/domain/workbench";
 import { apiGet } from "@/shared/api/client";
 import { WorkbenchCard } from "@/shared/ui-kit/workbench-card";
@@ -93,6 +93,52 @@ function LayoutControls({
   );
 }
 
+function FacilityOverviewGrid({ data }: { data: SupervisorDashboardDto }) {
+  const facilities = data.facilities?.data ?? [];
+  if (!facilities.length) return null;
+
+  return (
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {facilities.map((facility) => (
+        <WorkbenchCard key={facility.facilityKey} className="p-4 transition hover:-translate-y-0.5 hover:shadow-[0_20px_42px_-34px_rgba(13,42,80,0.75)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="inline-flex items-center gap-1 rounded-full bg-[#eef5ff] px-2 py-1 text-[10px] font-black text-[#2f6fe8]">
+                <MapPin className="h-3 w-3" />
+                {facility.area}
+              </p>
+              <h2 className="mt-3 line-clamp-2 text-[17px] font-black leading-tight text-[#10233f]">{facility.facilityName}</h2>
+              <p className="mt-2 text-[12px] font-bold text-[#637185]">
+                主理人：{facility.currentLead?.name ?? "尚未接班"}
+              </p>
+            </div>
+            <span className={cn(
+              "rounded-[6px] px-2 py-1 text-[10px] font-black",
+              facility.onShift > 0 ? "bg-[#eaf8ef] text-[#15935d]" : "bg-[#fff4e6] text-[#ef7d22]",
+            )}>
+              {facility.onShift > 0 ? "營運中" : "待排班"}
+            </span>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 border-t border-[#edf1f6] pt-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#8b9aae]">Active</p>
+              <p className="mt-1 text-[18px] font-black text-[#15935d]">{facility.active}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#8b9aae]">Handover</p>
+              <p className="mt-1 text-[18px] font-black text-[#0d2a50]">{facility.openHandovers}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#8b9aae]">Tasks</p>
+              <p className="mt-1 text-[18px] font-black text-[#ef7d22]">{facility.incompleteTasks}</p>
+            </div>
+          </div>
+        </WorkbenchCard>
+      ))}
+    </div>
+  );
+}
+
 export default function SupervisorDashboardPage() {
   const { data, isLoading } = useQuery({ queryKey: ["/api/bff/supervisor/dashboard"], queryFn: fetchSupervisorDashboard });
   const [layout, setLayout] = useState<LayoutState>(defaultLayout);
@@ -109,6 +155,8 @@ export default function SupervisorDashboardPage() {
         <div className="rounded-[8px] bg-white p-6 text-[14px] font-bold text-[#637185]">載入主管控制台...</div>
       ) : (
         <div className="space-y-4">
+          <FacilityOverviewGrid data={data} />
+
           {layout.kpis ? (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <Kpi title="當班人力" value={`${data.staffing.data?.active ?? 0} / ${data.staffing.data?.total ?? 0}`} helper={`在班 ${data.staffing.data?.onShift ?? 0} 人　缺班 ${data.staffing.data?.absent ?? 0} 人`} icon={Users} tone="text-[#15935d]" />

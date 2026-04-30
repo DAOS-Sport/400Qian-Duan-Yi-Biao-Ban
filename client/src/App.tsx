@@ -53,8 +53,8 @@ import SystemRawInspectorPage from "@/modules/system/raw-inspector/page";
 import SystemTrainingViewsPage from "@/modules/system/training-views/page";
 import WorkbenchLoginPage from "@/modules/workbench/login-page";
 import { DreamLoader } from "@/shared/ui-kit/dream-loader";
-import { useAuthMe } from "@/shared/auth/session";
-import { roleHomePath } from "@shared/auth/me";
+import { useAuthMe, useSwitchRole } from "@/shared/auth/session";
+import { roleHomePath, type AuthMeDto, type WorkbenchRole } from "@shared/auth/me";
 import { usePortalAuth } from "@/hooks/use-bound-facility";
 import { getFacilityConfig } from "@/config/facility-configs";
 import { apiPost } from "@/shared/api/client";
@@ -271,6 +271,9 @@ function WorkbenchRouter() {
       <Route path="/employee/shift">
         <EmployeeShiftPage />
       </Route>
+      <Route path="/employee/activity-periods/:id">
+        {(params) => <EmployeeActivityPeriodsPage activityId={params.id} />}
+      </Route>
       <Route path="/employee/activity-periods">
         <EmployeeActivityPeriodsPage />
       </Route>
@@ -302,8 +305,41 @@ function WorkbenchRouter() {
   );
 }
 
+const routeRoleFromLocation = (location: string): WorkbenchRole | null => {
+  const normalized = location.toLowerCase();
+  if (normalized === "/employee" || normalized.startsWith("/employee/") || normalized === "/employee/home" || normalized === "/employee".toLowerCase()) return "employee";
+  if (normalized === "/supervisor" || normalized.startsWith("/supervisor/")) return "supervisor";
+  if (normalized === "/system" || normalized.startsWith("/system/")) return "system";
+  if (normalized === "/employee" || normalized === "/supervisor" || normalized === "/system") return normalized.slice(1) as WorkbenchRole;
+  return null;
+};
+
+const canAccessWorkbenchRole = (session: AuthMeDto, role: WorkbenchRole) => {
+  if (role === "system") return session.grantedRoles.includes("system");
+  if (role === "supervisor") return session.grantedRoles.includes("supervisor") || session.grantedRoles.includes("system");
+  return session.grantedRoles.includes("employee") || session.grantedRoles.includes("supervisor") || session.grantedRoles.includes("system");
+};
+
+const firstAllowedWorkbenchPath = (session: AuthMeDto) => {
+  if (session.grantedRoles.includes("system")) return roleHomePath.system;
+  if (session.grantedRoles.includes("supervisor")) return roleHomePath.supervisor;
+  return roleHomePath.employee;
+};
+
 function WorkbenchAuthGate() {
   const { data: session, isLoading, isError } = useAuthMe();
+  const [location] = useLocation();
+  const switchRole = useSwitchRole();
+  const routeRole = session ? routeRoleFromLocation(location) : null;
+
+  useEffect(() => {
+    if (!session || !routeRole) return;
+    if (!canAccessWorkbenchRole(session, routeRole)) return;
+    if (session.activeRole === routeRole) return;
+    if (!session.grantedRoles.includes(routeRole)) return;
+    if (switchRole.isPending) return;
+    switchRole.mutate(routeRole);
+  }, [location, routeRole, session, switchRole]);
 
   if (isLoading) {
     return (
@@ -315,6 +351,10 @@ function WorkbenchAuthGate() {
 
   if (isError || !session) {
     return <Redirect to="/login" />;
+  }
+
+  if (routeRole && !canAccessWorkbenchRole(session, routeRole)) {
+    return <Redirect to={firstAllowedWorkbenchPath(session)} />;
   }
 
   return <WorkbenchRouter />;

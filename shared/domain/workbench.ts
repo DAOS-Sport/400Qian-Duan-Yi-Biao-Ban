@@ -164,6 +164,9 @@ export interface CampaignSummary {
   effectiveRange: string;
   linkUrl?: string;
   imageUrl?: string;
+  eventCategory?: "promotion" | "course" | "activity" | string;
+  startsAt?: string | null;
+  endsAt?: string | null;
 }
 
 export interface DocumentSummary {
@@ -270,8 +273,21 @@ export interface SupervisorAnomalySummary {
   priority: "high" | "medium" | "low";
 }
 
+export interface SupervisorFacilityOverview {
+  facilityKey: string;
+  facilityName: string;
+  area: string;
+  active: number;
+  onShift: number;
+  next: number;
+  openHandovers: number;
+  incompleteTasks: number;
+  currentLead?: StaffMemberSummary;
+}
+
 export interface SupervisorDashboardDto {
   facility: FacilitySummary;
+  facilities?: BffSection<SupervisorFacilityOverview[]>;
   staffing: BffSection<SupervisorStaffingSummary>;
   pendingAnomalies: BffSection<SupervisorAnomalySummary[]>;
   incompleteTasks: BffSection<TaskSummary[]>;
