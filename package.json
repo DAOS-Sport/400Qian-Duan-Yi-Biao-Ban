@@ -4,13 +4,16 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "NODE_ENV=development tsx server/index.ts",
-    "build": "tsx script/build.ts",
+    "dev": "node scripts/run-toolchain.cjs env NODE_ENV=development tsx server/index.ts",
+    "build": "node scripts/run-toolchain.cjs tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
-    "check": "tsc",
-    "type-check": "tsc",
-    "check:modules": "tsx scripts/module-registry-check.ts",
-    "smoke:modules": "tsx scripts/module-smoke.ts",
+    "check": "node scripts/run-toolchain.cjs tsc",
+    "type-check": "node scripts/run-toolchain.cjs tsc",
+    "check:modules": "node scripts/run-toolchain.cjs tsx scripts/module-registry-check.ts",
+    "smoke:modules": "node scripts/run-toolchain.cjs tsx scripts/module-smoke.ts",
+    "check:training-flow": "node scripts/run-toolchain.cjs tsx scripts/training-flow-check.ts",
+    "check:ragic-h05": "node scripts/run-toolchain.cjs tsx scripts/ragic-h05-check.ts",
+    "check:ragic-coaching": "node scripts/run-toolchain.cjs tsx scripts/ragic-private-coaching-check.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
